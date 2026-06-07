@@ -1,0 +1,3 @@
+# Coloque seus .txt, .md ou .pdf aqui.
+# O agente responde com base neles (RAG local), mas o conteúdo e o índice
+# (docs_index.json) são pessoais e ficam de fora do repositório (.gitignore).

@@ -13,6 +13,9 @@ so you do not clone a huge folder.
 - Local memory of facts, plus access to all past conversations
 - Screen awareness via OCR, an editable knowledge graph, proactive messages
   and offline Wikipedia
+- Ask about your own files: drop .txt, .md or .pdf in a folder and the agent
+  answers from them (local RAG with nomic-embed-text)
+- One click backup: export and restore your memory, graph and conversations
 - Light and dark theme, and three interface languages (PT, EN, ES)
 - Every skill can be toggled on or off at any time
 - Master switch to pause all background activity (no screenshots, no learning)
@@ -58,4 +61,5 @@ pip install -r requirements.txt
 
 Everything runs locally through Ollama on 127.0.0.1. No telemetry, no cloud,
 no account. Your data (config.json, conversas.json, memoria.json, grafo.json,
-prints) stays only on your machine and is listed in .gitignore.
+prints, docs and docs_index.json) stays only on your machine and is listed in
+.gitignore.

@@ -52,6 +52,7 @@ CONFIG_PADRAO = {
         "grafo":      False,   # monta um grafo de conhecimento do que vê/conversa
         "iniciativa": False,   # fala sozinho quando faz sentido
         "wikipedia":  False,   # consulta a Wikipédia offline (precisa de um .zim em /wiki)
+        "documentos": False,   # responde com base nos seus arquivos em /docs (RAG local)
     },
 }
 

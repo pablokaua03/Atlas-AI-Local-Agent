@@ -168,7 +168,10 @@
   <h2 id="h-skills">Habilidades</h2><div id="skills"></div>
   <h2 id="h-init">Inicialização</h2><div id="initBox"></div>
   <h2 id="h-folder">Arquivos</h2>
-  <button id="abrirPasta" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px"></button>
+  <button id="abrirPasta" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px"></button>
+  <button id="btnExport" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;margin-bottom:8px"></button>
+  <button id="btnImport" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px"></button>
+  <input type="file" id="importFile" accept=".zip" style="display:none">
   <div class="foot" id="foot"></div>
 </div>
 
@@ -193,6 +196,12 @@ const I18N={
    sk_grafo:"Grafo",sk_grafo_d:"monta um grafo do que vê e conversa",
    sk_iniciativa:"Iniciativa",sk_iniciativa_d:"fala sozinho quando faz sentido",
    sk_wikipedia:"Wikipédia",sk_wikipedia_d:"consulta a Wikipédia offline",
+   sk_documentos:"Documentos",sk_documentos_d:"responde com base nos seus arquivos",
+   docsOpen:"📁 Abrir pasta de documentos",docsReindex:"🔄 Reindexar",docsIndexing:"indexando…",
+   docsEmpty:"Coloque .txt, .md ou .pdf na pasta e clique em Reindexar.",
+   docsStat:"{n} arquivo(s) · {c} trecho(s) indexado(s)",
+   bkExport:"⬇ Exportar tudo (backup)",bkImport:"⬆ Restaurar backup",bkExporting:"gerando…",
+   bkImporting:"restaurando…",bkDone:"✓ restaurado",bkConfirm:"Restaurar o backup vai sobrescrever memória, grafo e conversas atuais. Continuar?",
    autostart:"Iniciar com o Windows",autostart_d:"abre o agente sozinho ao ligar o PC",
    obsFreq:"Frequência das prints (s)",obsFreq_d:"de quanto em quanto tempo ele olha a tela",
    iniMode:"Iniciativa — quando falar",iniDinamico:"Dinâmico",iniIntervalo:"A cada X min",iniMin:"minutos:",
@@ -219,6 +228,12 @@ const I18N={
    sk_grafo:"Graph",sk_grafo_d:"builds a graph of what it sees and discusses",
    sk_iniciativa:"Initiative",sk_iniciativa_d:"speaks up when it makes sense",
    sk_wikipedia:"Wikipedia",sk_wikipedia_d:"queries offline Wikipedia",
+   sk_documentos:"Documents",sk_documentos_d:"answers based on your files",
+   docsOpen:"📁 Open documents folder",docsReindex:"🔄 Reindex",docsIndexing:"indexing…",
+   docsEmpty:"Drop .txt, .md or .pdf in the folder and click Reindex.",
+   docsStat:"{n} file(s) · {c} chunk(s) indexed",
+   bkExport:"⬇ Export everything (backup)",bkImport:"⬆ Restore backup",bkExporting:"building…",
+   bkImporting:"restoring…",bkDone:"✓ restored",bkConfirm:"Restoring will overwrite your current memory, graph and conversations. Continue?",
    autostart:"Start with Windows",autostart_d:"opens the agent on boot",
    obsFreq:"Screen check (s)",obsFreq_d:"how often it looks at the screen",
    iniMode:"Initiative — when to speak",iniDinamico:"Dynamic",iniIntervalo:"Every X min",iniMin:"minutes:",
@@ -245,6 +260,12 @@ const I18N={
    sk_grafo:"Grafo",sk_grafo_d:"arma un grafo de lo que ve y conversa",
    sk_iniciativa:"Iniciativa",sk_iniciativa_d:"habla solo cuando tiene sentido",
    sk_wikipedia:"Wikipedia",sk_wikipedia_d:"consulta la Wikipedia offline",
+   sk_documentos:"Documentos",sk_documentos_d:"responde según tus archivos",
+   docsOpen:"📁 Abrir carpeta de documentos",docsReindex:"🔄 Reindexar",docsIndexing:"indexando…",
+   docsEmpty:"Pon .txt, .md o .pdf en la carpeta y haz clic en Reindexar.",
+   docsStat:"{n} archivo(s) · {c} fragmento(s) indexado(s)",
+   bkExport:"⬇ Exportar todo (copia)",bkImport:"⬆ Restaurar copia",bkExporting:"generando…",
+   bkImporting:"restaurando…",bkDone:"✓ restaurado",bkConfirm:"Restaurar sobrescribirá tu memoria, grafo y conversaciones actuales. ¿Continuar?",
    autostart:"Iniciar con Windows",autostart_d:"abre el agente al encender el PC",
    obsFreq:"Frecuencia de pantalla (s)",obsFreq_d:"cada cuánto mira la pantalla",
    iniMode:"Iniciativa — cuándo hablar",iniDinamico:"Dinámico",iniIntervalo:"Cada X min",iniMin:"minutos:",
@@ -258,7 +279,7 @@ const I18N={
 };
 const t=(k,v)=>{let s=(I18N[LANG]&&I18N[LANG][k])||I18N.pt[k]||k; if(v)for(const x in v)s=s.replace('{'+x+'}',v[x]); return s;};
 const mdesc=n=>((I18N[LANG]||{}).mdesc||{})[n]||(I18N.pt.mdesc||{})[n]||'';
-const SKILLS={memoria:true,tela:true,grafo:true,iniciativa:true,wikipedia:true};
+const SKILLS={memoria:true,tela:true,grafo:true,iniciativa:true,wikipedia:true,documentos:true};
 
 function aplicarTema(){ document.documentElement.setAttribute('data-tema',TEMA);
   $('#themeBtn').textContent = TEMA==='escuro'?'☀️':'🌙'; }
@@ -278,6 +299,7 @@ function fixos(){
   $('#h-model').textContent=t('model'); $('#h-skills').textContent=t('skills');
   $('#h-init').textContent=t('initHdr'); $('#grafoBtn').title=t('btnGrafo'); $('#foot').textContent=t('foot');
   $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
+  $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
 }
 
 function render(){
@@ -330,6 +352,14 @@ function render(){
         const pr=document.createElement('div');pr.className='prog';pr.innerHTML='<div></div>';
         b.onclick=()=>baixarWiki(b,pr);wb.appendChild(b);wb.appendChild(pr);}
       $('#skills').appendChild(wb);}
+    if(k==='documentos'&&on){
+      const db=document.createElement('div');db.style.cssText='padding:2px 0 10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:7px';
+      db.innerHTML=`<div class="d" id="docsStat">${t('docsEmpty')}</div>`;
+      const row=document.createElement('div');row.style.cssText='display:flex;gap:7px';
+      const ob=document.createElement('button');ob.className='baixar';ob.style.flex='1';ob.textContent=t('docsOpen');ob.onclick=abrirDocs;
+      const rb=document.createElement('button');rb.className='baixar';rb.style.flex='1';rb.textContent=t('docsReindex');rb.onclick=()=>reindexDocs(rb);
+      row.appendChild(ob);row.appendChild(rb);db.appendChild(row);$('#skills').appendChild(db);
+      atualizarDocsStatus();}
   }
   // frequência das prints (intervalo de observação da tela)
   const iv=cfg.obs_intervalo||60;
@@ -390,6 +420,32 @@ async function excluirModelo(nome){
   if(!confirm(t('confDelModel',{m:nome})))return;
   await fetch('/api/ollama/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:nome})});
   await carregarEstado();
+}
+
+// ── documentos (RAG local) ──
+function abrirDocs(){fetch('/api/docs/abrir',{method:'POST'});}
+async function atualizarDocsStatus(){
+  try{const s=await(await fetch('/api/docs/status')).json();const el=$('#docsStat');if(!el)return;
+    el.textContent = s.indexando ? t('docsIndexing')
+      : (s.arquivos&&s.arquivos.length) ? t('docsStat',{n:s.arquivos.length,c:s.total}) : t('docsEmpty');
+    if(s.indexando)setTimeout(atualizarDocsStatus,1500);
+  }catch(e){}
+}
+async function reindexDocs(btn){btn.disabled=true;const o=btn.textContent;btn.textContent=t('docsIndexing');
+  try{await fetch('/api/docs/reindexar',{method:'POST'});}catch(e){}
+  setTimeout(()=>{btn.disabled=false;btn.textContent=o;atualizarDocsStatus();},800);atualizarDocsStatus();}
+
+// ── backup (exportar / restaurar) ──
+function exportarBackup(){window.location.href='/api/backup/exportar';}
+async function importarBackup(file){
+  if(!file)return;if(!confirm(t('bkConfirm')))return;
+  const b=$('#btnImport');b.disabled=true;b.textContent=t('bkImporting');
+  try{const fd=new FormData();fd.append('arquivo',file);
+    const r=await(await fetch('/api/backup/importar',{method:'POST',body:fd})).json();
+    b.textContent=r.ok?t('bkDone'):('erro: '+(r.erro||''));
+    if(r.ok){await carregarEstado();await carregarChats();}
+  }catch(e){b.textContent='erro';}
+  setTimeout(()=>{b.disabled=false;b.textContent=t('bkImport');},1500);
 }
 async function baixar(nome,btn,pr){btn.disabled=true;btn.textContent=t('downloading');pr.style.display='block';const bar=pr.firstChild;
   try{const r=await fetch('/api/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:nome})});
@@ -463,6 +519,9 @@ $('#toggleSide').onclick=()=>$('#side').classList.toggle('hide');
 $('#themeBtn').onclick=()=>{TEMA=TEMA==='escuro'?'claro':'escuro';aplicarTema();salvarConfig({tema:TEMA});};
 $('#powerBtn').onclick=()=>{const a=estado.config.ativo!==false;salvarConfig({ativo:!a});};
 $('#abrirPasta').onclick=()=>fetch('/api/abrir_pasta',{method:'POST'});
+$('#btnExport').onclick=exportarBackup;
+$('#btnImport').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=e=>{importarBackup(e.target.files[0]);e.target.value='';};
 $('#gear').onclick=()=>{$('#cfg').classList.add('open');$('#scrim').style.display='block';};
 function fechar(){$('#cfg').classList.remove('open');$('#scrim').style.display='none';}
 $('#cfgClose').onclick=fechar;$('#scrim').onclick=fechar;

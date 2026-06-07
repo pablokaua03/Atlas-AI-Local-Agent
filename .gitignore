@@ -6,6 +6,9 @@ grafo.json
 observacoes.json
 prints/*
 !prints/.gitkeep
+docs/*
+!docs/.gitkeep
+docs_index.json
 
 # ── assets pesados (baixados no setup/uso, nunca no repo) ──
 tessdata/

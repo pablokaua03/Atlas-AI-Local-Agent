@@ -17,6 +17,7 @@ from flask import Flask, request, Response, send_from_directory, jsonify
 import core
 import skills
 import chats
+import docs
 
 WEB_DIR = os.path.join(core.BASE_DIR, "web")
 HOST, PORT = "127.0.0.1", 5005
@@ -137,11 +138,16 @@ def api_config():
     if "iniciar_com_windows" in d:
         cfg["iniciar_com_windows"] = bool(d["iniciar_com_windows"])
         core.set_autostart(cfg["iniciar_com_windows"])
+    ligou_docs = False
     if isinstance(d.get("habilidades"), dict):
         for k, v in d["habilidades"].items():
             if k in cfg["habilidades"]:
+                if k == "documentos" and bool(v) and not cfg["habilidades"]["documentos"]:
+                    ligou_docs = True
                 cfg["habilidades"][k] = bool(v)
     core.salvar_config(cfg)
+    if ligou_docs:                       # acabou de ligar os documentos → indexa a pasta
+        docs.reindexar_async(forcar=False)
     if "nome" in d:                      # nome definido → atualiza grafo + memória
         skills.definir_nome(cfg["nome"])
     return jsonify(core.estado())
@@ -162,6 +168,76 @@ def api_abrir_pasta():
         except Exception as e:
             return jsonify({"ok": False, "erro": str(e)}), 500
     return jsonify({"ok": True, "pasta": core.BASE_DIR})
+
+
+# ── DOCUMENTOS (RAG local: perguntar sobre seus arquivos em /docs) ────────────
+@app.route("/api/docs/status")
+def api_docs_status():
+    return jsonify(docs.status())
+
+
+@app.route("/api/docs/reindexar", methods=["POST"])
+def api_docs_reindexar():
+    docs.reindexar_async(forcar=False)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/docs/abrir", methods=["POST"])
+def api_docs_abrir():
+    os.makedirs(docs.DOCS_DIR, exist_ok=True)
+    try:
+        os.startfile(docs.DOCS_DIR)
+    except Exception:
+        try:
+            subprocess.Popen(["explorer", docs.DOCS_DIR])
+        except Exception as e:
+            return jsonify({"ok": False, "erro": str(e)}), 500
+    return jsonify({"ok": True, "pasta": docs.DOCS_DIR})
+
+
+# ── BACKUP (exportar / restaurar memória, grafo e conversas) ──────────────────
+_BACKUP_ARQS = ["config.json", "memoria.json", "conversas.json", "grafo.json", "observacoes.json"]
+
+
+@app.route("/api/backup/exportar")
+def api_backup_exportar():
+    import io
+    import zipfile
+    import datetime
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for nome in _BACKUP_ARQS:
+            caminho = os.path.join(core.BASE_DIR, nome)
+            if os.path.isfile(caminho):
+                z.write(caminho, nome)
+    buf.seek(0)
+    from flask import send_file
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+    return send_file(buf, mimetype="application/zip", as_attachment=True,
+                     download_name=f"atlas-backup-{stamp}.zip")
+
+
+@app.route("/api/backup/importar", methods=["POST"])
+def api_backup_importar():
+    import io
+    import zipfile
+    f = request.files.get("arquivo")
+    if not f:
+        return jsonify({"ok": False, "erro": "sem arquivo"}), 400
+    try:
+        with zipfile.ZipFile(io.BytesIO(f.read())) as z:
+            nomes = set(z.namelist())
+            restaurados = []
+            for nome in _BACKUP_ARQS:                 # só nomes da lista branca (nada de path traversal)
+                if nome in nomes:
+                    dados = z.read(nome)
+                    json.loads(dados.decode("utf-8"))  # valida que é JSON antes de gravar
+                    with open(os.path.join(core.BASE_DIR, nome), "wb") as out:
+                        out.write(dados)
+                    restaurados.append(nome)
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 400
+    return jsonify({"ok": True, "restaurados": restaurados})
 
 
 # ── CONVERSAS (chats salvos localmente) ───────────────────────────────────────
@@ -427,6 +503,11 @@ def chat():
         wiki = skills.consultar_wiki(texto)
         if wiki:
             system += "\n\nCONHECIMENTO DA WIKIPÉDIA (explique com suas palavras, não copie cru):\n" + wiki
+    if core.habilidade("documentos", cfg):
+        docctx = docs.consultar(texto)
+        if docctx:
+            system += ("\n\nDOS DOCUMENTOS DO USUÁRIO (responda com base nisto; cite o arquivo "
+                       "entre colchetes quando útil; se não houver resposta aqui, diga que não achou):\n" + docctx)
     if core.habilidade("tela", cfg) and skills.precisa_tela(texto):
         skills.garantir_ocr_lang(cfg.get("idioma", "pt"))
         titulo, ocr = skills.ler_tela()
@@ -487,6 +568,8 @@ def chat():
 
 def iniciar():
     skills.iniciar()
+    if core.habilidade("documentos"):     # indexa os documentos em segundo plano no start
+        docs.reindexar_async(forcar=False)
 
 
 if __name__ == "__main__":
