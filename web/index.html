@@ -89,6 +89,17 @@
   #send{background:var(--accent);color:#fff;border:none;border-radius:11px;width:38px;height:38px;
     cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   #send:disabled{opacity:.4;cursor:default}
+  #send.stop{background:var(--danger)}
+  #chatActions{max-width:780px;margin:6px auto 0;text-align:center}
+  #regenBtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:10px;
+    padding:6px 14px;cursor:pointer;font-size:13px;font-family:inherit}
+  #regenBtn:hover{color:var(--txt);border-color:var(--accent)}
+  .bubble pre{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+    overflow-x:auto;margin:7px 0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  .bubble pre code{background:none;padding:0;font-size:12.5px}
+  .bubble code{background:var(--panel2);border-radius:5px;padding:1px 5px;font-family:ui-monospace,Consolas,monospace;font-size:.9em}
+  .bubble ul,.bubble ol{margin:6px 0;padding-left:22px} .bubble li{margin:2px 0}
+  .bubble h3{font-size:15px;margin:9px 0 4px} .bubble a{color:var(--accent)} .bubble.md{white-space:normal}
 
   /* ── DRAWER CONFIG ── */
   #scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:9}
@@ -152,6 +163,7 @@
     </header>
     <div id="banner"><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button></div>
     <div id="chat"></div>
+    <div id="chatActions" style="display:none"><button id="regenBtn">↻ <span id="regenTxt"></span></button></div>
     <div id="bar"><div class="barin">
       <textarea id="input" rows="1"></textarea>
       <button id="send" title="enviar">➤</button>
@@ -190,10 +202,10 @@
 
 <script>
 const $=s=>document.querySelector(s);
-let estado=null, ocupado=false, LANG='pt', TEMA='escuro', chatAtual=null;
+let estado=null, ocupado=false, LANG='pt', TEMA='escuro', chatAtual=null, ctrl=null, ultimaPergunta=null;
 
 const I18N={
- pt:{title:"Agente Local",novo:"Novo chat",enviar:"Enviar",ph:"Fale com o agente…",
+ pt:{title:"Agente Local",novo:"Novo chat",enviar:"Enviar",stop:"parar",regen:"Regenerar",ph:"Fale com o agente…",
    emptyT:"Comece uma conversa",emptyD:"Seu assistente roda 100% na sua máquina.",
    lang:"Idioma",theme:"Tema",dark:"Escuro",light:"Claro",name:"Seu nome",namePh:"como o agente te chama",
    model:"Modelo",skills:"Habilidades",initHdr:"Inicialização",
@@ -231,7 +243,7 @@ const I18N={
    btnGrafo:"Grafo de conhecimento",foot:"Tudo roda local. Nada sai da sua máquina.",
    errOllama:"O Ollama não está rodando.",errModel:"Baixe o modelo {m} primeiro (⚙ → Baixar).",
    confDel:"Excluir esta conversa?"},
- en:{title:"Local Agent",novo:"New chat",enviar:"Send",ph:"Talk to the agent…",
+ en:{title:"Local Agent",novo:"New chat",enviar:"Send",stop:"stop",regen:"Regenerate",ph:"Talk to the agent…",
    emptyT:"Start a conversation",emptyD:"Your assistant runs 100% on your machine.",
    lang:"Language",theme:"Theme",dark:"Dark",light:"Light",name:"Your name",namePh:"what the agent calls you",
    model:"Model",skills:"Skills",initHdr:"Startup",
@@ -269,7 +281,7 @@ const I18N={
    btnGrafo:"Knowledge graph",foot:"Everything runs locally. Nothing leaves your machine.",
    errOllama:"Ollama isn't running.",errModel:"Download the model {m} first (⚙ → Download).",
    confDel:"Delete this conversation?"},
- es:{title:"Agente Local",novo:"Nuevo chat",enviar:"Enviar",ph:"Habla con el agente…",
+ es:{title:"Agente Local",novo:"Nuevo chat",enviar:"Enviar",stop:"detener",regen:"Regenerar",ph:"Habla con el agente…",
    emptyT:"Empieza una conversación",emptyD:"Tu asistente corre 100% en tu máquina.",
    lang:"Idioma",theme:"Tema",dark:"Oscuro",light:"Claro",name:"Tu nombre",namePh:"cómo te llama el agente",
    model:"Modelo",skills:"Habilidades",initHdr:"Inicio",
@@ -332,6 +344,27 @@ function fixos(){
   $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
   $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
   $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr');
+  $('#regenTxt').textContent=t('regen');
+}
+
+// ── markdown leve (seguro): escapa HTML e formata código, negrito, listas, links ──
+function _esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function md(src){
+  const blocos=[];
+  src=src.replace(/```(\w+)?\n?([\s\S]*?)```/g,(_m,_l,code)=>{
+    blocos.push('<pre><code>'+_esc(code.replace(/\n$/,''))+'</code></pre>');
+    return ' '+(blocos.length-1)+' ';});
+  src=_esc(src);
+  src=src.replace(/`([^`\n]+)`/g,(_m,c)=>'<code>'+c+'</code>');
+  src=src.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  src=src.replace(/^#{1,6}\s+(.*)$/gm,'<h3>$1</h3>');
+  src=src.replace(/(?:^|\n)((?:\s*[-*]\s+.*(?:\n|$))+)/g,(_m,lista)=>{
+    const its=lista.trim().split('\n').map(l=>'<li>'+l.replace(/^\s*[-*]\s+/,'')+'</li>').join('');
+    return '<ul>'+its+'</ul>';});
+  src=src.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  src=src.replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
+  src=src.replace(/ (\d+) /g,(_m,i)=>blocos[+i]!==undefined?blocos[+i]:_m);
+  return src;
 }
 
 function render(){
@@ -572,10 +605,12 @@ async function carregarChats(){
 }
 async function abrirChat(id){chatAtual=id;await fetch('/api/chats/'+id+'/atual',{method:'POST'});await carregarChats();}
 async function abrirMensagens(id){
-  $('#chat').innerHTML='';if(!id){vazio();return;}
+  $('#chat').innerHTML='';$('#chatActions').style.display='none';if(!id){vazio();return;}
   let c;try{c=await(await fetch('/api/chats/'+id)).json();}catch(e){vazio();return;}
   if(!c.mensagens||!c.mensagens.length){vazio();return;}
-  for(const m of c.mensagens){addMsg('user',m.u);addMsg('a',m.a);}
+  for(const m of c.mensagens){addMsg('user',m.u);addMsg('a',m.a,true);}
+  ultimaPergunta=c.mensagens[c.mensagens.length-1].u;
+  if(!ocupado)$('#chatActions').style.display='block';
 }
 function vazio(){$('#chat').innerHTML=`<div class="empty"><div class="big">◆</div><div style="font-weight:600;font-size:16px;color:var(--txt)">${t('emptyT')}</div><div>${t('emptyD')}</div></div>`;}
 async function novoChat(){const r=await(await fetch('/api/chats/novo',{method:'POST'})).json();await carregarChats();}
@@ -588,29 +623,50 @@ function renomearChat(it,c){
 }
 
 // ── mensagens ──
-function addMsg(role,texto){
+function addMsg(role,texto,comMd){
   const e=$('#chat .empty');if(e)e.remove();
   const m=document.createElement('div');m.className='msg '+role;
   m.innerHTML=`<div class="av ${role==='user'?'u':'a'}">${role==='user'?'eu':'◆'}</div><div class="bubble"></div>`;
-  m.querySelector('.bubble').textContent=texto;$('#chat').appendChild(m);$('#chat').scrollTop=$('#chat').scrollHeight;
-  return m.querySelector('.bubble');
+  const bub=m.querySelector('.bubble');
+  if(comMd){bub.classList.add('md');bub.innerHTML=md(texto);}else{bub.textContent=texto;}
+  $('#chat').appendChild(m);$('#chat').scrollTop=$('#chat').scrollHeight;
+  return bub;
 }
+function modoStop(on){const b=$('#send');b.disabled=false;
+  if(on){b.textContent='■';b.classList.add('stop');b.title=t('stop');b.onclick=pararGeracao;}
+  else{b.textContent='➤';b.classList.remove('stop');b.title=t('enviar');b.onclick=enviar;}}
+function pararGeracao(){if(ctrl)ctrl.abort();}
 async function enviar(){
   const inp=$('#input'),texto=inp.value.trim();if(!texto||ocupado)return;
-  if(!estado.ollama_online){addMsg('a',t('errOllama'));return;}
+  inp.value='';inp.style.height='auto';await enviarTexto(texto);
+}
+async function enviarTexto(texto){
+  if(!estado.ollama_online){addMsg('a',t('errOllama'),true);return;}
   const mA=estado.catalogo.find(m=>m.ativo);
-  if(mA&&!mA.instalado){addMsg('a',t('errModel',{m:mA.nome}));return;}
-  ocupado=true;$('#send').disabled=true;addMsg('user',texto);inp.value='';inp.style.height='auto';
-  const bub=addMsg('a','');
-  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto,chat_id:chatAtual})});
+  if(mA&&!mA.instalado){addMsg('a',t('errModel',{m:mA.nome}),true);return;}
+  ultimaPergunta=texto;ocupado=true;modoStop(true);$('#chatActions').style.display='none';
+  addMsg('user',texto);
+  const bub=addMsg('a','');let acc='';ctrl=new AbortController();
+  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto,chat_id:chatAtual}),signal:ctrl.signal});
     const rd=r.body.getReader(),dc=new TextDecoder();
-    while(true){const{done,value}=await rd.read();if(done)break;bub.textContent+=dc.decode(value,{stream:true});$('#chat').scrollTop=$('#chat').scrollHeight;}
-  }catch(e){bub.textContent+='\n(erro)';}
-  ocupado=false;$('#send').disabled=false;inp.focus();
-  fetch('/api/chats').then(r=>r.json()).then(d=>{/*atualiza títulos*/const L=$('#lista');
+    while(true){const{done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});bub.textContent=acc;$('#chat').scrollTop=$('#chat').scrollHeight;}
+  }catch(e){if(e.name!=='AbortError')acc+='\n(erro)';}
+  bub.classList.add('md');bub.innerHTML=md(acc);
+  ocupado=false;ctrl=null;modoStop(false);inp.focus();$('#chatActions').style.display='block';
+  fetch('/api/chats').then(r=>r.json()).then(d=>{const L=$('#lista');
     [...L.children].forEach((el,i)=>{if(d.chats[i])el.querySelector('.tit')&&(el.querySelector('.tit').textContent=d.chats[i].titulo);});});
 }
+async function regenerar(){
+  if(ocupado||!chatAtual)return;
+  const r=await(await fetch('/api/chats/'+chatAtual+'/regenerar',{method:'POST'})).json();
+  const texto=r.texto||ultimaPergunta;if(!texto)return;
+  const msgs=[...$('#chat').querySelectorAll('.msg')];
+  if(msgs.length)msgs[msgs.length-1].remove();
+  if(msgs.length>=2)msgs[msgs.length-2].remove();
+  await enviarTexto(texto);
+}
 $('#send').onclick=enviar;
+$('#regenBtn').onclick=regenerar;
 $('#input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}});
 $('#input').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';});
 $('#novoChat').onclick=novoChat;
@@ -629,7 +685,7 @@ function fechar(){$('#cfg').classList.remove('open');$('#scrim').style.display='
 $('#cfgClose').onclick=fechar;$('#scrim').onclick=fechar;
 
 try{const es=new EventSource('/eventos');es.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}
-  if(m.tipo==='iniciativa'&&m.payload)addMsg('a',m.payload);};}catch(e){}
+  if(m.tipo==='iniciativa'&&m.payload)addMsg('a',m.payload,true);};}catch(e){}
 
 async function atualizarSistema(){
   try{const s=await(await fetch('/api/sistema')).json();const p=[];

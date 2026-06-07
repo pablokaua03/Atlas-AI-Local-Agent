@@ -112,6 +112,20 @@ def adicionar(cid, u, a):
                 return
 
 
+def remover_ultima(cid):
+    """Remove o último par (pergunta+resposta) de um chat. Usado pra regenerar.
+    Devolve o texto da pergunta removida (pra reenviar)."""
+    with _lock:
+        d = _load()
+        for c in d["chats"]:
+            if c["id"] == cid and c.get("mensagens"):
+                msg = c["mensagens"].pop()
+                c["atualizado"] = time.time()
+                _save(d)
+                return msg.get("u", "")
+    return ""
+
+
 def recall(query, excluir_id=None, max_trechos=4):
     """Busca por palavras-chave em TODAS as conversas — dá ao modelo acesso ao passado."""
     termos = {t for t in re.findall(r"[a-zà-ú0-9]{4,}", query.lower())}

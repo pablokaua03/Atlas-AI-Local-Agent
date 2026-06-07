@@ -1,0 +1,12 @@
+Add markdown rendering, stop and regenerate, and MIT license
+
+Chat now renders assistant replies as light markdown: code blocks, inline
+code, bold, italic, headings, lists and links. The renderer escapes HTML
+first, so model output cannot inject markup.
+
+While a reply streams, the send button turns into a stop button that aborts
+generation and keeps the partial text. A regenerate button under the chat
+drops the last exchange and runs it again (new endpoint removes the last
+message pair).
+
+Add an MIT LICENSE file and a License section in the README.

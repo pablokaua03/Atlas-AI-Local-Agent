@@ -322,6 +322,11 @@ def api_chat_excluir(cid):
     return jsonify({"atual": chats.excluir(cid)})
 
 
+@app.route("/api/chats/<cid>/regenerar", methods=["POST"])
+def api_chat_regenerar(cid):
+    return jsonify({"texto": chats.remover_ultima(cid)})
+
+
 @app.route("/api/grafo")
 def api_grafo():
     return jsonify(skills.carregar_grafo())

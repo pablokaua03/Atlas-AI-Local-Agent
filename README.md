@@ -74,3 +74,7 @@ turned into a key with scrypt, and memory, conversations, graph and reminders
 are stored encrypted on disk (HMAC-SHA256 keystream with encrypt-then-MAC). The
 password is never written to disk; it is only kept in memory while the vault is
 unlocked. If you forget the password, the data cannot be recovered.
+
+## License
+
+Released under the MIT License. See the LICENSE file for details.
