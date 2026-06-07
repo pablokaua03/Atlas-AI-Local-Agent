@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/static/favicon.png">
+<title>Agente Local</title>
+<style>
+  :root{
+    --bg:#0d0f13; --bg2:#0b0d11; --panel:#161a21; --panel2:#1b2029; --line:#222834;
+    --txt:#e6e9ef; --dim:#8b94a3; --accent:#7c9bff; --accent2:#c08bff;
+    --good:#5ad1c2; --warn:#ffd166; --danger:#ff6b6b; --userbg:#222a3a;
+  }
+  :root[data-tema="claro"]{
+    --bg:#f6f7fb; --bg2:#eef0f6; --panel:#ffffff; --panel2:#f0f2f8; --line:#e2e6ef;
+    --txt:#1b2130; --dim:#67708a; --accent:#4f6bf6; --accent2:#9b5cff;
+    --good:#1aa896; --warn:#b8860b; --danger:#e5484d; --userbg:#e6ebff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+    font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:background .2s,color .2s}
+  button{font-family:inherit}
+  #wrap{display:flex;height:100%}
+
+  /* ── SIDEBAR ── */
+  #side{width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;transition:margin-left .2s}
+  #side.hide{margin-left:-260px}
+  .sbtop{display:flex;align-items:center;gap:8px;padding:14px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;flex:1}
+  .brand .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center;color:#fff}
+  .novo{margin:0 12px 8px;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;
+    padding:11px;cursor:pointer;font-size:14px;font-weight:600}
+  .novo:hover{border-color:var(--accent)}
+  .lista{flex:1;overflow-y:auto;padding:6px 8px;display:flex;flex-direction:column;gap:2px}
+  .item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;cursor:pointer;color:var(--dim)}
+  .item:hover{background:var(--panel);color:var(--txt)}
+  .item.sel{background:var(--panel);color:var(--txt)}
+  .item .tit{flex:1;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .acts{display:none;gap:2px}
+  .item:hover .acts{display:flex}
+  .ic{background:none;border:none;color:var(--dim);cursor:pointer;padding:3px;border-radius:6px;display:flex}
+  .ic:hover{color:var(--txt);background:var(--panel2)}
+  .ic.del:hover{color:var(--danger)}
+  .item input{flex:1;background:var(--bg);border:1px solid var(--accent);color:var(--txt);
+    border-radius:6px;padding:4px 6px;font-size:13px;font-family:inherit;outline:none}
+  .sbfoot{padding:10px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--dim)}
+
+  /* ── MAIN ── */
+  #main{flex:1;display:flex;flex-direction:column;min-width:0}
+  header{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line)}
+  .hbtn{cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+    text-decoration:none;padding:0}
+  .hbtn:hover{border-color:var(--accent);color:var(--accent)}
+  #powerBtn.on{color:var(--good);border-color:color-mix(in srgb,var(--good) 50%,transparent)}
+  #powerBtn.off{color:var(--danger);border-color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
+  header .pill{font-size:12px;color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:5px 12px;margin-left:auto}
+  header .pill.on{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+  header .pill.off{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
+
+  #banner{margin:12px 16px 0;padding:11px 14px;border-radius:12px;
+    background:color-mix(in srgb,var(--warn) 14%,var(--bg));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);
+    color:var(--txt);font-size:13.5px;display:none;align-items:center;gap:10px}
+  #banner .bbtn{margin-left:auto;background:var(--accent);color:#fff;border:none;border-radius:9px;
+    padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+
+  #chat{flex:1;overflow-y:auto;padding:22px 16px;display:flex;flex-direction:column;gap:16px}
+  .msg{display:flex;gap:11px;max-width:780px;width:100%;margin:0 auto}
+  .msg.user{flex-direction:row-reverse}
+  .av{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  .av.a{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .av.u{background:var(--panel2);color:var(--dim)}
+  .bubble{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 15px;
+    font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;max-width:calc(100% - 42px)}
+  .msg.user .bubble{background:var(--userbg)}
+  .empty{margin:auto;text-align:center;color:var(--dim);font-size:14.5px;line-height:1.7}
+  .empty .big{font-size:42px;margin-bottom:6px}
+
+  #bar{padding:12px 16px 16px;border-top:1px solid var(--line)}
+  .barin{max-width:780px;margin:0 auto;display:flex;gap:9px;align-items:flex-end;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 14px}
+  .barin:focus-within{border-color:var(--accent)}
+  #input{flex:1;background:transparent;border:none;color:var(--txt);font-size:14.5px;font-family:inherit;
+    outline:none;resize:none;max-height:180px;padding:6px 0;line-height:1.5}
+  #send{background:var(--accent);color:#fff;border:none;border-radius:11px;width:38px;height:38px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  #send:disabled{opacity:.4;cursor:default}
+
+  /* ── DRAWER CONFIG ── */
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:9}
+  #cfg{position:fixed;top:0;right:0;height:100%;width:380px;max-width:92vw;background:var(--bg);
+    border-left:1px solid var(--line);z-index:10;transform:translateX(100%);transition:transform .2s;overflow-y:auto;padding:18px}
+  #cfg.open{transform:none}
+  #cfg h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:22px 0 10px}
+  #cfg h2:first-of-type{margin-top:4px}
+  .close{float:right;cursor:pointer;color:var(--dim);background:none;border:none;font-size:20px}
+  .field input[type=text]{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none}
+  .field input:focus{border-color:var(--accent)}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:9px;
+    padding:8px;font-size:13px;cursor:pointer}
+  .seg button.on{background:color-mix(in srgb,var(--accent) 18%,var(--panel));border-color:var(--accent);color:var(--txt);font-weight:600}
+  .modelo{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer;background:var(--panel)}
+  .modelo.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
+  .modelo .top{display:flex;align-items:center;gap:8px}
+  .modelo .rot{font-weight:600;font-size:14.5px}
+  .modelo .nm{font-size:12px;color:var(--dim);margin-left:auto;font-family:ui-monospace,monospace}
+  .modelo .desc{font-size:12.5px;color:var(--dim);margin-top:3px}
+  .modelo .st{font-size:12px;margin-top:7px} .modelo .st.ok{color:var(--good)} .modelo .st.no{color:var(--warn)}
+  .baixar{margin-top:7px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:9px;
+    padding:6px 11px;font-size:12.5px;cursor:pointer}
+  .baixar:hover{background:var(--accent);color:#fff}
+  .prog{height:6px;background:var(--panel2);border-radius:4px;margin-top:7px;overflow:hidden;display:none}
+  .prog>div{height:100%;width:0;background:var(--accent);transition:width .2s}
+  .skill{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .skill .info{flex:1} .skill .nm{font-size:14px} .skill .d{font-size:12px;color:var(--dim)}
+  .sw{width:42px;height:24px;border-radius:14px;background:var(--panel2);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s}
+  .sw.on{background:var(--good)}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+  .sw.on::after{left:21px}
+  .tag{font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:1px 5px;margin-left:6px}
+  .foot{font-size:11px;color:var(--dim);margin-top:18px;line-height:1.5}
+  @media(max-width:680px){#side{position:fixed;z-index:8;height:100%}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <aside id="side">
+    <div class="sbtop">
+      <div class="brand"><span class="logo">◆</span><span id="brandTxt">Agente Local</span></div>
+    </div>
+    <button class="novo" id="novoChat">＋ <span id="novoTxt">Novo chat</span></button>
+    <div class="lista" id="lista"></div>
+    <div class="sbfoot" id="sbfoot"></div>
+  </aside>
+
+  <main id="main">
+    <header>
+      <button class="hbtn" id="toggleSide" title="menu">☰</button>
+      <button class="hbtn" id="powerBtn" title="ligar/desligar">⏻</button>
+      <span class="pill" id="sysPill" style="font-family:ui-monospace,monospace;font-size:11.5px"></span>
+      <span class="pill" id="pill">…</span>
+      <button class="hbtn" id="themeBtn" title="tema">🌙</button>
+      <a class="hbtn" id="grafoBtn" href="/grafo" title="Grafo">🕸️</a>
+      <button class="hbtn" id="gear" title="config">⚙</button>
+    </header>
+    <div id="banner"><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button></div>
+    <div id="chat"></div>
+    <div id="bar"><div class="barin">
+      <textarea id="input" rows="1"></textarea>
+      <button id="send" title="enviar">➤</button>
+    </div></div>
+  </main>
+</div>
+
+<div id="scrim"></div>
+<div id="cfg">
+  <button class="close" id="cfgClose">✕</button>
+  <h2 id="h-lang">Idioma</h2><div class="seg" id="langSeg"></div>
+  <h2 id="h-theme">Tema</h2><div class="seg" id="themeSeg"></div>
+  <h2 id="h-name">Seu nome</h2><div class="field"><input type="text" id="nome"></div>
+  <h2 id="h-model">Modelo</h2><div id="modelos"></div>
+  <h2 id="h-skills">Habilidades</h2><div id="skills"></div>
+  <h2 id="h-init">Inicialização</h2><div id="initBox"></div>
+  <h2 id="h-folder">Arquivos</h2>
+  <button id="abrirPasta" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px"></button>
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+let estado=null, ocupado=false, LANG='pt', TEMA='escuro', chatAtual=null;
+
+const I18N={
+ pt:{title:"Agente Local",novo:"Novo chat",enviar:"Enviar",ph:"Fale com o agente…",
+   emptyT:"Comece uma conversa",emptyD:"Seu assistente roda 100% na sua máquina.",
+   lang:"Idioma",theme:"Tema",dark:"Escuro",light:"Claro",name:"Seu nome",namePh:"como o agente te chama",
+   model:"Modelo",skills:"Habilidades",initHdr:"Inicialização",
+   pillOff:"Ollama desligado",ollamaOff:"O Ollama está instalado, mas parado.",
+   ollamaNotInst:"O Ollama (motor dos modelos) não está instalado.",
+   startOllama:"Iniciar Ollama",installOllama:"Instalar Ollama",starting:"iniciando…",installingOllama:"baixando…",
+   bannerModel:"O modelo {m} ainda não foi baixado. Abra ⚙ e clique em Baixar.",
+   installed:"✓ instalado",notInstalled:"não baixado",download:"Baixar",downloading:"baixando…",ready:"✓ pronto",soon:"em breve",
+   mdesc:{"qwen2.5:1.5b":"leve e melhor em português","llama3.2:3b":"leve, mais capaz",
+     "qwen2.5:3b":"ótimo para o tamanho","qwen3:4b":"esperto, ainda econômico","qwen3:8b":"nível cheio, usa a placa","llama3.1:8b":"completo"},
+   sk_memoria:"Memória",sk_memoria_d:"lembra de fatos e das conversas",
+   sk_tela:"Ver a tela",sk_tela_d:"observa a tela por OCR",
+   sk_grafo:"Grafo",sk_grafo_d:"monta um grafo do que vê e conversa",
+   sk_iniciativa:"Iniciativa",sk_iniciativa_d:"fala sozinho quando faz sentido",
+   sk_wikipedia:"Wikipédia",sk_wikipedia_d:"consulta a Wikipédia offline",
+   autostart:"Iniciar com o Windows",autostart_d:"abre o agente sozinho ao ligar o PC",
+   obsFreq:"Frequência das prints (s)",obsFreq_d:"de quanto em quanto tempo ele olha a tela",
+   iniMode:"Iniciativa — quando falar",iniDinamico:"Dinâmico",iniIntervalo:"A cada X min",iniMin:"minutos:",
+   delModel:"excluir",confDelModel:"Excluir o modelo {m}?",
+   wikiDl:"⬇ Baixar Wikipédia offline",wikiReady:"✓ Wikipédia offline pronta",wikiBaixando:"baixando…",
+   paused:"Pausado",pause:"sistema ativo — clique pra pausar",activate:"sistema pausado — clique pra ativar",
+   folderHdr:"Arquivos",openFolder:"📂 Abrir pasta do agente",
+   btnGrafo:"Grafo de conhecimento",foot:"Tudo roda local. Nada sai da sua máquina.",
+   errOllama:"O Ollama não está rodando.",errModel:"Baixe o modelo {m} primeiro (⚙ → Baixar).",
+   confDel:"Excluir esta conversa?"},
+ en:{title:"Local Agent",novo:"New chat",enviar:"Send",ph:"Talk to the agent…",
+   emptyT:"Start a conversation",emptyD:"Your assistant runs 100% on your machine.",
+   lang:"Language",theme:"Theme",dark:"Dark",light:"Light",name:"Your name",namePh:"what the agent calls you",
+   model:"Model",skills:"Skills",initHdr:"Startup",
+   pillOff:"Ollama off",ollamaOff:"Ollama is installed but stopped.",
+   ollamaNotInst:"Ollama (the model engine) isn't installed.",
+   startOllama:"Start Ollama",installOllama:"Install Ollama",starting:"starting…",installingOllama:"downloading…",
+   bannerModel:"The model {m} hasn't been downloaded yet. Open ⚙ and click Download.",
+   installed:"✓ installed",notInstalled:"not downloaded",download:"Download",downloading:"downloading…",ready:"✓ ready",soon:"soon",
+   mdesc:{"qwen2.5:1.5b":"light, better in English","llama3.2:3b":"light, more capable",
+     "qwen2.5:3b":"great for its size","qwen3:4b":"smart, still economical","qwen3:8b":"full quality, uses the GPU","llama3.1:8b":"full-size"},
+   sk_memoria:"Memory",sk_memoria_d:"remembers facts and conversations",
+   sk_tela:"See screen",sk_tela_d:"watches the screen via OCR",
+   sk_grafo:"Graph",sk_grafo_d:"builds a graph of what it sees and discusses",
+   sk_iniciativa:"Initiative",sk_iniciativa_d:"speaks up when it makes sense",
+   sk_wikipedia:"Wikipedia",sk_wikipedia_d:"queries offline Wikipedia",
+   autostart:"Start with Windows",autostart_d:"opens the agent on boot",
+   obsFreq:"Screen check (s)",obsFreq_d:"how often it looks at the screen",
+   iniMode:"Initiative — when to speak",iniDinamico:"Dynamic",iniIntervalo:"Every X min",iniMin:"minutes:",
+   delModel:"delete",confDelModel:"Delete model {m}?",
+   wikiDl:"⬇ Download offline Wikipedia",wikiReady:"✓ offline Wikipedia ready",wikiBaixando:"downloading…",
+   paused:"Paused",pause:"system active — click to pause",activate:"system paused — click to activate",
+   folderHdr:"Files",openFolder:"📂 Open agent folder",
+   btnGrafo:"Knowledge graph",foot:"Everything runs locally. Nothing leaves your machine.",
+   errOllama:"Ollama isn't running.",errModel:"Download the model {m} first (⚙ → Download).",
+   confDel:"Delete this conversation?"},
+ es:{title:"Agente Local",novo:"Nuevo chat",enviar:"Enviar",ph:"Habla con el agente…",
+   emptyT:"Empieza una conversación",emptyD:"Tu asistente corre 100% en tu máquina.",
+   lang:"Idioma",theme:"Tema",dark:"Oscuro",light:"Claro",name:"Tu nombre",namePh:"cómo te llama el agente",
+   model:"Modelo",skills:"Habilidades",initHdr:"Inicio",
+   pillOff:"Ollama apagado",ollamaOff:"Ollama está instalado pero detenido.",
+   ollamaNotInst:"Ollama (el motor de modelos) no está instalado.",
+   startOllama:"Iniciar Ollama",installOllama:"Instalar Ollama",starting:"iniciando…",installingOllama:"descargando…",
+   bannerModel:"El modelo {m} aún no se descargó. Abre ⚙ y haz clic en Descargar.",
+   installed:"✓ instalado",notInstalled:"no descargado",download:"Descargar",downloading:"descargando…",ready:"✓ listo",soon:"pronto",
+   mdesc:{"qwen2.5:1.5b":"ligero y mejor en español","llama3.2:3b":"ligero, más capaz",
+     "qwen2.5:3b":"óptimo para su tamaño","qwen3:4b":"listo, aún económico","qwen3:8b":"calidad completa, usa la placa","llama3.1:8b":"completo"},
+   sk_memoria:"Memoria",sk_memoria_d:"recuerda hechos y conversaciones",
+   sk_tela:"Ver pantalla",sk_tela_d:"observa la pantalla por OCR",
+   sk_grafo:"Grafo",sk_grafo_d:"arma un grafo de lo que ve y conversa",
+   sk_iniciativa:"Iniciativa",sk_iniciativa_d:"habla solo cuando tiene sentido",
+   sk_wikipedia:"Wikipedia",sk_wikipedia_d:"consulta la Wikipedia offline",
+   autostart:"Iniciar con Windows",autostart_d:"abre el agente al encender el PC",
+   obsFreq:"Frecuencia de pantalla (s)",obsFreq_d:"cada cuánto mira la pantalla",
+   iniMode:"Iniciativa — cuándo hablar",iniDinamico:"Dinámico",iniIntervalo:"Cada X min",iniMin:"minutos:",
+   delModel:"eliminar",confDelModel:"¿Eliminar el modelo {m}?",
+   wikiDl:"⬇ Descargar Wikipedia offline",wikiReady:"✓ Wikipedia offline lista",wikiBaixando:"descargando…",
+   paused:"Pausado",pause:"sistema activo — clic para pausar",activate:"sistema pausado — clic para activar",
+   folderHdr:"Archivos",openFolder:"📂 Abrir carpeta del agente",
+   btnGrafo:"Grafo de conocimiento",foot:"Todo corre local. Nada sale de tu máquina.",
+   errOllama:"Ollama no está corriendo.",errModel:"Descarga el modelo {m} primero (⚙ → Descargar).",
+   confDel:"¿Eliminar esta conversación?"},
+};
+const t=(k,v)=>{let s=(I18N[LANG]&&I18N[LANG][k])||I18N.pt[k]||k; if(v)for(const x in v)s=s.replace('{'+x+'}',v[x]); return s;};
+const mdesc=n=>((I18N[LANG]||{}).mdesc||{})[n]||(I18N.pt.mdesc||{})[n]||'';
+const SKILLS={memoria:true,tela:true,grafo:true,iniciativa:true,wikipedia:true};
+
+function aplicarTema(){ document.documentElement.setAttribute('data-tema',TEMA);
+  $('#themeBtn').textContent = TEMA==='escuro'?'☀️':'🌙'; }
+
+async function carregarEstado(){
+  estado=await(await fetch('/api/estado')).json();
+  LANG=estado.config.idioma||'pt'; TEMA=estado.config.tema||'escuro';
+  aplicarTema(); render();
+}
+
+function fixos(){
+  document.documentElement.lang=LANG;
+  $('#brandTxt').textContent=t('title'); $('#novoTxt').textContent=t('novo');
+  $('#input').placeholder=t('ph'); $('#sbfoot').textContent=t('foot');
+  $('#h-lang').textContent=t('lang'); $('#h-theme').textContent=t('theme');
+  $('#h-name').textContent=t('name'); $('#nome').placeholder=t('namePh');
+  $('#h-model').textContent=t('model'); $('#h-skills').textContent=t('skills');
+  $('#h-init').textContent=t('initHdr'); $('#grafoBtn').title=t('btnGrafo'); $('#foot').textContent=t('foot');
+  $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
+}
+
+function render(){
+  const cfg=estado.config; fixos();
+  const pill=$('#pill');
+  if(!estado.ollama_online){pill.className='pill off';pill.textContent=t('pillOff');}
+  else{pill.className='pill on';pill.textContent=estado.modelo_atual;}
+  // interruptor mestre
+  const ativo=cfg.ativo!==false;
+  $('#powerBtn').className='hbtn '+(ativo?'on':'off');
+  $('#powerBtn').title=ativo?t('pause'):t('activate');
+  if(!ativo){pill.className='pill off';pill.textContent='⏸ '+t('paused');}
+  // banner
+  const b=$('#banner'),bt=$('#bannerTxt'),bb=$('#bannerBtn'),mA=estado.catalogo.find(m=>m.ativo);
+  b.style.display='none';bb.style.display='none';
+  if(!estado.ollama_online){b.style.display='flex';bb.style.display='inline-block';bb.disabled=false;
+    if(estado.ollama_instalado){bt.textContent=t('ollamaOff');bb.textContent=t('startOllama');bb.onclick=iniciarOllama;}
+    else{bt.textContent=t('ollamaNotInst');bb.textContent=t('installOllama');bb.onclick=()=>instalarOllama(bb);}}
+  else if(mA&&!mA.instalado){b.style.display='flex';bt.textContent=t('bannerModel',{m:mA.nome});}
+  // seg idioma/tema
+  seg('#langSeg',['pt','en','es'],LANG,l=>l.toUpperCase(),l=>salvarConfig({idioma:l}));
+  seg('#themeSeg',['escuro','claro'],TEMA,l=>t(l==='escuro'?'dark':'light'),l=>{TEMA=l;aplicarTema();salvarConfig({tema:l});});
+  $('#nome').value=['você','you','tú'].includes(cfg.nome)?'':cfg.nome;
+  // modelos (catálogo completo)
+  $('#modelos').innerHTML='';
+  for(const m of estado.catalogo){
+    const div=document.createElement('div');div.className='modelo'+(m.ativo?' sel':'');
+    div.innerHTML=`<div class="top"><span class="rot">${m.rotulo}</span><span class="nm">${m.nome}</span></div>
+      <div class="desc">${mdesc(m.nome)} · ${m.vram}</div>
+      <div class="st ${m.instalado?'ok':'no'}">${m.instalado?t('installed'):t('notInstalled')}</div>`;
+    if(estado.ollama_online&&!m.instalado){const bd=document.createElement('button');bd.className='baixar';bd.textContent=t('download');
+      const pr=document.createElement('div');pr.className='prog';pr.innerHTML='<div></div>';
+      bd.onclick=e=>{e.stopPropagation();baixar(m.nome,bd,pr);};div.appendChild(bd);div.appendChild(pr);}
+    if(estado.ollama_online&&m.instalado){const dl=document.createElement('button');dl.className='baixar';
+      dl.style.borderColor='var(--danger)';dl.style.color='var(--danger)';dl.textContent='🗑 '+t('delModel');
+      dl.onclick=e=>{e.stopPropagation();excluirModelo(m.nome);};div.appendChild(dl);}
+    div.onclick=()=>{ if(m.instalado) salvarConfig({modelo:m.nome}); };
+    $('#modelos').appendChild(div);
+  }
+  // skills
+  $('#skills').innerHTML='';
+  for(const k of Object.keys(SKILLS)){const on=!!cfg.habilidades[k];
+    const r=document.createElement('div');r.className='skill';
+    r.innerHTML=`<div class="info"><div class="nm">${t('sk_'+k)}</div><div class="d">${t('sk_'+k+'_d')}</div></div><div class="sw ${on?'on':''}"></div>`;
+    r.querySelector('.sw').onclick=()=>salvarConfig({habilidades:{[k]:!on}});$('#skills').appendChild(r);
+    if(k==='wikipedia'){
+      const wb=document.createElement('div');wb.style.cssText='padding:2px 0 10px;border-bottom:1px solid var(--line)';
+      if(estado.wiki_pronto){wb.innerHTML=`<div class="d" style="color:var(--good)">${t('wikiReady')}</div>`;}
+      else{const b=document.createElement('button');b.className='baixar';b.textContent=t('wikiDl');
+        const pr=document.createElement('div');pr.className='prog';pr.innerHTML='<div></div>';
+        b.onclick=()=>baixarWiki(b,pr);wb.appendChild(b);wb.appendChild(pr);}
+      $('#skills').appendChild(wb);}
+  }
+  // frequência das prints (intervalo de observação da tela)
+  const iv=cfg.obs_intervalo||60;
+  const ivr=document.createElement('div');ivr.className='skill';
+  ivr.innerHTML=`<div class="info"><div class="nm">${t('obsFreq')}</div><div class="d">${t('obsFreq_d')}</div></div>`;
+  const ii=document.createElement('input');ii.type='number';ii.min=15;ii.max=900;ii.value=iv;
+  ii.style.cssText='width:64px;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px;font-family:inherit;text-align:center';
+  ii.onchange=()=>salvarConfig({obs_intervalo:parseInt(ii.value)||60});
+  ivr.appendChild(ii);$('#skills').appendChild(ivr);
+  // modo da iniciativa (dinâmico ou a cada X min)
+  const imodo=cfg.iniciativa_modo||'dinamico';
+  const ib=document.createElement('div');ib.style.cssText='padding:10px 0;border-bottom:1px solid var(--line)';
+  ib.innerHTML=`<div class="nm" style="margin-bottom:7px">${t('iniMode')}</div><div class="seg" id="iniSeg"></div>
+    <div id="iniIv" style="margin-top:9px;align-items:center;gap:8px;display:${imodo==='intervalo'?'flex':'none'}"><span class="d">${t('iniMin')}</span></div>`;
+  $('#skills').appendChild(ib);
+  seg('#iniSeg',['dinamico','intervalo'],imodo,v=>t(v==='dinamico'?'iniDinamico':'iniIntervalo'),v=>salvarConfig({iniciativa_modo:v}));
+  const im=document.createElement('input');im.type='number';im.min=1;im.max=180;im.value=cfg.iniciativa_intervalo||10;
+  im.style.cssText='width:64px;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px;font-family:inherit;text-align:center';
+  im.onchange=()=>salvarConfig({iniciativa_intervalo:parseInt(im.value)||10});
+  ib.querySelector('#iniIv').appendChild(im);
+  // autostart
+  const aon=!!cfg.iniciar_com_windows;$('#initBox').innerHTML='';
+  const ir=document.createElement('div');ir.className='skill';ir.style.borderBottom='none';
+  ir.innerHTML=`<div class="info"><div class="nm">${t('autostart')}</div><div class="d">${t('autostart_d')}</div></div><div class="sw ${aon?'on':''}"></div>`;
+  ir.querySelector('.sw').onclick=()=>salvarConfig({iniciar_com_windows:!aon});$('#initBox').appendChild(ir);
+}
+function seg(sel,vals,cur,lab,cb){const e=$(sel);e.innerHTML='';for(const v of vals){const b=document.createElement('button');
+  b.textContent=lab(v);if(v===cur)b.className='on';b.onclick=()=>cb(v);e.appendChild(b);}}
+
+async function salvarConfig(patch){
+  estado=await(await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)})).json();
+  LANG=estado.config.idioma||'pt';TEMA=estado.config.tema||'escuro';aplicarTema();render();
+}
+let nomeT;document.addEventListener('input',e=>{if(e.target.id==='nome'){clearTimeout(nomeT);nomeT=setTimeout(()=>salvarConfig({nome:e.target.value||'você'}),500);}});
+
+// ── Ollama ──
+async function iniciarOllama(){const bb=$('#bannerBtn');bb.disabled=true;bb.textContent=t('starting');
+  try{await fetch('/api/ollama/start',{method:'POST'});}catch(e){}await carregarEstado();}
+async function instalarOllama(btn){btn.disabled=true;btn.textContent=t('installingOllama');
+  try{const r=await fetch('/api/ollama/install',{method:'POST'});const rd=r.body.getReader();const dc=new TextDecoder();let bf='';
+    while(true){const{done,value}=await rd.read();if(done)break;bf+=dc.decode(value,{stream:true});const ls=bf.split('\n');bf=ls.pop();
+      for(const l of ls){if(!l.trim())continue;let o;try{o=JSON.parse(l)}catch(_){continue}
+        if(o.total)btn.textContent=t('installingOllama')+' '+Math.round((o.baixando||0)/o.total*100)+'%';if(o.status)btn.textContent=o.status;}}
+  }catch(e){btn.textContent='erro';}
+  let n=0;const iv=setInterval(async()=>{await carregarEstado();if(estado.ollama_online||++n>80)clearInterval(iv);},3000);}
+async function baixarWiki(btn,pr){
+  btn.disabled=true;btn.textContent=t('wikiBaixando');pr.style.display='block';const bar=pr.firstChild;
+  try{
+    const r=await fetch('/api/wiki/baixar',{method:'POST'});const rd=r.body.getReader();const dc=new TextDecoder();let bf='';
+    while(true){const{done,value}=await rd.read();if(done)break;bf+=dc.decode(value,{stream:true});const ls=bf.split('\n');bf=ls.pop();
+      for(const l of ls){if(!l.trim())continue;let o;try{o=JSON.parse(l)}catch(_){continue}
+        if(o.total)bar.style.width=Math.round((o.baixando||0)/o.total*100)+'%';
+        if(o.status)btn.textContent=o.status;if(o.error){btn.textContent='erro: '+o.error;}}}
+    await carregarEstado();
+  }catch(e){btn.textContent='erro';btn.disabled=false;}
+}
+async function excluirModelo(nome){
+  if(!confirm(t('confDelModel',{m:nome})))return;
+  await fetch('/api/ollama/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:nome})});
+  await carregarEstado();
+}
+async function baixar(nome,btn,pr){btn.disabled=true;btn.textContent=t('downloading');pr.style.display='block';const bar=pr.firstChild;
+  try{const r=await fetch('/api/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:nome})});
+    const rd=r.body.getReader();const dc=new TextDecoder();let bf='';
+    while(true){const{done,value}=await rd.read();if(done)break;bf+=dc.decode(value,{stream:true});const ls=bf.split('\n');bf=ls.pop();
+      for(const l of ls){if(!l.trim())continue;let o;try{o=JSON.parse(l)}catch(_){continue}
+        if(o.total)bar.style.width=Math.round((o.completed||0)/o.total*100)+'%';if(o.status)btn.textContent=o.status;}}
+    btn.textContent=t('ready');await carregarEstado();}catch(e){btn.textContent='erro';btn.disabled=false;}}
+
+// ── chats ──
+async function carregarChats(){
+  const d=await(await fetch('/api/chats')).json();chatAtual=d.atual;
+  const L=$('#lista');L.innerHTML='';
+  for(const c of d.chats){
+    const it=document.createElement('div');it.className='item'+(c.id===chatAtual?' sel':'');
+    it.innerHTML=`<span class="tit"></span><span class="acts">
+      <button class="ic ren" title="renomear">✎</button><button class="ic del" title="excluir">🗑</button></span>`;
+    it.querySelector('.tit').textContent=c.titulo;
+    it.querySelector('.tit').onclick=it.onclick=e=>{if(e.target.closest('.acts'))return;abrirChat(c.id);};
+    it.querySelector('.ren').onclick=e=>{e.stopPropagation();renomearChat(it,c);};
+    it.querySelector('.del').onclick=e=>{e.stopPropagation();excluirChat(c.id);};
+    L.appendChild(it);
+  }
+  await abrirMensagens(chatAtual);
+}
+async function abrirChat(id){chatAtual=id;await fetch('/api/chats/'+id+'/atual',{method:'POST'});await carregarChats();}
+async function abrirMensagens(id){
+  $('#chat').innerHTML='';if(!id){vazio();return;}
+  let c;try{c=await(await fetch('/api/chats/'+id)).json();}catch(e){vazio();return;}
+  if(!c.mensagens||!c.mensagens.length){vazio();return;}
+  for(const m of c.mensagens){addMsg('user',m.u);addMsg('a',m.a);}
+}
+function vazio(){$('#chat').innerHTML=`<div class="empty"><div class="big">◆</div><div style="font-weight:600;font-size:16px;color:var(--txt)">${t('emptyT')}</div><div>${t('emptyD')}</div></div>`;}
+async function novoChat(){const r=await(await fetch('/api/chats/novo',{method:'POST'})).json();await carregarChats();}
+async function excluirChat(id){if(!confirm(t('confDel')))return;await fetch('/api/chats/'+id,{method:'DELETE'});await carregarChats();}
+function renomearChat(it,c){
+  const tit=it.querySelector('.tit');const inp=document.createElement('input');inp.value=c.titulo;
+  tit.replaceWith(inp);inp.focus();inp.select();
+  const salvar=async()=>{await fetch('/api/chats/'+c.id+'/renomear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:inp.value})});await carregarChats();};
+  inp.onkeydown=e=>{if(e.key==='Enter')salvar();if(e.key==='Escape')carregarChats();};inp.onblur=salvar;
+}
+
+// ── mensagens ──
+function addMsg(role,texto){
+  const e=$('#chat .empty');if(e)e.remove();
+  const m=document.createElement('div');m.className='msg '+role;
+  m.innerHTML=`<div class="av ${role==='user'?'u':'a'}">${role==='user'?'eu':'◆'}</div><div class="bubble"></div>`;
+  m.querySelector('.bubble').textContent=texto;$('#chat').appendChild(m);$('#chat').scrollTop=$('#chat').scrollHeight;
+  return m.querySelector('.bubble');
+}
+async function enviar(){
+  const inp=$('#input'),texto=inp.value.trim();if(!texto||ocupado)return;
+  if(!estado.ollama_online){addMsg('a',t('errOllama'));return;}
+  const mA=estado.catalogo.find(m=>m.ativo);
+  if(mA&&!mA.instalado){addMsg('a',t('errModel',{m:mA.nome}));return;}
+  ocupado=true;$('#send').disabled=true;addMsg('user',texto);inp.value='';inp.style.height='auto';
+  const bub=addMsg('a','');
+  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto,chat_id:chatAtual})});
+    const rd=r.body.getReader(),dc=new TextDecoder();
+    while(true){const{done,value}=await rd.read();if(done)break;bub.textContent+=dc.decode(value,{stream:true});$('#chat').scrollTop=$('#chat').scrollHeight;}
+  }catch(e){bub.textContent+='\n(erro)';}
+  ocupado=false;$('#send').disabled=false;inp.focus();
+  fetch('/api/chats').then(r=>r.json()).then(d=>{/*atualiza títulos*/const L=$('#lista');
+    [...L.children].forEach((el,i)=>{if(d.chats[i])el.querySelector('.tit')&&(el.querySelector('.tit').textContent=d.chats[i].titulo);});});
+}
+$('#send').onclick=enviar;
+$('#input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}});
+$('#input').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';});
+$('#novoChat').onclick=novoChat;
+$('#toggleSide').onclick=()=>$('#side').classList.toggle('hide');
+$('#themeBtn').onclick=()=>{TEMA=TEMA==='escuro'?'claro':'escuro';aplicarTema();salvarConfig({tema:TEMA});};
+$('#powerBtn').onclick=()=>{const a=estado.config.ativo!==false;salvarConfig({ativo:!a});};
+$('#abrirPasta').onclick=()=>fetch('/api/abrir_pasta',{method:'POST'});
+$('#gear').onclick=()=>{$('#cfg').classList.add('open');$('#scrim').style.display='block';};
+function fechar(){$('#cfg').classList.remove('open');$('#scrim').style.display='none';}
+$('#cfgClose').onclick=fechar;$('#scrim').onclick=fechar;
+
+try{const es=new EventSource('/eventos');es.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}
+  if(m.tipo==='iniciativa'&&m.payload)addMsg('a',m.payload);};}catch(e){}
+
+async function atualizarSistema(){
+  try{const s=await(await fetch('/api/sistema')).json();const p=[];
+    if(s.vram_total)p.push('🎮 '+(s.vram_usada/1024).toFixed(1)+'/'+(s.vram_total/1024).toFixed(1)+'GB');
+    if(s.cpu!=null)p.push('CPU '+s.cpu+'%');
+    if(s.ram_total)p.push('RAM '+s.ram_pct+'%');
+    $('#sysPill').textContent=p.join('  ');
+  }catch(e){$('#sysPill').textContent='';}
+}
+(async()=>{await carregarEstado();await carregarChats();})();
+setInterval(()=>{if(!ocupado)carregarEstado();},10000);
+atualizarSistema();setInterval(atualizarSistema,3000);
+</script>
+</body>
+</html>

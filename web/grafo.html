@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grafo</title>
+<style>
+  :root{--bg:#0d0f13;--panel:#161a21;--line:#222834;--txt:#e6e9ef;--dim:#8b94a3}
+  *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+    font-family:ui-sans-serif,system-ui,"Segoe UI",Arial,sans-serif;overflow:hidden}
+  #top{position:fixed;top:0;left:0;right:0;height:50px;display:flex;align-items:center;gap:12px;
+    padding:0 16px;border-bottom:1px solid var(--line);background:rgba(13,15,19,.85);backdrop-filter:blur(6px);z-index:5}
+  #top h1{font-size:15px;margin:0} #top .s{font-size:13px;color:var(--dim)}
+  #top a{margin-left:auto;color:var(--dim);text-decoration:none;font-size:13px;border:1px solid var(--line);
+    padding:6px 12px;border-radius:20px} #top a:hover{color:var(--txt)}
+  canvas{position:fixed;inset:0;top:50px}
+  #empty{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;
+    gap:10px;color:var(--dim);text-align:center;padding:30px}
+</style>
+</head>
+<body>
+<style>
+  .tbtn{background:#1b2230;border:1px solid #262c38;color:#e6e9ef;border-radius:20px;padding:6px 12px;cursor:pointer;font-size:13px}
+  .tbtn:hover{border-color:#7c9bff}.tbtn.on{background:#7c9bff;color:#0d0f13;border-color:#7c9bff}
+  #editor{position:fixed;right:14px;top:62px;width:250px;background:#161a21;border:1px solid #262c38;border-radius:14px;
+    padding:14px;z-index:6;display:none;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  #editor input,#editor select{width:100%;background:#0f1217;border:1px solid #262c38;color:#e6e9ef;border-radius:8px;
+    padding:7px 9px;font-size:13px;font-family:inherit;outline:none;margin-bottom:8px}
+  #editor .lbl{font-size:11px;color:#8b94a3;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  #editor .conx{font-size:12.5px;color:#cdd3dd;display:flex;align-items:center;gap:6px;padding:3px 0}
+  #editor .conx button{margin-left:auto;background:none;border:none;color:#ff6b6b;cursor:pointer}
+  #editor .eb{width:100%;border:none;border-radius:9px;padding:8px;cursor:pointer;font-size:13px;font-weight:600;margin-top:6px}
+  #editor .x{position:absolute;top:8px;right:10px;color:#8b94a3;cursor:pointer;background:none;border:none;font-size:16px}
+  #hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#161a21;border:1px solid #7c9bff;
+    color:#e6e9ef;border-radius:20px;padding:8px 16px;font-size:13px;display:none;z-index:7}
+</style>
+<div id="top"><h1>🕸️ Grafo</h1><span class="s" id="s"></span>
+  <button class="tbtn" id="novoNo" style="border-color:#5ad1c2;color:#5ad1c2">➕ novo</button>
+  <button class="tbtn" id="conectar">🔗 conectar</button>
+  <button class="tbtn" id="centrar">⊙ centralizar</button>
+  <button class="tbtn" id="limpar" style="border-color:#5a2c2c;color:#ff6b6b">🧹 limpar</button>
+  <a href="/" style="color:#8b94a3;text-decoration:none;border:1px solid #262c38;padding:6px 12px;border-radius:20px">← voltar</a></div>
+<div id="editor"><button class="x" id="edX">✕</button>
+  <div class="lbl">Nome do conceito</div><input id="edLabel">
+  <div class="lbl">Tipo</div>
+  <select id="edTipo"><option value="pessoa">pessoa</option><option value="projeto">projeto</option>
+    <option value="tecnologia">tecnologia</option><option value="tema">tema</option>
+    <option value="ferramenta">ferramenta</option><option value="jogo">jogo</option></select>
+  <div class="lbl">Conexões</div><div id="edConx"></div>
+  <button class="eb" id="edConectar" style="background:#1b2230;color:#7c9bff;border:1px solid #7c9bff">🔗 conectar a outro</button>
+  <button class="eb" id="edExcluir" style="background:#ff6b6b;color:#fff">🗑 excluir nó</button></div>
+<div id="hint"></div>
+<canvas id="cv"></canvas>
+<div id="empty" style="display:none"><div style="font-size:38px">🧠</div>
+  <div>O grafo ainda está vazio.<br>Ative <b>Ver a tela</b> e <b>Grafo</b> nas configurações.</div></div>
+<script>
+const CORES={pessoa:'#ff8a5c',projeto:'#7aa2ff',tecnologia:'#5ad1c2',tema:'#c08bff',ferramenta:'#ffd166',jogo:'#ff6bce'};
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let nos=[],arestas=[],porK={},W,H,view={x:0,y:0,k:1},drag=null,pan=null,hover=null;
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight-50}
+addEventListener('resize',resize);resize();
+async function carregar(){
+  let g; try{g=await(await fetch('/api/grafo')).json()}catch(e){return}
+  const ns=g.nos||{},as=g.arestas||{},ks=Object.keys(ns);
+  document.getElementById('s').textContent=ks.length+' conceitos · '+Object.keys(as).length+' conexões';
+  document.getElementById('empty').style.display=ks.length?'none':'flex';
+  const old=porK;porK={};
+  nos=ks.map(k=>{const o=old[k];return porK[k]={k,...ns[k],disp:(ns[k].t&&ns[k].t[LANGG])||ns[k].label,x:o?o.x:W/2+(Math.random()-.5)*260,y:o?o.y:H/2+(Math.random()-.5)*260,vx:0,vy:0}});
+  arestas=Object.values(as).filter(a=>porK[a.de]&&porK[a.para]).map(a=>({...a,A:porK[a.de],B:porK[a.para]}));
+  if(ks.length && !window._centrou){ window._centrou=true; setTimeout(centralizar,600); }
+}
+function r(n){return 5+Math.min(20,Math.sqrt(n.peso||1)*4)}
+function passo(){
+  for(const n of nos){let fx=0,fy=0;for(const m of nos){if(m===n)continue;let dx=n.x-m.x,dy=n.y-m.y,d2=dx*dx+dy*dy+.01;let f=1500/d2;fx+=dx*f;fy+=dy*f}
+    fx+=(W/2-n.x)*.012;fy+=(H/2-n.y)*.012;n.vx=(n.vx+fx)*.80;n.vy=(n.vy+fy)*.80}   // gravidade forte = fica centralizado
+  for(const a of arestas){let dx=a.B.x-a.A.x,dy=a.B.y-a.A.y,d=Math.hypot(dx,dy)+.01,f=(d-80)*.02,ux=dx/d,uy=dy/d;
+    a.A.vx+=ux*f;a.A.vy+=uy*f;a.B.vx-=ux*f;a.B.vy-=uy*f}
+  for(const n of nos){if(n===drag)continue;n.x+=Math.max(-10,Math.min(10,n.vx));n.y+=Math.max(-10,Math.min(10,n.vy))}
+}
+function centralizar(){
+  if(!nos.length)return;
+  let a=1e9,b=1e9,c=-1e9,e=-1e9;
+  for(const n of nos){a=Math.min(a,n.x);b=Math.min(b,n.y);c=Math.max(c,n.x);e=Math.max(e,n.y);}
+  const w=(c-a)||1, h=(e-b)||1;
+  view.k=Math.max(.3,Math.min(1.6, Math.min(W/(w+160), H/(h+160))));
+  view.x=W/2-((a+c)/2)*view.k; view.y=H/2-((b+e)/2)*view.k;
+}
+document.getElementById('centrar').onclick=centralizar;
+const V=p=>({x:p.x*view.k+view.x,y:p.y*view.k+view.y});
+const IV=(x,y)=>({x:(x-view.x)/view.k,y:(y-view.y)/view.k});
+function desenhar(){
+  ctx.clearRect(0,0,W,H);
+  for(const a of arestas){const p1=V(a.A),p2=V(a.B);ctx.strokeStyle='rgba(120,130,150,.18)';ctx.lineWidth=(.6+Math.min(a.peso,6)*.4)*view.k;
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke()}
+  for(const n of nos){const p=V(n),rr=r(n)*view.k;ctx.beginPath();ctx.arc(p.x,p.y,rr,0,7);ctx.fillStyle=CORES[n.tipo]||CORES.tema;ctx.fill();
+    if(n===hover){ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke()}
+    if(view.k>.55||n.peso>2||n===hover){ctx.fillStyle='#e6e9ef';ctx.font=(11*Math.min(1.4,view.k))+'px system-ui';ctx.textAlign='center';ctx.fillText(n.disp||n.label,p.x,p.y+rr+12*view.k)}}
+}
+function laco(){passo();desenhar();requestAnimationFrame(laco)}
+function noEm(x,y){for(let i=nos.length-1;i>=0;i--){const p=V(nos[i]);if(Math.hypot(p.x-x,p.y-y)<=r(nos[i])*view.k+4)return nos[i]}return null}
+let selN=null,connectMode=false,connectFrom=null,downXY=null,downNode=null,moved=false;
+const $=s=>document.querySelector(s);
+function hint(t){const h=$('#hint');if(t){h.textContent=t;h.style.display='block';}else h.style.display='none';}
+async function editar(body){await fetch('/api/grafo/editar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});await carregar();}
+function abrirEditor(n){selN=n;$('#editor').style.display='block';
+  $('#edLabel').value=n.label;$('#edTipo').value=n.tipo||'tema';
+  const c=$('#edConx');c.innerHTML='';const cs=arestas.filter(a=>a.de===n.k||a.para===n.k);
+  if(!cs.length)c.innerHTML='<div style="color:#8b94a3;font-size:12px">nenhuma ainda</div>';
+  for(const a of cs){const o=a.de===n.k?a.para:a.de,lbl=(porK[o]||{}).label||o;
+    const r=document.createElement('div');r.className='conx';r.innerHTML=`<span>${a.rel} → ${lbl}</span><button>✕</button>`;
+    r.querySelector('button').onclick=()=>editar({acao:'excluir_aresta',de:a.de,para:a.para});c.appendChild(r);}}
+function fecharEditor(){selN=null;$('#editor').style.display='none';}
+cv.addEventListener('mousedown',e=>{downXY=[e.clientX,e.clientY];moved=false;downNode=noEm(e.clientX,e.clientY-50);
+  if(downNode&&!connectMode)drag=downNode;else if(!downNode)pan={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y}});
+addEventListener('mousemove',e=>{const sy=e.clientY-50;
+  if(downXY&&(Math.abs(e.clientX-downXY[0])+Math.abs(e.clientY-downXY[1])>5))moved=true;
+  if(drag){const w=IV(e.clientX,sy);drag.x=w.x;drag.y=w.y;drag.vx=drag.vy=0}
+  else if(pan){view.x=pan.vx+(e.clientX-pan.x);view.y=pan.vy+(e.clientY-pan.y)}
+  else{hover=noEm(e.clientX,sy);cv.style.cursor=hover?'pointer':'default'}});
+addEventListener('mouseup',e=>{
+  if(e.target.closest&&e.target.closest('#editor,#top,#hint')){drag=null;pan=null;downNode=null;downXY=null;return;}
+  if(downNode&&!moved){   // clique num nó
+    if(connectMode){
+      if(!connectFrom){connectFrom=downNode;hint('clique no segundo conceito pra ligar');}
+      else if(connectFrom!==downNode){const rel=prompt('Relação (ex: usa, joga, criou):','liga');
+        if(rel!==null)editar({acao:'criar_aresta',de:connectFrom.label,para:downNode.label,rel:rel||'liga'});
+        connectMode=false;connectFrom=null;hint('');$('#conectar').classList.remove('on');}
+    } else abrirEditor(downNode);
+  } else if(!downNode&&!moved&&!connectMode){fecharEditor();}
+  drag=null;pan=null;downNode=null;downXY=null;});
+$('#edLabel').onchange=()=>{if(selN)editar({acao:'renomear_no',chave:selN.k,label:$('#edLabel').value});};
+$('#edTipo').onchange=()=>{if(selN)editar({acao:'tipo_no',chave:selN.k,tipo:$('#edTipo').value});};
+$('#edExcluir').onclick=()=>{if(selN&&confirm('Excluir este conceito? (também remove fatos da memória que o mencionam)')){editar({acao:'excluir_no',chave:selN.k});fecharEditor();}};
+$('#edConectar').onclick=()=>{if(selN){connectMode=true;connectFrom=selN;$('#conectar').classList.add('on');hint('clique em outro conceito pra ligar a "'+selN.label+'"');fecharEditor();}};
+$('#edX').onclick=fecharEditor;
+$('#conectar').onclick=()=>{connectMode=!connectMode;connectFrom=null;$('#conectar').classList.toggle('on',connectMode);hint(connectMode?'clique em dois conceitos pra ligá-los':'');};
+$('#novoNo').onclick=async()=>{const nome=prompt('Nome do novo conceito:');if(nome&&nome.trim())await editar({acao:'criar_no',label:nome.trim()});};
+$('#limpar').onclick=()=>{if(confirm('Limpar TODO o grafo?')){const mem=confirm('Limpar também os fatos da memória?');editar({acao:'limpar',tambem_memoria:mem});fecharEditor();}};
+cv.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.12:.89,mx=e.clientX,my=e.clientY-50,w=IV(mx,my);
+  view.k=Math.max(.2,Math.min(3,view.k*f));view.x=mx-w.x*view.k;view.y=my-w.y*view.k},{passive:false});
+let LANGG='pt';
+(async()=>{
+  try{const e=await(await fetch('/api/estado')).json();LANGG=e.config.idioma||'pt';
+    if(LANGG==='en'||LANGG==='es')fetch('/api/grafo/traduzir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:LANGG})});
+  }catch(_){}
+  carregar();laco();setInterval(carregar,8000);
+})();
+</script>
+</body>
+</html>

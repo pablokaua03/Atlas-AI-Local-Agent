@@ -1,0 +1,30 @@
+# ── dados do usuário (gerados localmente, nunca versionar) ──
+config.json
+memoria.json
+conversas.json
+grafo.json
+observacoes.json
+prints/*
+!prints/.gitkeep
+
+# ── assets pesados (baixados no setup/uso, nunca no repo) ──
+tessdata/
+wiki/
+*.idx.db
+*.zim
+*.gguf
+*.bin
+*.onnx
+
+# ── modelos / instaladores temporários ──
+OllamaSetup.exe
+
+# ── caches e temporários ──
+__pycache__/
+*.pyc
+*.pyo
+*.log
+log_*.txt
+_test_*.py
+_ocrtest.txt
+*.tmp
