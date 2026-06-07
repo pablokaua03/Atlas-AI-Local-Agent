@@ -1,7 +1,7 @@
 """
 bandeja — ícone na bandeja do Windows + atalho global pra abrir o agente rápido.
 
-- Ícone na bandeja (pystray): Abrir, Pausar/Retomar, Sair.
+- Ícone na bandeja (pystray): Open Atlas, Pause/Resume, Quit.
 - Atalho global Ctrl+Alt+A: abre http://127.0.0.1:5005 no navegador.
 
 O atalho usa só ctypes (user32.RegisterHotKey), sem DLL de terceiros. O ícone
@@ -48,9 +48,9 @@ def _tray():
         return
     try:
         menu = pystray.Menu(
-            pystray.MenuItem("Abrir Atlas", abrir, default=True),
-            pystray.MenuItem("Pausar / Retomar", _alternar_ativo),
-            pystray.MenuItem("Sair", lambda icon, item: (icon.stop(), os._exit(0))),
+            pystray.MenuItem("Open Atlas", abrir, default=True),
+            pystray.MenuItem("Pause / Resume", _alternar_ativo),
+            pystray.MenuItem("Quit", lambda icon, item: (icon.stop(), os._exit(0))),
         )
         pystray.Icon("Atlas", _icone_img(), "Atlas - AI Local Agent", menu).run()
     except Exception:
