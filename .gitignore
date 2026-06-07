@@ -31,4 +31,7 @@ __pycache__/
 log_*.txt
 _test_*.py
 _ocrtest.txt
+_*.py
+_*.js
+_*.txt
 *.tmp
