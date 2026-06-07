@@ -21,6 +21,7 @@ import urllib.request
 
 import requests
 import core
+import cofre
 
 # ── canal de eventos pra interface (iniciativa, observação, status) ──────────
 _subs = []
@@ -204,10 +205,8 @@ def _strip_html(h):
 
 # ── memória local ─────────────────────────────────────────────────────────────
 def carregar_mem():
-    try:
-        with open(core.MEM_FILE, encoding="utf-8") as f:
-            m = json.load(f)
-    except Exception:
+    m = cofre.ler_json(core.MEM_FILE, {})
+    if not isinstance(m, dict):
         m = {}
     m.setdefault("fatos", [])
     m.setdefault("historico", [])
@@ -215,8 +214,7 @@ def carregar_mem():
 
 
 def salvar_mem(m):
-    with open(core.MEM_FILE, "w", encoding="utf-8") as f:
-        json.dump(m, f, ensure_ascii=False, indent=2)
+    cofre.salvar_json(core.MEM_FILE, m)
 
 
 def extrair_fato(user_msg, resposta):
@@ -273,10 +271,8 @@ _GRAFO_SCHEMA = {
 
 
 def carregar_grafo():
-    try:
-        with open(core.GRAFO_FILE, encoding="utf-8") as f:
-            g = json.load(f)
-    except Exception:
+    g = cofre.ler_json(core.GRAFO_FILE, {})
+    if not isinstance(g, dict):
         g = {}
     g.setdefault("nos", {})
     g.setdefault("arestas", {})
@@ -284,8 +280,7 @@ def carregar_grafo():
 
 
 def _salvar_grafo(g):
-    with open(core.GRAFO_FILE, "w", encoding="utf-8") as f:
-        json.dump(g, f, ensure_ascii=False, indent=2)
+    cofre.salvar_json(core.GRAFO_FILE, g)
 
 
 def _chave(label):
@@ -637,19 +632,12 @@ def consultar_wiki(query, limite=1500):
 
 # ── observação + iniciativa ───────────────────────────────────────────────────
 def _carregar_obs():
-    try:
-        with open(core.OBS_FILE, encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
+    o = cofre.ler_json(core.OBS_FILE, [])
+    return o if isinstance(o, list) else []
 
 
 def _salvar_obs(obs):
-    try:
-        with open(core.OBS_FILE, "w", encoding="utf-8") as f:
-            json.dump(obs[-80:], f, ensure_ascii=False)
-    except Exception:
-        pass
+    cofre.salvar_json(core.OBS_FILE, obs[-80:], indent=None)
 
 
 def _nota_atividade(titulo, texto):
@@ -710,7 +698,7 @@ def iniciativa_loop():
             espera = max(60, int(cfg.get("iniciativa_intervalo", 10)) * 60) if modo == "intervalo" else 90
             time.sleep(espera)
             cfg = core.carregar_config()
-            if not cfg.get("ativo", True):
+            if not cfg.get("ativo", True) or not cofre.disponivel():
                 continue
             if not cfg["habilidades"].get("iniciativa") or conversando.is_set() or not core.ollama_online():
                 continue
@@ -745,8 +733,8 @@ def observar_loop():
         try:
             cfg = core.carregar_config()
             time.sleep(max(15, int(cfg.get("obs_intervalo", 60))))   # frequência configurável
-            if not core.carregar_config().get("ativo", True):        # sistema pausado
-                continue
+            if not core.carregar_config().get("ativo", True) or not cofre.disponivel():
+                continue                                             # pausado ou cofre travado
             if conversando.is_set() or not core.ollama_online():
                 continue
             if not cfg["habilidades"].get("tela"):

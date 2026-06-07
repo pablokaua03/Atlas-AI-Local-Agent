@@ -4,3 +4,4 @@ numpy>=1.24
 pillow>=10.0
 pytesseract>=0.3.10
 pypdf>=4.0
+pystray>=0.19

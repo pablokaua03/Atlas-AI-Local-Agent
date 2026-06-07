@@ -143,6 +143,7 @@
     <header>
       <button class="hbtn" id="toggleSide" title="menu">☰</button>
       <button class="hbtn" id="powerBtn" title="ligar/desligar">⏻</button>
+      <button class="hbtn" id="lockBtn" title="cofre" style="display:none">🔒</button>
       <span class="pill" id="sysPill" style="font-family:ui-monospace,monospace;font-size:11.5px"></span>
       <span class="pill" id="pill">…</span>
       <button class="hbtn" id="themeBtn" title="tema">🌙</button>
@@ -158,6 +159,16 @@
   </main>
 </div>
 
+<div id="cofreModal" style="position:fixed;inset:0;z-index:30;background:var(--bg);align-items:center;justify-content:center;display:none">
+  <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;width:min(340px,90%);text-align:center">
+    <div style="font-size:38px;margin-bottom:6px">🔒</div>
+    <div id="cofreTitle" style="font-size:15px;margin-bottom:14px;color:var(--dim)"></div>
+    <input type="password" id="cofreSenha" style="width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px;font-family:inherit;font-size:14px">
+    <div id="cofreErr" style="color:var(--danger);font-size:12px;min-height:15px;margin:7px 0"></div>
+    <button id="cofreOk" class="bbtn" style="width:100%;padding:11px"></button>
+  </div>
+</div>
+
 <div id="scrim"></div>
 <div id="cfg">
   <button class="close" id="cfgClose">✕</button>
@@ -167,6 +178,8 @@
   <h2 id="h-model">Modelo</h2><div id="modelos"></div>
   <h2 id="h-skills">Habilidades</h2><div id="skills"></div>
   <h2 id="h-init">Inicialização</h2><div id="initBox"></div>
+  <h2 id="h-sec">Segurança</h2><div id="secBox"></div>
+  <h2 id="h-rem">Lembretes</h2><div id="remBox"></div>
   <h2 id="h-folder">Arquivos</h2>
   <button id="abrirPasta" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px"></button>
   <button id="btnExport" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;margin-bottom:8px"></button>
@@ -202,6 +215,12 @@ const I18N={
    docsStat:"{n} arquivo(s) · {c} trecho(s) indexado(s)",
    bkExport:"⬇ Exportar tudo (backup)",bkImport:"⬆ Restaurar backup",bkExporting:"gerando…",
    bkImporting:"restaurando…",bkDone:"✓ restaurado",bkConfirm:"Restaurar o backup vai sobrescrever memória, grafo e conversas atuais. Continuar?",
+   secHdr:"Segurança",secOff:"Seus dados estão em texto puro no disco. Defina uma senha para cifrá-los.",
+   secOn:"Memória, conversas, grafo e lembretes ficam cifrados no disco.",
+   secPwPh:"crie uma senha (mín. 4)",secEnable:"🔒 Ativar criptografia",secLock:"🔒 Bloquear agora",
+   secDisable:"Desativar criptografia",secDisPh:"senha atual para desativar",secMin:"Use ao menos 4 caracteres.",secBad:"Senha incorreta.",
+   unlockTitle:"Cofre bloqueado. Digite sua senha para continuar.",unlock:"Desbloquear",lockNow:"bloquear o cofre",
+   remHdr:"Lembretes",remEmpty:'Nenhum lembrete. Diga ao agente: "me lembra disso amanhã".',remDel:"excluir",
    autostart:"Iniciar com o Windows",autostart_d:"abre o agente sozinho ao ligar o PC",
    obsFreq:"Frequência das prints (s)",obsFreq_d:"de quanto em quanto tempo ele olha a tela",
    iniMode:"Iniciativa — quando falar",iniDinamico:"Dinâmico",iniIntervalo:"A cada X min",iniMin:"minutos:",
@@ -234,6 +253,12 @@ const I18N={
    docsStat:"{n} file(s) · {c} chunk(s) indexed",
    bkExport:"⬇ Export everything (backup)",bkImport:"⬆ Restore backup",bkExporting:"building…",
    bkImporting:"restoring…",bkDone:"✓ restored",bkConfirm:"Restoring will overwrite your current memory, graph and conversations. Continue?",
+   secHdr:"Security",secOff:"Your data is plain text on disk. Set a password to encrypt it.",
+   secOn:"Memory, conversations, graph and reminders are encrypted on disk.",
+   secPwPh:"create a password (min. 4)",secEnable:"🔒 Enable encryption",secLock:"🔒 Lock now",
+   secDisable:"Disable encryption",secDisPh:"current password to disable",secMin:"Use at least 4 characters.",secBad:"Wrong password.",
+   unlockTitle:"Vault locked. Enter your password to continue.",unlock:"Unlock",lockNow:"lock the vault",
+   remHdr:"Reminders",remEmpty:'No reminders. Tell the agent: "remind me of this tomorrow".',remDel:"delete",
    autostart:"Start with Windows",autostart_d:"opens the agent on boot",
    obsFreq:"Screen check (s)",obsFreq_d:"how often it looks at the screen",
    iniMode:"Initiative — when to speak",iniDinamico:"Dynamic",iniIntervalo:"Every X min",iniMin:"minutes:",
@@ -266,6 +291,12 @@ const I18N={
    docsStat:"{n} archivo(s) · {c} fragmento(s) indexado(s)",
    bkExport:"⬇ Exportar todo (copia)",bkImport:"⬆ Restaurar copia",bkExporting:"generando…",
    bkImporting:"restaurando…",bkDone:"✓ restaurado",bkConfirm:"Restaurar sobrescribirá tu memoria, grafo y conversaciones actuales. ¿Continuar?",
+   secHdr:"Seguridad",secOff:"Tus datos están en texto plano en el disco. Define una contraseña para cifrarlos.",
+   secOn:"Memoria, conversaciones, grafo y recordatorios quedan cifrados en el disco.",
+   secPwPh:"crea una contraseña (mín. 4)",secEnable:"🔒 Activar cifrado",secLock:"🔒 Bloquear ahora",
+   secDisable:"Desactivar cifrado",secDisPh:"contraseña actual para desactivar",secMin:"Usa al menos 4 caracteres.",secBad:"Contraseña incorrecta.",
+   unlockTitle:"Caja fuerte bloqueada. Escribe tu contraseña para continuar.",unlock:"Desbloquear",lockNow:"bloquear la caja",
+   remHdr:"Recordatorios",remEmpty:'Sin recordatorios. Dile al agente: "recuérdame esto mañana".',remDel:"eliminar",
    autostart:"Iniciar con Windows",autostart_d:"abre el agente al encender el PC",
    obsFreq:"Frecuencia de pantalla (s)",obsFreq_d:"cada cuánto mira la pantalla",
    iniMode:"Iniciativa — cuándo hablar",iniDinamico:"Dinámico",iniIntervalo:"Cada X min",iniMin:"minutos:",
@@ -300,6 +331,7 @@ function fixos(){
   $('#h-init').textContent=t('initHdr'); $('#grafoBtn').title=t('btnGrafo'); $('#foot').textContent=t('foot');
   $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
   $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
+  $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr');
 }
 
 function render(){
@@ -312,6 +344,13 @@ function render(){
   $('#powerBtn').className='hbtn '+(ativo?'on':'off');
   $('#powerBtn').title=ativo?t('pause'):t('activate');
   if(!ativo){pill.className='pill off';pill.textContent='⏸ '+t('paused');}
+  // cofre (cadeado no header + modal de desbloqueio)
+  const co=estado.cofre||{ligada:false,desbloqueado:true};
+  const lb=$('#lockBtn');
+  lb.style.display=co.ligada?'inline-flex':'none';
+  lb.textContent=co.desbloqueado?'🔓':'🔒';
+  lb.title=co.desbloqueado?t('lockNow'):t('unlock');
+  if(co.ligada&&!co.desbloqueado){abrirCofreModal();}else{$('#cofreModal').style.display='none';}
   // banner
   const b=$('#banner'),bt=$('#bannerTxt'),bb=$('#bannerBtn'),mA=estado.catalogo.find(m=>m.ativo);
   b.style.display='none';bb.style.display='none';
@@ -385,7 +424,67 @@ function render(){
   const ir=document.createElement('div');ir.className='skill';ir.style.borderBottom='none';
   ir.innerHTML=`<div class="info"><div class="nm">${t('autostart')}</div><div class="d">${t('autostart_d')}</div></div><div class="sw ${aon?'on':''}"></div>`;
   ir.querySelector('.sw').onclick=()=>salvarConfig({iniciar_com_windows:!aon});$('#initBox').appendChild(ir);
+  renderSeguranca(); renderLembretes();
 }
+
+// ── segurança (criptografia em repouso) ──
+function renderSeguranca(){
+  const co=estado.cofre||{ligada:false};const box=$('#secBox');box.innerHTML='';
+  const info=document.createElement('div');info.className='d';info.style.marginBottom='9px';
+  info.textContent=co.ligada?t('secOn'):t('secOff');box.appendChild(info);
+  if(!co.ligada){
+    const inp=document.createElement('input');inp.type='password';inp.placeholder=t('secPwPh');
+    inp.style.cssText='width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font-family:inherit;margin-bottom:8px';
+    const b=document.createElement('button');b.className='baixar';b.style.width='100%';b.textContent=t('secEnable');
+    b.onclick=()=>ativarCripto(inp.value,b);box.appendChild(inp);box.appendChild(b);
+  }else{
+    const lk=document.createElement('button');lk.className='baixar';lk.style.width='100%';lk.style.marginBottom='8px';lk.textContent=t('secLock');
+    lk.onclick=bloquearCofre;box.appendChild(lk);
+    const inp=document.createElement('input');inp.type='password';inp.placeholder=t('secDisPh');
+    inp.style.cssText='width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font-family:inherit;margin-bottom:8px';
+    const b=document.createElement('button');b.className='baixar';b.style.width='100%';b.style.borderColor='var(--danger)';b.style.color='var(--danger)';b.textContent=t('secDisable');
+    b.onclick=()=>desativarCripto(inp.value,b);box.appendChild(inp);box.appendChild(b);
+  }
+}
+async function ativarCripto(senha,btn){
+  if(!senha||senha.length<4){btn.textContent=t('secMin');return;}
+  btn.disabled=true;const r=await(await fetch('/api/cofre/ativar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({senha})})).json();
+  if(r.ok){await carregarEstado();}else{btn.disabled=false;btn.textContent=t('secEnable');}
+}
+async function desativarCripto(senha,btn){
+  btn.disabled=true;const r=await(await fetch('/api/cofre/desativar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({senha})})).json();
+  if(r.ok){await carregarEstado();}else{btn.disabled=false;btn.textContent=t('secBad');}
+}
+async function bloquearCofre(){await fetch('/api/cofre/bloquear',{method:'POST'});await carregarEstado();}
+function abrirCofreModal(){
+  const m=$('#cofreModal');m.style.display='flex';$('#cofreTitle').textContent=t('unlockTitle');
+  $('#cofreOk').textContent=t('unlock');$('#cofreErr').textContent='';$('#cofreSenha').value='';
+  setTimeout(()=>$('#cofreSenha').focus(),50);
+}
+async function desbloquearCofre(){
+  const s=$('#cofreSenha').value;if(!s)return;
+  const r=await(await fetch('/api/cofre/desbloquear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({senha:s})})).json();
+  if(r.ok){$('#cofreModal').style.display='none';await carregarEstado();await carregarChats();}
+  else{$('#cofreErr').textContent=t('secBad');$('#cofreSenha').value='';$('#cofreSenha').focus();}
+}
+
+// ── lembretes ──
+async function renderLembretes(){
+  const box=$('#remBox');box.innerHTML='';
+  let itens=[];try{itens=await(await fetch('/api/lembretes')).json();}catch(e){}
+  const pend=itens.filter(x=>!x.feito);
+  if(!pend.length){box.innerHTML=`<div class="d">${t('remEmpty')}</div>`;return;}
+  for(const it of pend){
+    const dt=new Date(it.quando*1000);
+    const q=dt.toLocaleString(LANG,{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const r=document.createElement('div');r.className='skill';
+    r.innerHTML=`<div class="info"><div class="nm">${it.texto.replace(/</g,'&lt;')}</div><div class="d">${q}</div></div>`;
+    const del=document.createElement('button');del.className='baixar';del.style.borderColor='var(--danger)';del.style.color='var(--danger)';del.textContent='🗑';
+    del.onclick=async()=>{await fetch('/api/lembretes/'+it.id,{method:'DELETE'});renderLembretes();};
+    r.appendChild(del);box.appendChild(r);
+  }
+}
+
 function seg(sel,vals,cur,lab,cb){const e=$(sel);e.innerHTML='';for(const v of vals){const b=document.createElement('button');
   b.textContent=lab(v);if(v===cur)b.className='on';b.onclick=()=>cb(v);e.appendChild(b);}}
 
@@ -518,6 +617,9 @@ $('#novoChat').onclick=novoChat;
 $('#toggleSide').onclick=()=>$('#side').classList.toggle('hide');
 $('#themeBtn').onclick=()=>{TEMA=TEMA==='escuro'?'claro':'escuro';aplicarTema();salvarConfig({tema:TEMA});};
 $('#powerBtn').onclick=()=>{const a=estado.config.ativo!==false;salvarConfig({ativo:!a});};
+$('#lockBtn').onclick=()=>{const co=estado.cofre||{};if(co.desbloqueado)bloquearCofre();else abrirCofreModal();};
+$('#cofreOk').onclick=desbloquearCofre;
+$('#cofreSenha').addEventListener('keydown',e=>{if(e.key==='Enter')desbloquearCofre();});
 $('#abrirPasta').onclick=()=>fetch('/api/abrir_pasta',{method:'POST'});
 $('#btnExport').onclick=exportarBackup;
 $('#btnImport').onclick=()=>$('#importFile').click();

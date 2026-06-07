@@ -18,6 +18,9 @@ import core
 import skills
 import chats
 import docs
+import cofre
+import lembretes
+import bandeja
 
 WEB_DIR = os.path.join(core.BASE_DIR, "web")
 HOST, PORT = "127.0.0.1", 5005
@@ -110,7 +113,7 @@ def api_sistema():
 # ── ESTADO / CONFIG ───────────────────────────────────────────────────────────
 @app.route("/api/estado")
 def api_estado():
-    return jsonify(core.estado())
+    return jsonify({**core.estado(), "cofre": cofre.estado()})
 
 
 @app.route("/api/config", methods=["POST"])
@@ -238,6 +241,51 @@ def api_backup_importar():
     except Exception as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
     return jsonify({"ok": True, "restaurados": restaurados})
+
+
+# ── COFRE (criptografia em repouso, protegida por senha) ──────────────────────
+@app.route("/api/cofre/estado")
+def api_cofre_estado():
+    return jsonify(cofre.estado())
+
+
+@app.route("/api/cofre/ativar", methods=["POST"])
+def api_cofre_ativar():
+    d = request.get_json(force=True, silent=True) or {}
+    ok = cofre.ativar(d.get("senha", ""))
+    return jsonify({"ok": ok, **cofre.estado()})
+
+
+@app.route("/api/cofre/desativar", methods=["POST"])
+def api_cofre_desativar():
+    d = request.get_json(force=True, silent=True) or {}
+    ok = cofre.desativar(d.get("senha", ""))
+    return jsonify({"ok": ok, **cofre.estado()})
+
+
+@app.route("/api/cofre/desbloquear", methods=["POST"])
+def api_cofre_desbloquear():
+    d = request.get_json(force=True, silent=True) or {}
+    ok = cofre.desbloquear(d.get("senha", ""))
+    return jsonify({"ok": ok, **cofre.estado()})
+
+
+@app.route("/api/cofre/bloquear", methods=["POST"])
+def api_cofre_bloquear():
+    cofre.bloquear()
+    threading.Thread(target=core.descarregar_modelos, daemon=True).start()
+    return jsonify({"ok": True, **cofre.estado()})
+
+
+# ── LEMBRETES ─────────────────────────────────────────────────────────────────
+@app.route("/api/lembretes")
+def api_lembretes():
+    return jsonify(lembretes.listar())
+
+
+@app.route("/api/lembretes/<lid>", methods=["DELETE"])
+def api_lembrete_excluir(lid):
+    return jsonify({"ok": lembretes.excluir(lid)})
 
 
 # ── CONVERSAS (chats salvos localmente) ───────────────────────────────────────
@@ -483,9 +531,21 @@ def chat():
         return jsonify({"ok": False}), 400
 
     cfg = core.carregar_config()
+    idioma = cfg.get("idioma", "pt")
+    if cofre.ligada() and not cofre.desbloqueado():
+        msg = {"pt": "Desbloqueie o cofre (cadeado no topo) para conversar.",
+               "en": "Unlock the vault (lock icon at the top) to chat.",
+               "es": "Desbloquea la caja fuerte (candado arriba) para conversar."}.get(idioma, "")
+        return Response(msg, mimetype="text/plain; charset=utf-8")
+
     modelo = core.modelo_atual(cfg)
     nome = cfg.get("nome", "você")
     cid = d.get("chat_id") or chats.listar()["atual"]
+
+    conf = lembretes.detectar(texto, idioma)          # "me lembra disso amanhã"
+    if conf:
+        chats.adicionar(cid, texto, conf)
+        return Response(conf, mimetype="text/plain; charset=utf-8")
 
     system = SYSTEM_BASE.format(nome=nome, idioma=INSTR_IDIOMA.get(cfg.get("idioma", "pt"), ""))
     if core.habilidade("memoria", cfg):
@@ -568,8 +628,10 @@ def chat():
 
 def iniciar():
     skills.iniciar()
-    if core.habilidade("documentos"):     # indexa os documentos em segundo plano no start
-        docs.reindexar_async(forcar=False)
+    lembretes.iniciar()
+    bandeja.iniciar()
+    if core.habilidade("documentos") and cofre.disponivel():
+        docs.reindexar_async(forcar=False)   # indexa os documentos em segundo plano no start
 
 
 if __name__ == "__main__":

@@ -16,6 +16,11 @@ so you do not clone a huge folder.
 - Ask about your own files: drop .txt, .md or .pdf in a folder and the agent
   answers from them (local RAG with nomic-embed-text)
 - One click backup: export and restore your memory, graph and conversations
+- Optional encryption at rest: protect memory, conversations, graph and
+  reminders with a password (standard library only, no native crypto)
+- Natural language reminders ("remind me of this tomorrow") that fire through
+  the proactive channel
+- System tray icon and a global hotkey (Ctrl+Alt+A) to open the agent fast
 - Light and dark theme, and three interface languages (PT, EN, ES)
 - Every skill can be toggled on or off at any time
 - Master switch to pause all background activity (no screenshots, no learning)
@@ -61,5 +66,11 @@ pip install -r requirements.txt
 
 Everything runs locally through Ollama on 127.0.0.1. No telemetry, no cloud,
 no account. Your data (config.json, conversas.json, memoria.json, grafo.json,
-prints, docs and docs_index.json) stays only on your machine and is listed in
-.gitignore.
+observacoes.json, lembretes.json, prints, docs and docs_index.json) stays only
+on your machine and is listed in .gitignore.
+
+You can also turn on encryption at rest in Settings, Security. A password is
+turned into a key with scrypt, and memory, conversations, graph and reminders
+are stored encrypted on disk (HMAC-SHA256 keystream with encrypt-then-MAC). The
+password is never written to disk; it is only kept in memory while the vault is
+unlocked. If you forget the password, the data cannot be recovered.

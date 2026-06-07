@@ -11,16 +11,15 @@ import uuid
 import threading
 
 import core
+import cofre
 
 _lock = threading.Lock()
 _NOVOS = {"Novo chat", "New chat", "Nuevo chat", ""}
 
 
 def _load():
-    try:
-        with open(core.CONVERSAS_FILE, "r", encoding="utf-8") as f:
-            d = json.load(f)
-    except Exception:
+    d = cofre.ler_json(core.CONVERSAS_FILE, {})
+    if not isinstance(d, dict):
         d = {}
     d.setdefault("atual", None)
     d.setdefault("chats", [])
@@ -28,8 +27,7 @@ def _load():
 
 
 def _save(d):
-    with open(core.CONVERSAS_FILE, "w", encoding="utf-8") as f:
-        json.dump(d, f, ensure_ascii=False, indent=2)
+    cofre.salvar_json(core.CONVERSAS_FILE, d)
 
 
 def _garantir_um(d):
