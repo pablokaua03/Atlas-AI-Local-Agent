@@ -102,10 +102,12 @@
   .bubble .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
   .bubble .imgs img{max-width:200px;max-height:200px;border-radius:9px;border:1px solid var(--line)}
   #chat.drag{outline:2px dashed var(--accent);outline-offset:-8px}
-  #chatActions{max-width:780px;margin:6px auto 0;text-align:center}
-  #regenBtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:10px;
-    padding:6px 14px;cursor:pointer;font-size:13px;font-family:inherit}
-  #regenBtn:hover{color:var(--txt);border-color:var(--accent)}
+  #chatActions{max-width:780px;margin:0 auto;text-align:center;padding:2px 16px 10px}
+  #regenBtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:999px;
+    padding:7px 16px;cursor:pointer;font-size:12.5px;font-family:inherit;
+    display:inline-flex;align-items:center;gap:6px;transition:color .15s,border-color .15s,background .15s}
+  #regenBtn:hover{color:var(--txt);border-color:var(--accent);background:var(--panel2)}
+  #regenBtn span{line-height:1}
   .bubble pre{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;
     overflow-x:auto;margin:7px 0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
   .bubble pre code{background:none;padding:0;font-size:12.5px}
@@ -175,7 +177,7 @@
     </header>
     <div id="banner"><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button></div>
     <div id="chat"></div>
-    <div id="chatActions" style="display:none"><button id="regenBtn">↻ <span id="regenTxt"></span></button></div>
+    <div id="chatActions" style="display:none"><button id="regenBtn"><span>↻</span><span id="regenTxt"></span></button></div>
     <div id="bar">
       <div id="anexosBar"></div>
       <div class="barin">
@@ -385,7 +387,7 @@ function md(src){
   const blocos=[];
   src=src.replace(/```(\w+)?\n?([\s\S]*?)```/g,(_m,_l,code)=>{
     blocos.push('<pre><code>'+_esc(code.replace(/\n$/,''))+'</code></pre>');
-    return ' '+(blocos.length-1)+' ';});
+    return ''+(blocos.length-1)+'';});
   src=_esc(src);
   src=src.replace(/`([^`\n]+)`/g,(_m,c)=>'<code>'+c+'</code>');
   src=src.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
@@ -395,7 +397,7 @@ function md(src){
     return '<ul>'+its+'</ul>';});
   src=src.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
   src=src.replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
-  src=src.replace(/ (\d+) /g,(_m,i)=>blocos[+i]!==undefined?blocos[+i]:_m);
+  src=src.replace(/(\d+)/g,(_m,i)=>blocos[+i]!==undefined?blocos[+i]:_m);
   return src;
 }
 
