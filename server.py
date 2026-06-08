@@ -6,7 +6,9 @@ Nada sai da máquina.
 import os
 import json
 import queue
+import base64
 import ctypes
+import shutil
 import threading
 import subprocess
 from ctypes import wintypes
@@ -458,6 +460,50 @@ def ollama_install():
     return Response(stream(), mimetype="application/x-ndjson")
 
 
+# ── TESSERACT OCR (instalar/desinstalar pelo winget — pra ler a tela) ─────────
+def _winget():
+    return shutil.which("winget") or ""
+
+
+@app.route("/api/tesseract/install", methods=["POST"])
+def tesseract_install():
+    def stream():
+        wg = _winget()
+        if not wg:
+            yield (json.dumps({"error": "winget não encontrado (Windows 10/11)"}) + "\n")
+            return
+        yield (json.dumps({"status": "instalando pelo winget (confirme o aviso do Windows)…"}) + "\n")
+        try:
+            p = subprocess.run([wg, "install", "--id", "UB-Mannheim.TesseractOCR", "-e",
+                                "--accept-source-agreements", "--accept-package-agreements", "--silent"],
+                               capture_output=True, text=True, timeout=900, creationflags=0x08000000)
+            if core.achar_tesseract():
+                yield (json.dumps({"status": "Tesseract instalado"}) + "\n")
+            else:
+                yield (json.dumps({"error": f"não concluído (winget {p.returncode})"}) + "\n")
+        except Exception as e:
+            yield (json.dumps({"error": str(e)}) + "\n")
+
+    return Response(stream(), mimetype="application/x-ndjson")
+
+
+@app.route("/api/tesseract/uninstall", methods=["POST"])
+def tesseract_uninstall():
+    wg = _winget()
+    if not wg:
+        return jsonify({"ok": False, "erro": "winget não encontrado"}), 400
+    try:
+        subprocess.run([wg, "uninstall", "--id", "UB-Mannheim.TesseractOCR", "-e",
+                        "--accept-source-agreements", "--silent"],
+                       capture_output=True, text=True, timeout=600, creationflags=0x08000000)
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+    cfg = core.carregar_config()              # desinstalou → desativa a habilidade e fica desativada
+    cfg["habilidades"]["tela"] = False
+    core.salvar_config(cfg)
+    return jsonify({"ok": not core.achar_tesseract()})
+
+
 # ── BAIXAR MODELO ─────────────────────────────────────────────────────────────
 @app.route("/api/wiki/baixar", methods=["POST"])
 def api_wiki_baixar():
@@ -532,7 +578,9 @@ def api_pull():
 def chat():
     d = request.get_json(force=True, silent=True) or {}
     texto = (d.get("texto") or "").strip()
-    if not texto:
+    imagens = d.get("imagens") or []          # imagens coladas/anexadas (base64)
+    anexos = d.get("anexos") or []            # arquivos anexados [{nome, b64}]
+    if not texto and not imagens and not anexos:
         return jsonify({"ok": False}), 400
 
     cfg = core.carregar_config()
@@ -547,10 +595,35 @@ def chat():
     nome = cfg.get("nome", "você")
     cid = d.get("chat_id") or chats.listar()["atual"]
 
-    conf = lembretes.detectar(texto, idioma)          # "me lembra disso amanhã"
-    if conf:
-        chats.adicionar(cid, texto, conf)
-        return Response(conf, mimetype="text/plain; charset=utf-8")
+    if texto and not imagens and not anexos:
+        conf = lembretes.detectar(texto, idioma)      # "me lembra disso amanhã"
+        if conf:
+            chats.adicionar(cid, texto, conf)
+            return Response(conf, mimetype="text/plain; charset=utf-8")
+
+    # imagens → precisa de um modelo de visão (usa o atual se for de visão, senão o primeiro instalado)
+    imgs_b64 = [(i.split(",", 1)[-1] if isinstance(i, str) else "") for i in imagens][:4]
+    imgs_b64 = [i for i in imgs_b64 if i]
+    if imgs_b64:
+        atual_visao = any(m["nome"] == modelo and m.get("visao") for m in core.CATALOGO_MODELOS)
+        vm = modelo if atual_visao else core.primeiro_visao_instalado()
+        if not vm:
+            aviso = {"pt": "Para analisar imagens, instale um modelo de visão (Moondream ou LLaVA) no menu ⚙ → Modelo.",
+                     "en": "To analyze images, install a vision model (Moondream or LLaVA) in Settings, Model.",
+                     "es": "Para analizar imágenes, instala un modelo de visión (Moondream o LLaVA) en Ajustes, Modelo."}.get(idioma, "")
+            return Response(aviso, mimetype="text/plain; charset=utf-8")
+        modelo = vm
+
+    # arquivos anexados → extrai texto e injeta no contexto desta resposta
+    anexos_txt = ""
+    for a in anexos[:5]:
+        try:
+            dados = base64.b64decode((a.get("b64") or "").split(",", 1)[-1])
+        except Exception:
+            continue
+        txt = docs.extrair_texto(a.get("nome", ""), dados)
+        if txt.strip():
+            anexos_txt += f"\n\n[ARQUIVO: {a.get('nome', 'arquivo')}]\n{txt[:6000]}"
 
     system = SYSTEM_BASE.format(nome=nome, idioma=INSTR_IDIOMA.get(cfg.get("idioma", "pt"), ""))
     if core.habilidade("memoria", cfg):
@@ -580,12 +653,24 @@ def chat():
                    f"Janela ativa: {titulo or '(desconhecida)'}\nTexto na tela (OCR):\n"
                    f"{ocr[:1500] or '(nada legível)'}")
 
+    if anexos_txt:
+        system += "\n\nARQUIVOS ANEXADOS PELO USUÁRIO (responda com base neles):" + anexos_txt
+
     chat_atual = chats.get(cid)
     msgs = [{"role": "system", "content": system}]
     for m in (chat_atual.get("mensagens", [])[-6:] if chat_atual else []):
         msgs.append({"role": "user", "content": m["u"]})
         msgs.append({"role": "assistant", "content": m["a"]})
-    msgs.append({"role": "user", "content": texto})
+
+    conteudo = texto or ({"pt": "Analise o conteúdo anexado.", "en": "Analyze the attached content.",
+                          "es": "Analiza el contenido adjunto."}.get(idioma) if (imgs_b64 or anexos_txt) else texto)
+    um = {"role": "user", "content": conteudo}
+    if imgs_b64:
+        um["images"] = imgs_b64
+    msgs.append(um)
+
+    # o que vai pro histórico (não guardamos a imagem/arquivo cru, só um marcador)
+    texto_salvar = texto or ("[imagem]" if imgs_b64 else ("[" + (anexos[0].get("nome", "arquivo")) + "]" if anexos else ""))
 
     skills.conversando.set()
 
@@ -617,9 +702,11 @@ def chat():
             skills.conversando.clear()
         full = full.strip()
         if full:
-            chats.adicionar(cid, texto, full)
+            chats.adicionar(cid, texto_salvar, full)
             def _pos():
                 if not core.carregar_config().get("ativo", True):     # sistema pausado: não aprende
+                    return
+                if not texto:                                  # imagem/arquivo sozinho: nada a aprender
                     return
                 if core.habilidade("memoria"):
                     skills.extrair_fato(texto, full)          # pode descobrir/definir o nome

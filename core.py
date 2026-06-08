@@ -32,6 +32,8 @@ CATALOGO_MODELOS = [
     {"nome": "qwen3:4b",     "rotulo": "Qwen3 4B",      "vram": "~2.5 GB"},
     {"nome": "qwen3:8b",     "rotulo": "Qwen3 8B",      "vram": "~5.2 GB"},
     {"nome": "llama3.1:8b",  "rotulo": "Llama 3.1 8B",  "vram": "~4.9 GB"},
+    {"nome": "moondream",    "rotulo": "Moondream (visão)", "vram": "~1.7 GB", "visao": True},
+    {"nome": "llava:7b",     "rotulo": "LLaVA 7B (visão)",  "vram": "~4.7 GB", "visao": True},
 ]
 
 CONFIG_PADRAO = {
@@ -145,6 +147,27 @@ def achar_ollama() -> str:
     return shutil.which("ollama") or ""
 
 
+def achar_tesseract() -> str:
+    cands = [
+        os.path.join(os.environ.get("ProgramFiles", ""), "Tesseract-OCR", "tesseract.exe"),
+        os.path.join(os.environ.get("ProgramFiles(x86)", ""), "Tesseract-OCR", "tesseract.exe"),
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Tesseract-OCR", "tesseract.exe"),
+    ]
+    for c in cands:
+        if c and os.path.isfile(c):
+            return c
+    return shutil.which("tesseract") or ""
+
+
+def primeiro_visao_instalado() -> str:
+    """Nome do primeiro modelo de visão instalado (pra analisar imagens). '' se nenhum."""
+    inst = listar_modelos()
+    for m in CATALOGO_MODELOS:
+        if m.get("visao") and (m["nome"] in inst or (m["nome"] + ":latest") in inst):
+            return m["nome"]
+    return ""
+
+
 def descarregar_modelos():
     """Tira da memória todos os modelos carregados (libera o llama-server)."""
     try:
@@ -210,6 +233,7 @@ def estado() -> dict:
     return {
         "ollama_online": online,
         "ollama_instalado": online or bool(achar_ollama()),
+        "tesseract_instalado": bool(achar_tesseract()),
         "wiki_pronto": wiki_pronto,
         "config": cfg,
         "catalogo": catalogo,

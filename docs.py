@@ -39,6 +39,23 @@ def _ler_pdf(caminho):
         return ""
 
 
+def extrair_texto(nome, data: bytes) -> str:
+    """Extrai texto de um arquivo recebido em memória (anexo do chat)."""
+    ext = os.path.splitext(nome or "")[1].lower()
+    if ext == ".pdf":
+        try:
+            import io
+            from pypdf import PdfReader
+            r = PdfReader(io.BytesIO(data))
+            return "\n".join((p.extract_text() or "") for p in r.pages)
+        except Exception:
+            return ""
+    try:
+        return data.decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+
 def _ler_arquivo(caminho):
     ext = os.path.splitext(caminho)[1].lower()
     if ext == ".pdf":

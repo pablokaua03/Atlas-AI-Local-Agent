@@ -90,6 +90,18 @@
     cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   #send:disabled{opacity:.4;cursor:default}
   #send.stop{background:var(--danger)}
+  #attachBtn{background:transparent;border:none;color:var(--dim);font-size:18px;width:34px;height:38px;
+    cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  #attachBtn:hover{color:var(--txt)}
+  #anexosBar{max-width:780px;margin:0 auto 7px;display:none;gap:7px;flex-wrap:wrap}
+  .anexo{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;padding:4px 8px;font-size:12px;color:var(--txt);max-width:200px}
+  .anexo img{width:30px;height:30px;object-fit:cover;border-radius:5px}
+  .anexo .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .anexo .x{cursor:pointer;color:var(--dim);font-weight:700}.anexo .x:hover{color:var(--danger)}
+  .bubble .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .bubble .imgs img{max-width:200px;max-height:200px;border-radius:9px;border:1px solid var(--line)}
+  #chat.drag{outline:2px dashed var(--accent);outline-offset:-8px}
   #chatActions{max-width:780px;margin:6px auto 0;text-align:center}
   #regenBtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:10px;
     padding:6px 14px;cursor:pointer;font-size:13px;font-family:inherit}
@@ -164,10 +176,15 @@
     <div id="banner"><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button></div>
     <div id="chat"></div>
     <div id="chatActions" style="display:none"><button id="regenBtn">↻ <span id="regenTxt"></span></button></div>
-    <div id="bar"><div class="barin">
-      <textarea id="input" rows="1"></textarea>
-      <button id="send" title="enviar">➤</button>
-    </div></div>
+    <div id="bar">
+      <div id="anexosBar"></div>
+      <div class="barin">
+        <button id="attachBtn" title="anexar">📎</button>
+        <textarea id="input" rows="1"></textarea>
+        <button id="send" title="enviar">➤</button>
+      </div>
+    </div>
+    <input type="file" id="anexoFile" accept="image/*,.txt,.md,.pdf,.json,.js,.py,.csv,.log,.html,.css,.ts" multiple style="display:none">
   </main>
 </div>
 
@@ -202,7 +219,7 @@
 
 <script>
 const $=s=>document.querySelector(s);
-let estado=null, ocupado=false, LANG='pt', TEMA='escuro', chatAtual=null, ctrl=null, ultimaPergunta=null;
+let estado=null, ocupado=false, LANG='pt', TEMA='escuro', chatAtual=null, ctrl=null, ultimaPergunta=null, anexos=[];
 
 const I18N={
  pt:{title:"Agente Local",novo:"Novo chat",enviar:"Enviar",stop:"parar",regen:"Regenerar",ph:"Fale com o agente…",
@@ -215,7 +232,8 @@ const I18N={
    bannerModel:"O modelo {m} ainda não foi baixado. Abra ⚙ e clique em Baixar.",
    installed:"✓ instalado",notInstalled:"não baixado",download:"Baixar",downloading:"baixando…",ready:"✓ pronto",soon:"em breve",
    mdesc:{"qwen2.5:1.5b":"leve e melhor em português","llama3.2:3b":"leve, mais capaz",
-     "qwen2.5:3b":"ótimo para o tamanho","qwen3:4b":"esperto, ainda econômico","qwen3:8b":"nível cheio, usa a placa","llama3.1:8b":"completo"},
+     "qwen2.5:3b":"ótimo para o tamanho","qwen3:4b":"esperto, ainda econômico","qwen3:8b":"nível cheio, usa a placa","llama3.1:8b":"completo",
+     "moondream":"vê imagens, bem leve","llava:7b":"vê imagens, mais capaz"},
    sk_memoria:"Memória",sk_memoria_d:"lembra de fatos e das conversas",
    sk_tela:"Ver a tela",sk_tela_d:"observa a tela por OCR",
    sk_grafo:"Grafo",sk_grafo_d:"monta um grafo do que vê e conversa",
@@ -233,6 +251,10 @@ const I18N={
    secDisable:"Desativar criptografia",secDisPh:"senha atual para desativar",secMin:"Use ao menos 4 caracteres.",secBad:"Senha incorreta.",
    unlockTitle:"Cofre bloqueado. Digite sua senha para continuar.",unlock:"Desbloquear",lockNow:"bloquear o cofre",
    remHdr:"Lembretes",remEmpty:'Nenhum lembrete. Diga ao agente: "me lembra disso amanhã".',remDel:"excluir",
+   ocrReady:"✓ Tesseract instalado",ocrInstall:"⬇ Instalar Tesseract (OCR)",ocrUninstall:"🗑 Desinstalar Tesseract",
+   ocrInstalling:"instalando…",ocrNeed:"Necessário para ler a tela. Instala pelo Windows (winget).",
+   ocrConfirm:"Desinstalar o Tesseract? A leitura de tela será desativada.",
+   tooBig:"Arquivo grande demais (máx. 16 MB).",attach:"anexar imagem ou arquivo",
    autostart:"Iniciar com o Windows",autostart_d:"abre o agente sozinho ao ligar o PC",
    obsFreq:"Frequência das prints (s)",obsFreq_d:"de quanto em quanto tempo ele olha a tela",
    iniMode:"Iniciativa — quando falar",iniDinamico:"Dinâmico",iniIntervalo:"A cada X min",iniMin:"minutos:",
@@ -253,7 +275,8 @@ const I18N={
    bannerModel:"The model {m} hasn't been downloaded yet. Open ⚙ and click Download.",
    installed:"✓ installed",notInstalled:"not downloaded",download:"Download",downloading:"downloading…",ready:"✓ ready",soon:"soon",
    mdesc:{"qwen2.5:1.5b":"light, better in English","llama3.2:3b":"light, more capable",
-     "qwen2.5:3b":"great for its size","qwen3:4b":"smart, still economical","qwen3:8b":"full quality, uses the GPU","llama3.1:8b":"full-size"},
+     "qwen2.5:3b":"great for its size","qwen3:4b":"smart, still economical","qwen3:8b":"full quality, uses the GPU","llama3.1:8b":"full-size",
+     "moondream":"sees images, very light","llava:7b":"sees images, more capable"},
    sk_memoria:"Memory",sk_memoria_d:"remembers facts and conversations",
    sk_tela:"See screen",sk_tela_d:"watches the screen via OCR",
    sk_grafo:"Graph",sk_grafo_d:"builds a graph of what it sees and discusses",
@@ -271,6 +294,10 @@ const I18N={
    secDisable:"Disable encryption",secDisPh:"current password to disable",secMin:"Use at least 4 characters.",secBad:"Wrong password.",
    unlockTitle:"Vault locked. Enter your password to continue.",unlock:"Unlock",lockNow:"lock the vault",
    remHdr:"Reminders",remEmpty:'No reminders. Tell the agent: "remind me of this tomorrow".',remDel:"delete",
+   ocrReady:"✓ Tesseract installed",ocrInstall:"⬇ Install Tesseract (OCR)",ocrUninstall:"🗑 Uninstall Tesseract",
+   ocrInstalling:"installing…",ocrNeed:"Needed to read the screen. Installs via Windows (winget).",
+   ocrConfirm:"Uninstall Tesseract? Screen reading will be disabled.",
+   tooBig:"File too large (max 16 MB).",attach:"attach image or file",
    autostart:"Start with Windows",autostart_d:"opens the agent on boot",
    obsFreq:"Screen check (s)",obsFreq_d:"how often it looks at the screen",
    iniMode:"Initiative — when to speak",iniDinamico:"Dynamic",iniIntervalo:"Every X min",iniMin:"minutes:",
@@ -291,7 +318,8 @@ const I18N={
    bannerModel:"El modelo {m} aún no se descargó. Abre ⚙ y haz clic en Descargar.",
    installed:"✓ instalado",notInstalled:"no descargado",download:"Descargar",downloading:"descargando…",ready:"✓ listo",soon:"pronto",
    mdesc:{"qwen2.5:1.5b":"ligero y mejor en español","llama3.2:3b":"ligero, más capaz",
-     "qwen2.5:3b":"óptimo para su tamaño","qwen3:4b":"listo, aún económico","qwen3:8b":"calidad completa, usa la placa","llama3.1:8b":"completo"},
+     "qwen2.5:3b":"óptimo para su tamaño","qwen3:4b":"listo, aún económico","qwen3:8b":"calidad completa, usa la placa","llama3.1:8b":"completo",
+     "moondream":"ve imágenes, muy ligero","llava:7b":"ve imágenes, más capaz"},
    sk_memoria:"Memoria",sk_memoria_d:"recuerda hechos y conversaciones",
    sk_tela:"Ver pantalla",sk_tela_d:"observa la pantalla por OCR",
    sk_grafo:"Grafo",sk_grafo_d:"arma un grafo de lo que ve y conversa",
@@ -309,6 +337,10 @@ const I18N={
    secDisable:"Desactivar cifrado",secDisPh:"contraseña actual para desactivar",secMin:"Usa al menos 4 caracteres.",secBad:"Contraseña incorrecta.",
    unlockTitle:"Caja fuerte bloqueada. Escribe tu contraseña para continuar.",unlock:"Desbloquear",lockNow:"bloquear la caja",
    remHdr:"Recordatorios",remEmpty:'Sin recordatorios. Dile al agente: "recuérdame esto mañana".',remDel:"eliminar",
+   ocrReady:"✓ Tesseract instalado",ocrInstall:"⬇ Instalar Tesseract (OCR)",ocrUninstall:"🗑 Desinstalar Tesseract",
+   ocrInstalling:"instalando…",ocrNeed:"Necesario para leer la pantalla. Se instala por Windows (winget).",
+   ocrConfirm:"¿Desinstalar Tesseract? Se desactivará la lectura de pantalla.",
+   tooBig:"Archivo demasiado grande (máx. 16 MB).",attach:"adjuntar imagen o archivo",
    autostart:"Iniciar con Windows",autostart_d:"abre el agente al encender el PC",
    obsFreq:"Frecuencia de pantalla (s)",obsFreq_d:"cada cuánto mira la pantalla",
    iniMode:"Iniciativa — cuándo hablar",iniDinamico:"Dinámico",iniIntervalo:"Cada X min",iniMin:"minutos:",
@@ -344,7 +376,7 @@ function fixos(){
   $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
   $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
   $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr');
-  $('#regenTxt').textContent=t('regen');
+  $('#regenTxt').textContent=t('regen'); $('#attachBtn').title=t('attach');
 }
 
 // ── markdown leve (seguro): escapa HTML e formata código, negrito, listas, links ──
@@ -432,6 +464,17 @@ function render(){
       const rb=document.createElement('button');rb.className='baixar';rb.style.flex='1';rb.textContent=t('docsReindex');rb.onclick=()=>reindexDocs(rb);
       row.appendChild(ob);row.appendChild(rb);db.appendChild(row);$('#skills').appendChild(db);
       atualizarDocsStatus();}
+    if(k==='tela'){
+      const tb=document.createElement('div');tb.style.cssText='padding:2px 0 10px;border-bottom:1px solid var(--line)';
+      if(estado.tesseract_instalado){
+        tb.innerHTML=`<div class="d" style="color:var(--good)">${t('ocrReady')}</div>`;
+        const ub=document.createElement('button');ub.className='baixar';ub.style.borderColor='var(--danger)';ub.style.color='var(--danger)';ub.textContent=t('ocrUninstall');
+        ub.onclick=()=>desinstalarOCR(ub);tb.appendChild(ub);
+      }else{
+        const b=document.createElement('button');b.className='baixar';b.textContent=t('ocrInstall');b.onclick=()=>instalarOCR(b);
+        const nt=document.createElement('div');nt.className='d';nt.style.marginTop='5px';nt.textContent=t('ocrNeed');
+        tb.appendChild(b);tb.appendChild(nt);}
+      $('#skills').appendChild(tb);}
   }
   // frequência das prints (intervalo de observação da tela)
   const iv=cfg.obs_intervalo||60;
@@ -623,36 +666,47 @@ function renomearChat(it,c){
 }
 
 // ── mensagens ──
-function addMsg(role,texto,comMd){
+function addMsg(role,texto,comMd,imgs){
   const e=$('#chat .empty');if(e)e.remove();
   const m=document.createElement('div');m.className='msg '+role;
   m.innerHTML=`<div class="av ${role==='user'?'u':'a'}">${role==='user'?'eu':'◆'}</div><div class="bubble"></div>`;
   const bub=m.querySelector('.bubble');
-  if(comMd){bub.classList.add('md');bub.innerHTML=md(texto);}else{bub.textContent=texto;}
+  if(imgs&&imgs.length){const box=document.createElement('div');box.className='imgs';
+    for(const u of imgs){const im=document.createElement('img');im.src=u;box.appendChild(im);}bub.appendChild(box);}
+  if(comMd){bub.classList.add('md');const span=document.createElement('div');span.innerHTML=md(texto);bub.appendChild(span);}
+  else if(texto){const span=document.createElement('div');span.textContent=texto;bub.appendChild(span);}
   $('#chat').appendChild(m);$('#chat').scrollTop=$('#chat').scrollHeight;
-  return bub;
+  return comMd?bub.lastChild:bub;
 }
 function modoStop(on){const b=$('#send');b.disabled=false;
   if(on){b.textContent='■';b.classList.add('stop');b.title=t('stop');b.onclick=pararGeracao;}
   else{b.textContent='➤';b.classList.remove('stop');b.title=t('enviar');b.onclick=enviar;}}
 function pararGeracao(){if(ctrl)ctrl.abort();}
 async function enviar(){
-  const inp=$('#input'),texto=inp.value.trim();if(!texto||ocupado)return;
-  inp.value='';inp.style.height='auto';await enviarTexto(texto);
+  const inp=$('#input'),texto=inp.value.trim();if((!texto&&!anexos.length)||ocupado)return;
+  const envs=anexos.slice();inp.value='';inp.style.height='auto';clearAnexos();
+  await enviarTexto(texto,envs);
 }
-async function enviarTexto(texto){
+async function enviarTexto(texto,envs){
+  envs=envs||[];
   if(!estado.ollama_online){addMsg('a',t('errOllama'),true);return;}
   const mA=estado.catalogo.find(m=>m.ativo);
   if(mA&&!mA.instalado){addMsg('a',t('errModel',{m:mA.nome}),true);return;}
   ultimaPergunta=texto;ocupado=true;modoStop(true);$('#chatActions').style.display='none';
-  addMsg('user',texto);
+  const imgsURL=envs.filter(a=>a.tipo==='img').map(a=>a.dataURL);
+  const arqNomes=envs.filter(a=>a.tipo==='arq').map(a=>a.nome);
+  let disp=texto; if(arqNomes.length)disp=(disp?disp+'\n':'')+arqNomes.map(n=>'📄 '+n).join('\n');
+  addMsg('user',disp,false,imgsURL);
+  const corpo={texto,chat_id:chatAtual,
+    imagens:envs.filter(a=>a.tipo==='img').map(a=>a.dataURL),
+    anexos:envs.filter(a=>a.tipo==='arq').map(a=>({nome:a.nome,b64:a.dataURL}))};
   const bub=addMsg('a','');let acc='';ctrl=new AbortController();
-  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto,chat_id:chatAtual}),signal:ctrl.signal});
+  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:ctrl.signal});
     const rd=r.body.getReader(),dc=new TextDecoder();
     while(true){const{done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});bub.textContent=acc;$('#chat').scrollTop=$('#chat').scrollHeight;}
   }catch(e){if(e.name!=='AbortError')acc+='\n(erro)';}
   bub.classList.add('md');bub.innerHTML=md(acc);
-  ocupado=false;ctrl=null;modoStop(false);inp.focus();$('#chatActions').style.display='block';
+  ocupado=false;ctrl=null;modoStop(false);$('#input').focus();$('#chatActions').style.display='block';
   fetch('/api/chats').then(r=>r.json()).then(d=>{const L=$('#lista');
     [...L.children].forEach((el,i)=>{if(d.chats[i])el.querySelector('.tit')&&(el.querySelector('.tit').textContent=d.chats[i].titulo);});});
 }
@@ -667,6 +721,45 @@ async function regenerar(){
 }
 $('#send').onclick=enviar;
 $('#regenBtn').onclick=regenerar;
+
+// ── anexos (imagens e arquivos) ──
+function clearAnexos(){anexos=[];renderAnexos();}
+function renderAnexos(){
+  const bar=$('#anexosBar');bar.innerHTML='';bar.style.display=anexos.length?'flex':'none';
+  anexos.forEach((a,i)=>{const c=document.createElement('div');c.className='anexo';
+    if(a.tipo==='img'){const im=document.createElement('img');im.src=a.dataURL;c.appendChild(im);}
+    else{const e=document.createElement('span');e.textContent='📄';c.appendChild(e);}
+    const nm=document.createElement('span');nm.className='nm';nm.textContent=a.nome;c.appendChild(nm);
+    const x=document.createElement('span');x.className='x';x.textContent='✕';x.onclick=()=>{anexos.splice(i,1);renderAnexos();};c.appendChild(x);
+    bar.appendChild(c);});
+}
+function addArquivo(file){
+  if(!file)return; if(file.size>16*1024*1024){alert(t('tooBig'));return;}
+  const tipo=file.type&&file.type.startsWith('image/')?'img':'arq';
+  const fr=new FileReader();
+  fr.onload=()=>{anexos.push({tipo,nome:file.name||('imagem.'+((file.type||'image/png').split('/')[1]||'png')),dataURL:fr.result});renderAnexos();};
+  fr.readAsDataURL(file);
+}
+$('#attachBtn').onclick=()=>$('#anexoFile').click();
+$('#anexoFile').onchange=e=>{[...e.target.files].forEach(addArquivo);e.target.value='';};
+$('#input').addEventListener('paste',e=>{const its=e.clipboardData&&e.clipboardData.items;if(!its)return;
+  for(const it of its){if(it.kind==='file'){const f=it.getAsFile();if(f){addArquivo(f);e.preventDefault();}}}});
+['dragover','dragenter'].forEach(ev=>$('#chat').addEventListener(ev,e=>{e.preventDefault();$('#chat').classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>$('#chat').addEventListener(ev,e=>{e.preventDefault();$('#chat').classList.remove('drag');}));
+$('#chat').addEventListener('drop',e=>{if(e.dataTransfer&&e.dataTransfer.files)[...e.dataTransfer.files].forEach(addArquivo);});
+
+// ── Tesseract OCR (instalar/desinstalar pelo menu) ──
+async function instalarOCR(btn){btn.disabled=true;btn.textContent=t('ocrInstalling');
+  try{const r=await fetch('/api/tesseract/install',{method:'POST'});const rd=r.body.getReader();const dc=new TextDecoder();let bf='';
+    while(true){const{done,value}=await rd.read();if(done)break;bf+=dc.decode(value,{stream:true});const ls=bf.split('\n');bf=ls.pop();
+      for(const l of ls){if(!l.trim())continue;let o;try{o=JSON.parse(l)}catch(_){continue}
+        if(o.status)btn.textContent=o.status;if(o.error)btn.textContent='erro: '+o.error;}}
+    await carregarEstado();
+  }catch(e){btn.textContent='erro';btn.disabled=false;}
+}
+async function desinstalarOCR(btn){if(!confirm(t('ocrConfirm')))return;btn.disabled=true;btn.textContent=t('ocrInstalling');
+  try{await fetch('/api/tesseract/uninstall',{method:'POST'});}catch(e){}await carregarEstado();
+}
 $('#input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}});
 $('#input').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';});
 $('#novoChat').onclick=novoChat;
