@@ -66,7 +66,9 @@ def _guarda():
         return _erro(403, "forbidden_host", "Requests must target 127.0.0.1 or localhost.")
     if request.endpoint == "memapi.openapi":
         return None
-    if not core.carregar_config().get("api_ativa", True):
+    # o interruptor desliga o acesso das outras IAs; a própria interface do Atlas
+    # (que também manda o token) continua funcionando
+    if not core.carregar_config().get("api_ativa", True) and request.headers.get("X-Atlas-UI") != "1":
         return _erro(503, "api_disabled", "The memory API is turned off in Atlas settings.")
     auth = request.headers.get("Authorization", "")
     enviado = auth[7:].strip() if auth.lower().startswith("bearer ") else request.headers.get("X-Atlas-Token", "")

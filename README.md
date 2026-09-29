@@ -70,7 +70,8 @@ pip install -r requirements.txt
 Atlas exposes its memory and knowledge graph at `http://127.0.0.1:5005/v1`, and
 ships an MCP server (`mcp_atlas.py`) for Claude Desktop, Claude Code, Cursor and
 other MCP clients. Open Settings, Memory API to copy the token and the MCP
-configuration. Full guide: [API.md](API.md).
+configuration. The 🗂️ button opens the Memories page, where you can review and
+edit everything the AIs saved. Full guide: [API.md](API.md).
 
 ## Privacy
 

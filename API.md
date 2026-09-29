@@ -28,16 +28,24 @@ on 127.0.0.1.
   the API are *pinned*: the automatic graph builder never prunes them. Nodes can
   belong to one or more projects.
 
+When a memory in a project lists `entities`, each entity node is linked to the
+project node (relation `envolve`), so a project's subgraph stays connected.
+
 Memories created through the API also show up in Atlas's own chat when they are
 relevant, so what one AI saves, Atlas and every other AI can recall.
+
+In the interface, the 🗂️ button opens the **Memories** page: browse projects,
+search, add, edit, re-rate and delete memories (including the ones other AIs
+wrote). The graph view has a project filter.
 
 ## Authentication and safety
 
 - Every `/v1` call needs the token:
   `Authorization: Bearer <token>` (or `X-Atlas-Token: <token>`).
 - The token is shown in **Settings → Memory API**, where you can also copy the MCP
-  configuration, generate a new token or turn the API off. It is stored as
-  `api_token` in `config.json`.
+  configuration, generate a new token or turn the API off (turning it off blocks
+  other AIs; Atlas's own pages keep working). It is stored as `api_token` in
+  `config.json` and is kept when you restore a backup.
 - Requests must use `127.0.0.1` or `localhost` as the host. This blocks websites
   that try to reach the API through DNS rebinding.
 - If the vault (encryption at rest) is locked, calls return `423 vault_locked`
@@ -156,6 +164,15 @@ requests.post(f"{API}/memories", headers=H, json={
 ctx = requests.post(f"{API}/context", headers=H, json={"query": "answer style"}).json()
 print(ctx["text"])
 ```
+
+## Tests
+
+```bash
+python -m unittest discover -s tests
+```
+
+The tests run in a temporary folder (your data is never touched) and do not need
+Ollama.
 
 ## Search
 

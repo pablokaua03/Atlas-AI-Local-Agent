@@ -58,6 +58,11 @@ def grafo_page():
     return send_from_directory(WEB_DIR, "grafo.html")
 
 
+@app.route("/memorias")
+def memorias_page():
+    return send_from_directory(WEB_DIR, "memorias.html")
+
+
 @app.route("/static/<path:nome>")
 def estatico(nome):
     return send_from_directory(WEB_DIR, nome)

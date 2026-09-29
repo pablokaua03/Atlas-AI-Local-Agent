@@ -35,6 +35,7 @@
     color:#e6e9ef;border-radius:20px;padding:8px 16px;font-size:13px;display:none;z-index:7}
 </style>
 <div id="top"><h1>🕸️ Grafo</h1><span class="s" id="s"></span>
+  <select class="tbtn" id="projSel" title="filtrar por projeto" style="display:none"></select>
   <button class="tbtn" id="novoNo" style="border-color:#5ad1c2;color:#5ad1c2">➕ novo</button>
   <button class="tbtn" id="conectar">🔗 conectar</button>
   <button class="tbtn" id="centrar">⊙ centralizar</button>
@@ -46,6 +47,7 @@
   <select id="edTipo"><option value="pessoa">pessoa</option><option value="projeto">projeto</option>
     <option value="tecnologia">tecnologia</option><option value="tema">tema</option>
     <option value="ferramenta">ferramenta</option><option value="jogo">jogo</option></select>
+  <div id="edProjBox" style="display:none"><div class="lbl">Projetos</div><div id="edProj" style="font-size:12.5px;color:#cdd3dd;margin-bottom:8px"></div></div>
   <div class="lbl">Conexões</div><div id="edConx"></div>
   <button class="eb" id="edConectar" style="background:#1b2230;color:#7c9bff;border:1px solid #7c9bff">🔗 conectar a outro</button>
   <button class="eb" id="edExcluir" style="background:#ff6b6b;color:#fff">🗑 excluir nó</button></div>
@@ -61,7 +63,10 @@ function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight-50}
 addEventListener('resize',resize);resize();
 async function carregar(){
   let g; try{g=await(await fetch('/api/grafo')).json()}catch(e){return}
-  const ns=g.nos||{},as=g.arestas||{},ks=Object.keys(ns);
+  const ns={},as={};
+  for(const k in (g.nos||{}))if(!PROJ||((g.nos[k].projetos||[]).includes(PROJ)))ns[k]=g.nos[k];
+  for(const k in (g.arestas||{})){const a=g.arestas[k];if(ns[a.de]&&ns[a.para])as[k]=a;}
+  const ks=Object.keys(ns);
   document.getElementById('s').textContent=ks.length+' conceitos · '+Object.keys(as).length+' conexões';
   document.getElementById('empty').style.display=ks.length?'none':'flex';
   const old=porK;porK={};
@@ -104,6 +109,8 @@ function hint(t){const h=$('#hint');if(t){h.textContent=t;h.style.display='block
 async function editar(body){await fetch('/api/grafo/editar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});await carregar();}
 function abrirEditor(n){selN=n;$('#editor').style.display='block';
   $('#edLabel').value=n.label;$('#edTipo').value=n.tipo||'tema';
+  const ps=(n.projetos||[]).map(id=>(PROJETOS.find(p=>p.id===id)||{name:id}).name);
+  $('#edProjBox').style.display=ps.length?'block':'none';$('#edProj').textContent=ps.join(', ');
   const c=$('#edConx');c.innerHTML='';const cs=arestas.filter(a=>a.de===n.k||a.para===n.k);
   if(!cs.length)c.innerHTML='<div style="color:#8b94a3;font-size:12px">nenhuma ainda</div>';
   for(const a of cs){const o=a.de===n.k?a.para:a.de,lbl=(porK[o]||{}).label||o;
@@ -138,12 +145,24 @@ $('#novoNo').onclick=async()=>{const nome=prompt('Nome do novo conceito:');if(no
 $('#limpar').onclick=()=>{if(confirm('Limpar TODO o grafo?')){const mem=confirm('Limpar também os fatos da memória?');editar({acao:'limpar',tambem_memoria:mem});fecharEditor();}};
 cv.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.12:.89,mx=e.clientX,my=e.clientY-50,w=IV(mx,my);
   view.k=Math.max(.2,Math.min(3,view.k*f));view.x=mx-w.x*view.k;view.y=my-w.y*view.k},{passive:false});
-let LANGG='pt';
+let LANGG='pt',PROJ='',PROJETOS=[];
+async function carregarProjetos(){   // projetos da API de memória (filtro do grafo)
+  try{
+    const tk=(await(await fetch('/api/memapi')).json()).token;
+    const r=await fetch('/v1/projects',{headers:{'Authorization':'Bearer '+tk,'X-Atlas-UI':'1'}});
+    if(!r.ok)return;PROJETOS=(await r.json()).items||[];
+  }catch(_){return}
+  const sel=$('#projSel');sel.innerHTML='';
+  const op=(v,txt)=>{const o=document.createElement('option');o.value=v;o.textContent=txt;sel.appendChild(o);};
+  op('','📁 todos os projetos');for(const p of PROJETOS)op(p.id,'📁 '+p.name);
+  sel.value=PROJ;sel.style.display=PROJETOS.length>1?'':'none';
+}
+$('#projSel').onchange=async()=>{PROJ=$('#projSel').value;window._centrou=false;await carregar();setTimeout(centralizar,2000);};
 (async()=>{
   try{const e=await(await fetch('/api/estado')).json();LANGG=e.config.idioma||'pt';
     if(LANGG==='en'||LANGG==='es')fetch('/api/grafo/traduzir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:LANGG})});
   }catch(_){}
-  carregar();laco();setInterval(carregar,8000);
+  carregarProjetos();carregar();laco();setInterval(carregar,8000);
 })();
 </script>
 </body>

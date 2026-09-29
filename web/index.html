@@ -172,6 +172,7 @@
       <span class="pill" id="sysPill" style="font-family:ui-monospace,monospace;font-size:11.5px"></span>
       <span class="pill" id="pill">…</span>
       <button class="hbtn" id="themeBtn" title="tema">🌙</button>
+      <a class="hbtn" id="memBtn" href="/memorias" title="Memórias">🗂️</a>
       <a class="hbtn" id="grafoBtn" href="/grafo" title="Grafo">🕸️</a>
       <button class="hbtn" id="gear" title="config">⚙</button>
     </header>
@@ -268,7 +269,7 @@ const I18N={
    wikiDl:"⬇ Baixar Wikipédia offline",wikiReady:"✓ Wikipédia offline pronta",wikiBaixando:"baixando…",
    paused:"Pausado",pause:"sistema ativo — clique pra pausar",activate:"sistema pausado — clique pra ativar",
    folderHdr:"Arquivos",openFolder:"📂 Abrir pasta do agente",
-   btnGrafo:"Grafo de conhecimento",foot:"Tudo roda local. Nada sai da sua máquina.",
+   btnGrafo:"Grafo de conhecimento",btnMem:"Memórias e projetos",foot:"Tudo roda local. Nada sai da sua máquina.",
    errOllama:"O Ollama não está rodando.",errModel:"Baixe o modelo {m} primeiro (⚙ → Baixar).",
    confDel:"Excluir esta conversa?"},
  en:{title:"Local Agent",novo:"New chat",enviar:"Send",stop:"stop",regen:"Regenerate",ph:"Talk to the agent…",
@@ -314,7 +315,7 @@ const I18N={
    wikiDl:"⬇ Download offline Wikipedia",wikiReady:"✓ offline Wikipedia ready",wikiBaixando:"downloading…",
    paused:"Paused",pause:"system active — click to pause",activate:"system paused — click to activate",
    folderHdr:"Files",openFolder:"📂 Open agent folder",
-   btnGrafo:"Knowledge graph",foot:"Everything runs locally. Nothing leaves your machine.",
+   btnGrafo:"Knowledge graph",btnMem:"Memories and projects",foot:"Everything runs locally. Nothing leaves your machine.",
    errOllama:"Ollama isn't running.",errModel:"Download the model {m} first (⚙ → Download).",
    confDel:"Delete this conversation?"},
  es:{title:"Agente Local",novo:"Nuevo chat",enviar:"Enviar",stop:"detener",regen:"Regenerar",ph:"Habla con el agente…",
@@ -360,7 +361,7 @@ const I18N={
    wikiDl:"⬇ Descargar Wikipedia offline",wikiReady:"✓ Wikipedia offline lista",wikiBaixando:"descargando…",
    paused:"Pausado",pause:"sistema activo — clic para pausar",activate:"sistema pausado — clic para activar",
    folderHdr:"Archivos",openFolder:"📂 Abrir carpeta del agente",
-   btnGrafo:"Grafo de conocimiento",foot:"Todo corre local. Nada sale de tu máquina.",
+   btnGrafo:"Grafo de conocimiento",btnMem:"Memorias y proyectos",foot:"Todo corre local. Nada sale de tu máquina.",
    errOllama:"Ollama no está corriendo.",errModel:"Descarga el modelo {m} primero (⚙ → Descargar).",
    confDel:"¿Eliminar esta conversación?"},
 };
@@ -384,7 +385,7 @@ function fixos(){
   $('#h-lang').textContent=t('lang'); $('#h-theme').textContent=t('theme');
   $('#h-name').textContent=t('name'); $('#nome').placeholder=t('namePh');
   $('#h-model').textContent=t('model'); $('#h-skills').textContent=t('skills');
-  $('#h-init').textContent=t('initHdr'); $('#grafoBtn').title=t('btnGrafo'); $('#foot').textContent=t('foot');
+  $('#h-init').textContent=t('initHdr'); $('#grafoBtn').title=t('btnGrafo'); $('#memBtn').title=t('btnMem'); $('#foot').textContent=t('foot');
   $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
   $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
   $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr'); $('#h-api').textContent=t('apiHdr');

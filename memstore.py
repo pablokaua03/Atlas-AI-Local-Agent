@@ -258,12 +258,24 @@ def _expirada(m):
     return bool(exp) and exp < _agora()
 
 
-def _garantir_entidades(entidades, projeto):
+def _garantir_entidades(entidades, projeto, no_projeto=""):
+    """Garante os nós das entidades e liga cada um ao nó do projeto ("envolve"),
+    pra que o subgrafo do projeto fique conectado."""
     chaves = []
     for e in (entidades or [])[:30]:
         no = no_criar(str(e), "tema", projeto=projeto, _interno=True) if str(e).strip() else None
         if no and no["key"] not in chaves:
             chaves.append(no["key"])
+    if no_projeto and chaves:
+        with skills._grafo_lock:
+            g = skills.carregar_grafo()
+            if no_projeto in g["nos"]:
+                for k in chaves:
+                    if k == no_projeto or f"{no_projeto}|||{k}" in g["arestas"] or f"{k}|||{no_projeto}" in g["arestas"]:
+                        continue
+                    g["arestas"][f"{no_projeto}|||{k}"] = {"de": no_projeto, "para": k, "rel": "envolve",
+                                                         "peso": 1, "projeto": projeto}
+                skills._salvar_grafo(g)
     return chaves
 
 
@@ -285,7 +297,7 @@ def memoria_criar(dados):
             "tags": _limpar_tags(dados.get("tags") or []),
             "importance": _importancia(dados.get("importance")),
             "source": _texto(dados.get("source") or "api", "source", 64),
-            "entities": _garantir_entidades(dados.get("entities"), pid),
+            "entities": _garantir_entidades(dados.get("entities"), pid, s["projetos"][pid].get("node", "")),
             "meta": dados["meta"] if isinstance(dados.get("meta"), dict) else {},
             "expires_at": _texto(dados.get("expires_at"), "expires_at", 32) or None,
             "created": _agora(),
@@ -332,7 +344,8 @@ def memoria_atualizar(mid, dados):
         if "source" in dados:
             m["source"] = _texto(dados["source"], "source", 64)
         if "entities" in dados:
-            m["entities"] = _garantir_entidades(dados["entities"], m["project"])
+            m["entities"] = _garantir_entidades(dados["entities"], m["project"],
+                                                s["projetos"][m["project"]].get("node", ""))
         if isinstance(dados.get("meta"), dict):
             m["meta"] = dados["meta"]
         if "expires_at" in dados:
@@ -569,6 +582,9 @@ def no_criar(label, tipo="tema", projeto=None, descricao="", _interno=False):
 def no_atualizar(ref, dados, _interno=False):
     if not _interno:
         _checar_cofre()
+    # resolve os projetos ANTES de pegar o lock do grafo (ordem dos locks: memória → grafo)
+    add_p = _pid_existente(dados["add_project"]) if "add_project" in dados else None
+    rem_p = _pid_existente(dados["remove_project"]) if "remove_project" in dados else None
     with skills._grafo_lock:
         g = skills.carregar_grafo()
         k = _achar_no(g, ref)
@@ -581,12 +597,10 @@ def no_atualizar(ref, dados, _interno=False):
             n["tipo"] = (_texto(dados["type"], "type", 20) or "tema").lower()
         if "description" in dados:
             n["descricao"] = _texto(dados["description"], "description", 500)
-        if "add_project" in dados:
-            _vincular_projeto(n, _pid_existente(dados["add_project"]))
-        if "remove_project" in dados:
-            pid = _pid_existente(dados["remove_project"])
-            if pid in (n.get("projetos") or []):
-                n["projetos"].remove(pid)
+        if add_p:
+            _vincular_projeto(n, add_p)
+        if rem_p and rem_p in (n.get("projetos") or []):
+            n["projetos"].remove(rem_p)
         n["fixo"] = True
         skills._salvar_grafo(g)
     return _no_out(k, n)
