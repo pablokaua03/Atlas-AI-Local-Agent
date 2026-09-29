@@ -5,6 +5,8 @@ conversas.json
 grafo.json
 observacoes.json
 lembretes.json
+memorias.json
+memorias_vetores.json
 prints/*
 !prints/.gitkeep
 docs/*

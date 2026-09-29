@@ -26,6 +26,9 @@ so you do not clone a huge folder.
 - Master switch to pause all background activity (no screenshots, no learning)
 - Model picker: install, switch and delete models from the interface
 - Built in system monitor (VRAM, CPU, RAM)
+- Memory API for any AI: Claude, ChatGPT, local LLMs and scripts can create
+  projects, store and search memories and edit the knowledge graph, through an
+  MCP server or a token protected REST API (see [API.md](API.md))
 
 ## Requirements
 
@@ -62,11 +65,18 @@ pip install -r requirements.txt
   fetches a compact .zim for your language from Kiwix and builds the index.
 - OCR languages are downloaded automatically based on the interface language.
 
+## Memory API (use Atlas as memory for other AIs)
+
+Atlas exposes its memory and knowledge graph at `http://127.0.0.1:5005/v1`, and
+ships an MCP server (`mcp_atlas.py`) for Claude Desktop, Claude Code, Cursor and
+other MCP clients. Open Settings, Memory API to copy the token and the MCP
+configuration. Full guide: [API.md](API.md).
+
 ## Privacy
 
 Everything runs locally through Ollama on 127.0.0.1. No telemetry, no cloud,
 no account. Your data (config.json, conversas.json, memoria.json, grafo.json,
-observacoes.json, lembretes.json, prints, docs and docs_index.json) stays only
+observacoes.json, lembretes.json, memorias.json, prints, docs and docs_index.json) stays only
 on your machine and is listed in .gitignore.
 
 You can also turn on encryption at rest in Settings, Security. A password is

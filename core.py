@@ -48,6 +48,7 @@ CONFIG_PADRAO = {
     "iniciativa_modo": "dinamico",         # "dinamico" (a IA decide) | "intervalo" (a cada X min)
     "iniciativa_intervalo": 10,            # minutos, quando modo = intervalo
     "iniciar_com_windows": False,          # subir o agente junto com o Windows
+    "api_ativa": True,                     # API de memória /v1 (outras IAs, com token)
     "habilidades": {
         "memoria":    True,    # lembra de fatos e do histórico (local)
         "tela":       False,   # observa a tela por OCR

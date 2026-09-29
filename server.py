@@ -23,11 +23,14 @@ import docs
 import cofre
 import lembretes
 import bandeja
+import memstore
+import memapi
 
 WEB_DIR = os.path.join(core.BASE_DIR, "web")
 HOST, PORT = "127.0.0.1", 5005
 
 app = Flask(__name__, static_folder=None)
+memapi.registrar(app, HOST, PORT)       # API de memória /v1 para qualquer IA
 
 SYSTEM_BASE = (
     "Você é o assistente pessoal local do {nome}. Tom calmo, natural e direto. "
@@ -136,6 +139,8 @@ def api_config():
         cfg["idioma"] = d["idioma"]
     if d.get("tema") in ("claro", "escuro"):
         cfg["tema"] = d["tema"]
+    if "api_ativa" in d:
+        cfg["api_ativa"] = bool(d["api_ativa"])
     if "ativo" in d:
         cfg["ativo"] = bool(d["ativo"])
         if not cfg["ativo"]:                 # pausou → libera o modelo da memória
@@ -201,7 +206,8 @@ def api_docs_abrir():
 
 
 # ── BACKUP (exportar / restaurar memória, grafo e conversas) ──────────────────
-_BACKUP_ARQS = ["config.json", "memoria.json", "conversas.json", "grafo.json", "observacoes.json"]
+_BACKUP_ARQS = ["config.json", "memoria.json", "conversas.json", "grafo.json", "observacoes.json",
+                "memorias.json"]
 
 
 @app.route("/api/backup/exportar")
@@ -243,6 +249,24 @@ def api_backup_importar():
     except Exception as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
     return jsonify({"ok": True, "restaurados": restaurados})
+
+
+# ── API DE MEMÓRIA (token pra interface mostrar/girar) ────────────────────────
+@app.route("/api/memapi")
+def api_memapi():
+    if not memapi.host_local():
+        return jsonify({"ok": False}), 403
+    cfg = core.carregar_config()
+    return jsonify({"ativa": cfg.get("api_ativa", True), "token": memapi.token(),
+                    "url": f"http://{HOST}:{PORT}/v1",
+                    "mcp": os.path.join(core.BASE_DIR, "mcp_atlas.py")})
+
+
+@app.route("/api/memapi/girar", methods=["POST"])
+def api_memapi_girar():
+    if not memapi.host_local():
+        return jsonify({"ok": False}), 403
+    return jsonify({"ok": True, "token": memapi.girar_token()})
 
 
 # ── COFRE (criptografia em repouso, protegida por senha) ──────────────────────
@@ -630,6 +654,9 @@ def chat():
         fatos = skills.carregar_mem().get("fatos", [])
         if fatos:
             system += "\n\nFatos que você sabe:\n" + "\n".join("- " + f for f in fatos[-25:])
+        mems = memstore.contexto_chat(texto)          # memórias gravadas por qualquer IA (API /v1)
+        if mems:
+            system += "\n\nMemórias relacionadas (use se for relevante):\n" + mems
         rec = chats.recall(texto, excluir_id=cid)      # acesso a TODAS as conversas
         if rec:
             system += "\n\nDe conversas anteriores (use só se for relevante):\n" + rec

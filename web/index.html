@@ -210,6 +210,7 @@
   <h2 id="h-skills">Habilidades</h2><div id="skills"></div>
   <h2 id="h-init">Inicialização</h2><div id="initBox"></div>
   <h2 id="h-sec">Segurança</h2><div id="secBox"></div>
+  <h2 id="h-api">API de memória</h2><div id="apiBox"></div>
   <h2 id="h-rem">Lembretes</h2><div id="remBox"></div>
   <h2 id="h-folder">Arquivos</h2>
   <button id="abrirPasta" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px"></button>
@@ -252,6 +253,9 @@ const I18N={
    secPwPh:"crie uma senha (mín. 4)",secEnable:"🔒 Ativar criptografia",secLock:"🔒 Bloquear agora",
    secDisable:"Desativar criptografia",secDisPh:"senha atual para desativar",secMin:"Use ao menos 4 caracteres.",secBad:"Senha incorreta.",
    unlockTitle:"Cofre bloqueado. Digite sua senha para continuar.",unlock:"Desbloquear",lockNow:"bloquear o cofre",
+   apiHdr:"API de memória",apiName:"Deixar outras IAs usarem a memória",apiD:"Claude, ChatGPT, scripts e agentes acessam projetos, memórias e o grafo via API local (com token).",
+   apiToken:"Token",apiCopy:"copiar",apiCopied:"✓ copiado",apiShow:"mostrar",apiRotate:"🔄 Gerar novo token",apiRotateConfirm:"Gerar um novo token? As IAs conectadas precisarão do novo.",
+   apiMcp:"Configuração MCP (Claude Desktop, Claude Code, Cursor…)",apiDocs:"Especificação OpenAPI",
    remHdr:"Lembretes",remEmpty:'Nenhum lembrete. Diga ao agente: "me lembra disso amanhã".',remDel:"excluir",
    ocrReady:"✓ Tesseract instalado",ocrInstall:"⬇ Instalar Tesseract (OCR)",ocrUninstall:"🗑 Desinstalar Tesseract",
    ocrInstalling:"instalando…",ocrNeed:"Necessário para ler a tela. Instala pelo Windows (winget).",
@@ -295,6 +299,9 @@ const I18N={
    secPwPh:"create a password (min. 4)",secEnable:"🔒 Enable encryption",secLock:"🔒 Lock now",
    secDisable:"Disable encryption",secDisPh:"current password to disable",secMin:"Use at least 4 characters.",secBad:"Wrong password.",
    unlockTitle:"Vault locked. Enter your password to continue.",unlock:"Unlock",lockNow:"lock the vault",
+   apiHdr:"Memory API",apiName:"Let other AIs use the memory",apiD:"Claude, ChatGPT, scripts and agents reach projects, memories and the graph through a local API (with a token).",
+   apiToken:"Token",apiCopy:"copy",apiCopied:"✓ copied",apiShow:"show",apiRotate:"🔄 Generate new token",apiRotateConfirm:"Generate a new token? Connected AIs will need the new one.",
+   apiMcp:"MCP configuration (Claude Desktop, Claude Code, Cursor…)",apiDocs:"OpenAPI specification",
    remHdr:"Reminders",remEmpty:'No reminders. Tell the agent: "remind me of this tomorrow".',remDel:"delete",
    ocrReady:"✓ Tesseract installed",ocrInstall:"⬇ Install Tesseract (OCR)",ocrUninstall:"🗑 Uninstall Tesseract",
    ocrInstalling:"installing…",ocrNeed:"Needed to read the screen. Installs via Windows (winget).",
@@ -338,6 +345,9 @@ const I18N={
    secPwPh:"crea una contraseña (mín. 4)",secEnable:"🔒 Activar cifrado",secLock:"🔒 Bloquear ahora",
    secDisable:"Desactivar cifrado",secDisPh:"contraseña actual para desactivar",secMin:"Usa al menos 4 caracteres.",secBad:"Contraseña incorrecta.",
    unlockTitle:"Caja fuerte bloqueada. Escribe tu contraseña para continuar.",unlock:"Desbloquear",lockNow:"bloquear la caja",
+   apiHdr:"API de memoria",apiName:"Dejar que otras IAs usen la memoria",apiD:"Claude, ChatGPT, scripts y agentes acceden a proyectos, memorias y al grafo por una API local (con token).",
+   apiToken:"Token",apiCopy:"copiar",apiCopied:"✓ copiado",apiShow:"mostrar",apiRotate:"🔄 Generar nuevo token",apiRotateConfirm:"¿Generar un nuevo token? Las IAs conectadas necesitarán el nuevo.",
+   apiMcp:"Configuración MCP (Claude Desktop, Claude Code, Cursor…)",apiDocs:"Especificación OpenAPI",
    remHdr:"Recordatorios",remEmpty:'Sin recordatorios. Dile al agente: "recuérdame esto mañana".',remDel:"eliminar",
    ocrReady:"✓ Tesseract instalado",ocrInstall:"⬇ Instalar Tesseract (OCR)",ocrUninstall:"🗑 Desinstalar Tesseract",
    ocrInstalling:"instalando…",ocrNeed:"Necesario para leer la pantalla. Se instala por Windows (winget).",
@@ -377,7 +387,7 @@ function fixos(){
   $('#h-init').textContent=t('initHdr'); $('#grafoBtn').title=t('btnGrafo'); $('#foot').textContent=t('foot');
   $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
   $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
-  $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr');
+  $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr'); $('#h-api').textContent=t('apiHdr');
   $('#regenTxt').textContent=t('regen'); $('#attachBtn').title=t('attach');
 }
 
@@ -502,7 +512,7 @@ function render(){
   const ir=document.createElement('div');ir.className='skill';ir.style.borderBottom='none';
   ir.innerHTML=`<div class="info"><div class="nm">${t('autostart')}</div><div class="d">${t('autostart_d')}</div></div><div class="sw ${aon?'on':''}"></div>`;
   ir.querySelector('.sw').onclick=()=>salvarConfig({iniciar_com_windows:!aon});$('#initBox').appendChild(ir);
-  renderSeguranca(); renderLembretes();
+  renderSeguranca(); renderApi(); renderLembretes();
 }
 
 // ── segurança (criptografia em repouso) ──
@@ -544,6 +554,35 @@ async function desbloquearCofre(){
   const r=await(await fetch('/api/cofre/desbloquear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({senha:s})})).json();
   if(r.ok){$('#cofreModal').style.display='none';await carregarEstado();await carregarChats();}
   else{$('#cofreErr').textContent=t('secBad');$('#cofreSenha').value='';$('#cofreSenha').focus();}
+}
+
+// ── API de memória (outras IAs) ──
+async function renderApi(){
+  let info=null;try{info=await(await fetch('/api/memapi')).json();}catch(e){}
+  const box=$('#apiBox');box.innerHTML='';           // limpa só depois do fetch (evita duplicar)
+  if(!info||!info.token)return;
+  const on=!!info.ativa;
+  const r=document.createElement('div');r.className='skill';r.style.borderBottom='none';
+  r.innerHTML=`<div class="info"><div class="nm">${t('apiName')}</div><div class="d">${t('apiD')}</div></div><div class="sw ${on?'on':''}"></div>`;
+  r.querySelector('.sw').onclick=()=>salvarConfig({api_ativa:!on});box.appendChild(r);
+  if(!on)return;
+  const campo='width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px;font-family:ui-monospace,monospace;font-size:12px';
+  const copiar=(txt,btn)=>{navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent=t('apiCopied');setTimeout(()=>btn.textContent=o,1400);});};
+  const lb=document.createElement('div');lb.style.cssText='font-size:12px;color:var(--dim);margin:4px 0 6px';lb.textContent=t('apiToken')+' · '+info.url;box.appendChild(lb);
+  const linha=document.createElement('div');linha.style.cssText='display:flex;gap:6px;margin-bottom:8px';
+  const tk=document.createElement('input');tk.type='password';tk.readOnly=true;tk.value=info.token;tk.style.cssText=campo;
+  const ver=document.createElement('button');ver.className='baixar';ver.textContent=t('apiShow');ver.onclick=()=>{tk.type=tk.type==='password'?'text':'password';};
+  const cp=document.createElement('button');cp.className='baixar';cp.textContent=t('apiCopy');cp.onclick=()=>copiar(info.token,cp);
+  linha.appendChild(tk);linha.appendChild(ver);linha.appendChild(cp);box.appendChild(linha);
+  const gi=document.createElement('button');gi.className='baixar';gi.style.width='100%';gi.style.marginBottom='10px';gi.textContent=t('apiRotate');
+  gi.onclick=async()=>{if(!confirm(t('apiRotateConfirm')))return;await fetch('/api/memapi/girar',{method:'POST'});renderApi();};box.appendChild(gi);
+  const mcp=JSON.stringify({mcpServers:{atlas:{command:"python",args:[info.mcp.replace(/\\/g,'/')]}}},null,2);
+  const ml=document.createElement('div');ml.style.cssText='font-size:12px;color:var(--dim);margin-bottom:6px';ml.textContent=t('apiMcp');box.appendChild(ml);
+  const ta=document.createElement('textarea');ta.readOnly=true;ta.rows=7;ta.value=mcp;ta.style.cssText=campo+';resize:vertical';box.appendChild(ta);
+  const rod=document.createElement('div');rod.style.cssText='display:flex;gap:6px;margin-top:6px';
+  const cm=document.createElement('button');cm.className='baixar';cm.textContent=t('apiCopy');cm.onclick=()=>copiar(mcp,cm);
+  const dc=document.createElement('a');dc.className='baixar';dc.href='/v1/openapi.json';dc.target='_blank';dc.style.textDecoration='none';dc.textContent=t('apiDocs');
+  rod.appendChild(cm);rod.appendChild(dc);box.appendChild(rod);
 }
 
 // ── lembretes ──

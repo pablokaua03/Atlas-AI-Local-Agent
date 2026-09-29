@@ -372,7 +372,10 @@ def tecer(material):
                 rel = " ".join((a.get("rel") or "liga").split()[:3])[:24]
                 g["arestas"][ch] = {"de": de, "para": para, "rel": rel, "peso": 1}
         if len(g["nos"]) > 250:
-            fortes = dict(sorted(g["nos"].items(), key=lambda kv: -kv[1]["peso"])[:250])
+            # nós fixos (criados via API de memória) nunca são podados
+            fixos = {k: v for k, v in g["nos"].items() if v.get("fixo")}
+            resto = sorted((kv for kv in g["nos"].items() if not kv[1].get("fixo")), key=lambda kv: -kv[1]["peso"])
+            fortes = {**fixos, **dict(resto[:max(0, 250 - len(fixos))])}
             g["nos"] = fortes
             g["arestas"] = {k: v for k, v in g["arestas"].items() if v["de"] in fortes and v["para"] in fortes}
         _salvar_grafo(g)
@@ -503,7 +506,7 @@ def limpar_genericos():
     """Remove nós-categoria genéricos (lixo de modelos fracos) do grafo."""
     with _grafo_lock:
         g = carregar_grafo()
-        ruins = [k for k in g["nos"] if k in _GENERICO]
+        ruins = [k for k in g["nos"] if k in _GENERICO and not g["nos"][k].get("fixo")]
         for k in ruins:
             del g["nos"][k]
         if ruins:

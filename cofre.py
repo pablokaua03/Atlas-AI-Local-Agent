@@ -33,6 +33,8 @@ def _protegidos():
     return [
         core.MEM_FILE, core.CONVERSAS_FILE, core.GRAFO_FILE, core.OBS_FILE,
         os.path.join(core.BASE_DIR, "lembretes.json"),
+        os.path.join(core.BASE_DIR, "memorias.json"),
+        os.path.join(core.BASE_DIR, "memorias_vetores.json"),
     ]
 
 
