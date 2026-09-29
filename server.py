@@ -778,6 +778,7 @@ def chat():
 
 
 def iniciar():
+    memapi.token()                           # garante o token da API (o MCP lê do config.json)
     skills.iniciar()
     lembretes.iniciar()
     bandeja.iniciar()
