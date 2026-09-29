@@ -72,6 +72,9 @@ def _s(tipo, desc, **extra):
 
 
 _STR_LIST = {"type": "array", "items": {"type": "string"}}
+_SCOPE = {"type": "string", "enum": ["exact", "inherit", "tree", "all"],
+          "description": "exact = only this project; inherit (default) = this project + parent projects + general "
+                         "memory; tree = this project + its subprojects; all = everything."}
 
 FERRAMENTAS = [
     {"name": "atlas_get_context",
@@ -79,11 +82,13 @@ FERRAMENTAS = [
                     "query and knowledge graph links). Call this at the start of a task or when you need to recall.",
      "inputSchema": {"type": "object", "properties": {
          "query": _s("string", "What you need to remember about (topic, question, task)."),
-         "project": _s("string", "Limit to one project (id or name)."),
+         "project": _s("string", "Focus on one project (id or name). By default its parent projects and the "
+                                 "general memory are included too (inherited)."),
+         "scope": _SCOPE,
          "limit": _s("integer", "Max memories (default 8).")}},
      "annotations": {"readOnlyHint": True},
      "run": lambda a: _api("POST", "/v1/context", {"query": a.get("query", ""), "project": a.get("project"),
-                                                    "limit": a.get("limit", 8)})},
+                                                    "limit": a.get("limit", 8), "scope": a.get("scope")})},
     {"name": "atlas_remember",
      "description": "Store a durable memory in Atlas (fact, preference, decision, task, note, event). Keep each memory "
                     "one self-contained statement. Exact duplicates are ignored.",
@@ -100,7 +105,7 @@ FERRAMENTAS = [
      "description": "Search Atlas memories (keyword + semantic). Returns the best matches with ids and scores.",
      "inputSchema": {"type": "object", "properties": {
          "query": _s("string", "Search text. Empty returns the most important memories."),
-         "project": _s("string", "Project id or name."),
+         "project": _s("string", "Project id or name."), "scope": _SCOPE,
          "tags": {**_STR_LIST, "description": "Every tag must match."},
          "type": _s("string", "Memory type filter."),
          "limit": _s("integer", "Max results (default 10).")}},
@@ -110,6 +115,7 @@ FERRAMENTAS = [
      "description": "List memories, newest first (or by importance), with optional filters and pagination.",
      "inputSchema": {"type": "object", "properties": {
          "project": _s("string", "Project id or name."), "type": _s("string", "Memory type."),
+         "scope": {**_SCOPE, "description": "exact (default) | inherit | tree | all"},
          "tag": _s("string", "Tag filter."), "sort": _s("string", "recent | importance"),
          "limit": _s("integer", "Default 50."), "offset": _s("integer", "Default 0.")}},
      "annotations": {"readOnlyHint": True},
@@ -129,25 +135,35 @@ FERRAMENTAS = [
      "inputSchema": {"type": "object", "required": ["id"], "properties": {"id": _s("string", "Memory id.")}},
      "annotations": {"destructiveHint": True},
      "run": lambda a: _api("DELETE", f"/v1/memories/{_q(a['id'])}")},
+    {"name": "atlas_project_tree",
+     "description": "Get the project hierarchy as a tree (general memory at the root, projects and subprojects "
+                    "below, with memory counts). A project's memory inherits from its parents and the general memory.",
+     "inputSchema": {"type": "object", "properties": {}},
+     "annotations": {"readOnlyHint": True},
+     "run": lambda a: _api("GET", "/v1/projects/tree")},
     {"name": "atlas_list_projects",
-     "description": "List Atlas projects with how many memories and graph nodes each has.",
+     "description": "List Atlas projects (in tree order) with parent, path and memory/node counts.",
      "inputSchema": {"type": "object", "properties": {}},
      "annotations": {"readOnlyHint": True},
      "run": lambda a: _api("GET", "/v1/projects")},
     {"name": "atlas_create_project",
-     "description": "Create a project (a workspace that groups memories and graph nodes).",
+     "description": "Create a project (a workspace that groups memories and graph nodes). Pass parent to create a "
+                    "subproject; it inherits the parent's memory.",
      "inputSchema": {"type": "object", "required": ["name"], "properties": {
          "name": _s("string", "Project name."), "description": _s("string", "What the project is about."),
+         "parent": _s("string", "Parent project id or name (omit for a top-level project)."),
          "tags": {**_STR_LIST, "description": "Tags."}}},
      "run": lambda a: _api("POST", "/v1/projects", a)},
     {"name": "atlas_update_project",
-     "description": "Rename a project or change its description/tags.",
+     "description": "Rename a project, change its description/tags, or move it in the hierarchy (parent).",
      "inputSchema": {"type": "object", "required": ["id"], "properties": {
          "id": _s("string", "Project id or name."), "name": _s("string", "New name."),
+         "parent": _s("string", "New parent project ('geral' or empty = top level)."),
          "description": _s("string", "New description."), "tags": {**_STR_LIST, "description": "Replace tags."}}},
      "run": lambda a: _api("PATCH", f"/v1/projects/{_q(a['id'])}", {k: v for k, v in a.items() if k != "id"})},
     {"name": "atlas_delete_project",
-     "description": "Delete a project. Fails if it still has memories unless cascade is true (deletes them too).",
+     "description": "Delete a project. Fails if it still has memories unless cascade is true (deletes them too). "
+                    "Its subprojects move up one level.",
      "inputSchema": {"type": "object", "required": ["id"], "properties": {
          "id": _s("string", "Project id or name."), "cascade": _s("boolean", "Also delete its memories.")}},
      "annotations": {"destructiveHint": True},
@@ -170,7 +186,8 @@ FERRAMENTAS = [
                        if a.get("depth") else _api("GET", f"/v1/graph/nodes/{_q(a['node'])}"))},
     {"name": "atlas_graph_project",
      "description": "Get the whole knowledge graph, or only the subgraph of one project.",
-     "inputSchema": {"type": "object", "properties": {"project": _s("string", "Project id or name.")}},
+     "inputSchema": {"type": "object", "properties": {"project": _s("string", "Project id or name."),
+                                                     "scope": _s("string", "exact | tree (include subprojects)")}},
      "annotations": {"readOnlyHint": True},
      "run": lambda a: _api("GET", "/v1/graph", query=a)},
     {"name": "atlas_graph_add_node",
@@ -211,7 +228,9 @@ _POR_NOME = {f["name"]: f for f in FERRAMENTAS}
 INSTRUCOES = (
     "Atlas is the user's local, private long-term memory. Use atlas_get_context before answering questions that may "
     "depend on past knowledge, and atlas_remember to save durable facts, preferences and decisions (one statement per "
-    "memory, with a project when the work belongs to one). Use the graph tools to connect people, projects and tools."
+    "memory, with a project when the work belongs to one). Projects form a hierarchy: a subproject inherits the "
+    "memory of its parents and of the general memory, so save shared knowledge at the highest level where it applies "
+    "(atlas_project_tree shows the structure). Use the graph tools to connect people, projects and tools."
 )
 
 

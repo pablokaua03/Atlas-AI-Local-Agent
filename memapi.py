@@ -134,8 +134,14 @@ def projetos_listar():
 @bp.post("/v1/projects")
 def projeto_criar():
     d = _corpo()
-    p = memstore.projeto_criar(d.get("name"), d.get("description", ""), d.get("tags"), d.get("meta"))
+    p = memstore.projeto_criar(d.get("name"), d.get("description", ""), d.get("tags"), d.get("meta"),
+                               d.get("parent"))
     return jsonify(p), 201
+
+
+@bp.get("/v1/projects/tree")
+def projetos_arvore():
+    return jsonify(memstore.projetos_arvore())
 
 
 @bp.get("/v1/projects/<pid>")
@@ -159,10 +165,10 @@ def memorias_listar():
     a = request.args
     if a.get("q"):
         return jsonify(memstore.memorias_buscar(a["q"], a.get("project"), _arg_tags(), a.get("type"),
-                                                a.get("limit", 10, type=int)))
+                                                a.get("limit", 10, type=int), escopo=a.get("scope", "inherit")))
     return jsonify(memstore.memorias_listar(a.get("project"), _arg_tags(), a.get("type"), a.get("source"),
                                             a.get("limit", 50, type=int), a.get("offset", 0, type=int),
-                                            a.get("sort", "recent")))
+                                            a.get("sort", "recent"), escopo=a.get("scope", "exact")))
 
 
 @bp.post("/v1/memories")
@@ -196,7 +202,8 @@ def memorias_buscar():
     d = _corpo()
     return jsonify(memstore.memorias_buscar(d.get("query", ""), d.get("project"), d.get("tags"),
                                             d.get("type"), d.get("limit", 10),
-                                            semantica=bool(d.get("semantic", True))))
+                                            semantica=bool(d.get("semantic", True)),
+                                            escopo=d.get("scope") or "inherit"))
 
 
 @bp.get("/v1/memories/<mid>")
@@ -217,7 +224,7 @@ def memoria_excluir(mid):
 # ── grafo ─────────────────────────────────────────────────────────────────────
 @bp.get("/v1/graph")
 def grafo():
-    return jsonify(memstore.grafo(request.args.get("project")))
+    return jsonify(memstore.grafo(request.args.get("project"), request.args.get("scope", "exact")))
 
 
 @bp.get("/v1/graph/nodes")
@@ -271,7 +278,8 @@ def aresta_excluir():
 def contexto():
     d = _corpo()
     return jsonify(memstore.contexto(d.get("query", ""), d.get("project"), d.get("limit", 8),
-                                     bool(d.get("include_graph", True)), bool(d.get("include_facts", True))))
+                                     bool(d.get("include_graph", True)), bool(d.get("include_facts", True)),
+                                     d.get("scope") or "inherit"))
 
 
 @bp.get("/v1/export")
@@ -313,16 +321,22 @@ def _openapi():
                         "responses": {"200": resp(lista("Project"))}},
                 "post": {"operationId": "createProject", "summary": "Create a project (also adds a 'projeto' node to the graph)",
                          "requestBody": corpo(ref("ProjectInput")), "responses": {"201": resp(ref("Project"))}}},
+            "/v1/projects/tree": {"get": {"operationId": "getProjectTree",
+                                          "summary": "Whole project hierarchy, nested under the general memory",
+                                          "responses": {"200": ok}}},
             "/v1/projects/{id}": {
                 "parameters": [p("id", "Project id or name")],
                 "get": {"operationId": "getProject", "summary": "Get a project", "responses": {"200": resp(ref("Project"))}},
-                "patch": {"operationId": "updateProject", "summary": "Update name, description, tags or meta",
+                "patch": {"operationId": "updateProject",
+                          "summary": "Update name, description, tags, meta or parent (move in the hierarchy)",
                           "requestBody": corpo(ref("ProjectInput")), "responses": {"200": resp(ref("Project"))}},
                 "delete": {"operationId": "deleteProject", "summary": "Delete a project",
                            "parameters": [q("cascade", "Also delete its memories", "boolean")], "responses": {"200": ok}}},
             "/v1/memories": {
                 "get": {"operationId": "listMemories", "summary": "List memories (or search with q)",
                         "parameters": [q("project", "Project id"), q("q", "Search text"), q("tag", "Filter by tag (repeatable)"),
+                                       q("scope", "exact | inherit (plus parents and general) | tree (plus subprojects) | all. "
+                                                  "Default: exact for listing, inherit for q"),
                                        q("type", "Memory type"), q("source", "Who wrote it"),
                                        q("sort", "recent | importance"), q("limit", "Max items", "integer"),
                                        q("offset", "Pagination offset", "integer")],
@@ -339,7 +353,8 @@ def _openapi():
                 "requestBody": corpo({"type": "object", "properties": {
                     "query": {"type": "string"}, "project": {"type": "string"},
                     "tags": {"type": "array", "items": {"type": "string"}}, "type": {"type": "string"},
-                    "limit": {"type": "integer", "default": 10}, "semantic": {"type": "boolean", "default": True}}}),
+                    "limit": {"type": "integer", "default": 10}, "semantic": {"type": "boolean", "default": True},
+                    "scope": ref("Scope")}}),
                 "responses": {"200": ok}}},
             "/v1/memories/{id}": {
                 "parameters": [p("id", "Memory id")],
@@ -348,7 +363,9 @@ def _openapi():
                           "requestBody": corpo(ref("MemoryInput")), "responses": {"200": resp(ref("Memory"))}},
                 "delete": {"operationId": "deleteMemory", "summary": "Forget a memory", "responses": {"200": ok}}},
             "/v1/graph": {"get": {"operationId": "getGraph", "summary": "Whole graph, or a project's subgraph",
-                                  "parameters": [q("project", "Project id")], "responses": {"200": ok}}},
+                                  "parameters": [q("project", "Project id"),
+                                                 q("scope", "exact | tree (include subprojects)")],
+                                  "responses": {"200": ok}}},
             "/v1/graph/nodes": {
                 "get": {"operationId": "listNodes", "summary": "Find nodes",
                         "parameters": [q("q", "Text"), q("project", "Project id"), q("type", "Node type"),
@@ -381,7 +398,7 @@ def _openapi():
                 "requestBody": corpo({"type": "object", "properties": {
                     "query": {"type": "string"}, "project": {"type": "string"}, "limit": {"type": "integer", "default": 8},
                     "include_graph": {"type": "boolean", "default": True},
-                    "include_facts": {"type": "boolean", "default": True}}}),
+                    "include_facts": {"type": "boolean", "default": True}, "scope": ref("Scope")}}),
                 "responses": {"200": ok}}},
             "/v1/export": {"get": {"operationId": "exportData", "summary": "Export projects, memories and graph as JSON",
                                    "parameters": [q("project", "Only this project")], "responses": {"200": ok}}},
@@ -389,13 +406,21 @@ def _openapi():
         "components": {
             "securitySchemes": {"bearer": {"type": "http", "scheme": "bearer"}},
             "schemas": {
+                "Scope": {"type": "string", "enum": ["exact", "inherit", "tree", "all"], "default": "inherit",
+                          "description": "exact = only the project; inherit = project + its parents + general "
+                                         "memory (project memories rank higher); tree = project + subprojects; all"},
                 "ProjectInput": {"type": "object", "properties": {
                     "name": {"type": "string", "maxLength": 80}, "description": {"type": "string"},
+                    "parent": {"type": ["string", "null"], "description": "Parent project id (null = top level)"},
                     "tags": {"type": "array", "items": {"type": "string"}}, "meta": {"type": "object"}}},
                 "Project": {"type": "object", "properties": {
                     "id": {"type": "string"}, "name": {"type": "string"}, "description": {"type": "string"},
                     "tags": {"type": "array", "items": {"type": "string"}}, "meta": {"type": "object"},
                     "node": {"type": "string"}, "memories": {"type": "integer"}, "nodes": {"type": "integer"},
+                    "parent": {"type": ["string", "null"]}, "depth": {"type": "integer"},
+                    "total_memories": {"type": "integer", "description": "Including subprojects"},
+                    "path": {"type": "array", "items": {"type": "object"}},
+                    "children": {"type": "array", "items": {"type": "string"}},
                     "created": {"type": "string"}, "updated": {"type": "string"}}},
                 "MemoryInput": {"type": "object", "properties": {
                     "content": {"type": "string", "maxLength": 4000},

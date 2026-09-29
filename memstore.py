@@ -133,12 +133,79 @@ def _salvar(s):
         raise ErroAPI(423, "vault_locked", "The Atlas vault is locked. Unlock it in the Atlas interface.")
 
 
-# ── projetos ──────────────────────────────────────────────────────────────────
-def _stats(s, pid):
-    mems = [m for m in s["memorias"].values() if m["project"] == pid]
-    g = skills.carregar_grafo()
-    nos = [k for k, n in g["nos"].items() if pid in (n.get("projetos") or [])]
-    return {"memories": len(mems), "nodes": len(nos)}
+# ── projetos (hierarquia) ─────────────────────────────────────────────────────
+# Os projetos formam uma árvore. "geral" é a raiz implícita: projeto sem pai fica
+# logo abaixo dele. A memória de um projeto HERDA a dos ancestrais até a geral
+# (escopo "inherit"), e um projeto pode ser visto junto com toda a sua subárvore
+# (escopo "tree").
+ESCOPOS = ("exact", "inherit", "tree", "all")
+
+
+def _pai(s, pid):
+    if pid == PROJETO_PADRAO:
+        return None
+    p = s["projetos"].get(pid, {}).get("parent")
+    return p if p in s["projetos"] and p != pid else PROJETO_PADRAO
+
+
+def _ancestrais(s, pid):
+    """[pai, avô, ..., geral] (sem o próprio)."""
+    out, x = [], _pai(s, pid)
+    while x and x not in out:
+        out.append(x)
+        x = _pai(s, x)
+    return out
+
+
+def _filhos(s, pid):
+    return sorted((k for k in s["projetos"] if k != PROJETO_PADRAO and _pai(s, k) == pid),
+                  key=lambda k: s["projetos"][k]["created"])
+
+
+def _descendentes(s, pid):
+    """{id: profundidade relativa} de toda a subárvore (sem o próprio)."""
+    out, fila = {}, [(pid, 0)]
+    while fila:
+        x, d = fila.pop(0)
+        for f in _filhos(s, x):
+            if f not in out and f != pid:
+                out[f] = d + 1
+                fila.append((f, d + 1))
+    return out
+
+
+def _escopo(s, pid, escopo):
+    """{projeto: distância} dos projetos incluídos no escopo; None = todos."""
+    escopo = (escopo or "exact").lower()
+    if escopo not in ESCOPOS:
+        raise ErroAPI(400, "invalid_request", f"'scope' must be one of: {', '.join(ESCOPOS)}.")
+    if not pid or escopo == "all":
+        return None
+    if escopo == "inherit":
+        return {pid: 0, **{a: i + 1 for i, a in enumerate(_ancestrais(s, pid))}}
+    if escopo == "tree":
+        return {pid: 0, **_descendentes(s, pid)}
+    return {pid: 0}
+
+
+def _caminho(s, pid):
+    ids = list(reversed(_ancestrais(s, pid))) + [pid]
+    return [{"id": x, "name": s["projetos"][x]["name"]} for x in ids]
+
+
+def _stats(s, pid, g=None):
+    g = g or skills.carregar_grafo()
+    proprias = sum(1 for m in s["memorias"].values() if m["project"] == pid)
+    arvore = {pid, *_descendentes(s, pid)}
+    total = sum(1 for m in s["memorias"].values() if m["project"] in arvore)
+    nos = sum(1 for n in g["nos"].values() if pid in (n.get("projetos") or []))
+    return {"memories": proprias, "total_memories": total, "nodes": nos,
+            "parent": _pai(s, pid), "depth": len(_ancestrais(s, pid)),
+            "path": _caminho(s, pid), "children": _filhos(s, pid)}
+
+
+def _projeto_out(s, pid, g=None):
+    return {**s["projetos"][pid], **_stats(s, pid, g)}
 
 
 def _resolver_projeto(s, pid, criar=False):
@@ -155,36 +222,96 @@ def _resolver_projeto(s, pid, criar=False):
     raise ErroAPI(404, "project_not_found", f"Project '{pid}' does not exist.")
 
 
-def _novo_projeto(s, nome, descricao="", tags=None, meta=None):
+def _resolver_pai(s, pai, pid=None):
+    """None/''/'geral' → sem pai. Recusa ciclos (pai dentro da própria subárvore)."""
+    if pai in (None, "", PROJETO_PADRAO):
+        return None
+    pai = _resolver_projeto(s, pai)
+    if pai == PROJETO_PADRAO:
+        return None
+    if pid and (pai == pid or pai in _descendentes(s, pid)):
+        raise ErroAPI(400, "invalid_request", "A project cannot be moved inside itself or its subprojects.")
+    return pai
+
+
+def _ligar_hierarquia(s, pid):
+    """Nó do pai --contém--> nó do projeto (e remove ligações antigas de hierarquia)."""
+    no = s["projetos"][pid].get("node")
+    if not no:
+        return
+    pai = s["projetos"][pid].get("parent")
+    no_pai = s["projetos"][pai].get("node") if pai in s["projetos"] else ""
+    with skills._grafo_lock:
+        g = skills.carregar_grafo()
+        g["arestas"] = {k: a for k, a in g["arestas"].items()
+                        if not (a.get("hierarquia") and a["para"] == no)}
+        if no_pai and no_pai in g["nos"] and no in g["nos"] and no_pai != no:
+            g["arestas"].pop(f"{no}|||{no_pai}", None)
+            g["arestas"][f"{no_pai}|||{no}"] = {"de": no_pai, "para": no, "rel": "contém", "peso": 2,
+                                               "projeto": pai, "hierarquia": True}
+        skills._salvar_grafo(g)
+
+
+def _novo_projeto(s, nome, descricao="", tags=None, meta=None, pai=None):
     nome = _texto(nome, "name", 80, obrigatorio=True)
     base = _slug(nome) or "projeto"
     pid, i = base, 2
     while pid in s["projetos"]:
         pid, i = f"{base}-{i}", i + 1
+    pai = _resolver_pai(s, pai)
     no = no_criar(nome, "projeto", projeto=pid, _interno=True)
     p = {"id": pid, "name": nome, "description": _texto(descricao, "description", 2000),
-         "tags": _limpar_tags(tags or []), "meta": meta if isinstance(meta, dict) else {},
+         "parent": pai, "tags": _limpar_tags(tags or []), "meta": meta if isinstance(meta, dict) else {},
          "created": _agora(), "updated": _agora(), "node": no["key"] if no else ""}
     s["projetos"][pid] = p
+    _ligar_hierarquia(s, pid)
     return p
+
+
+def _ordem_arvore(s):
+    """Ids em ordem de árvore (pré-ordem), começando pela geral."""
+    out = []
+
+    def visita(x):
+        out.append(x)
+        for f in _filhos(s, x):
+            visita(f)
+    visita(PROJETO_PADRAO)
+    return out
 
 
 def projetos_listar():
     with _lock:
         _checar_cofre()
         s = _carregar()
-        return [{**p, **_stats(s, k)} for k, p in sorted(s["projetos"].items(), key=lambda kv: kv[1]["created"])]
+        g = skills.carregar_grafo()
+        return [_projeto_out(s, k, g) for k in _ordem_arvore(s)]
+
+
+def projetos_arvore():
+    """A hierarquia inteira, aninhada, a partir da memória geral."""
+    with _lock:
+        _checar_cofre()
+        s = _carregar()
+        g = skills.carregar_grafo()
+
+        def no(x):
+            p = _projeto_out(s, x, g)
+            p.pop("children")
+            p.pop("path")
+            p["children"] = [no(f) for f in _filhos(s, x)]
+            return p
+        return no(PROJETO_PADRAO)
 
 
 def projeto_obter(pid):
     with _lock:
         _checar_cofre()
         s = _carregar()
-        pid = _resolver_projeto(s, pid)
-        return {**s["projetos"][pid], **_stats(s, pid)}
+        return _projeto_out(s, _resolver_projeto(s, pid))
 
 
-def projeto_criar(nome, descricao="", tags=None, meta=None):
+def projeto_criar(nome, descricao="", tags=None, meta=None, pai=None):
     with _lock:
         _checar_cofre()
         s = _carregar()
@@ -192,9 +319,9 @@ def projeto_criar(nome, descricao="", tags=None, meta=None):
         for k, p in s["projetos"].items():
             if alvo and (k == alvo or _slug(p["name"]) == alvo):
                 raise ErroAPI(409, "project_exists", f"Project '{p['name']}' already exists (id '{k}').")
-        p = _novo_projeto(s, nome, descricao, tags, meta)
+        p = _novo_projeto(s, nome, descricao, tags, meta, pai)
         _salvar(s)
-        return {**p, "memories": 0, "nodes": 1 if p["node"] else 0}
+        return _projeto_out(s, p["id"])
 
 
 def projeto_atualizar(pid, dados):
@@ -213,15 +340,21 @@ def projeto_atualizar(pid, dados):
             p["tags"] = _limpar_tags(dados["tags"])
         if isinstance(dados.get("meta"), dict):
             p["meta"] = dados["meta"]
+        if "parent" in dados:
+            if pid == PROJETO_PADRAO:
+                raise ErroAPI(400, "invalid_request", "The default project is the root and has no parent.")
+            p["parent"] = _resolver_pai(s, dados["parent"], pid)
+            _ligar_hierarquia(s, pid)
         p["updated"] = _agora()
         _salvar(s)
-        return {**p, **_stats(s, pid)}
+        return _projeto_out(s, pid)
 
 
 def projeto_excluir(pid, cascata=False):
     """Apaga o projeto. Sem cascata, recusa se ainda houver memórias nele.
-    Com cascata, apaga as memórias do projeto e desvincula os nós do grafo
-    (só o nó do próprio projeto é removido; os outros nós continuam)."""
+    Com cascata, apaga as memórias do projeto. Subprojetos sobem um nível (vão
+    pro pai do projeto apagado). No grafo, só o nó do próprio projeto é
+    removido; os outros nós continuam, desvinculados."""
     with _lock:
         _checar_cofre()
         s = _carregar()
@@ -234,8 +367,12 @@ def projeto_excluir(pid, cascata=False):
                           f"Project has {len(mems)} memories. Pass cascade=true to delete them too.")
         for k in mems:
             del s["memorias"][k]
+        avo = s["projetos"][pid].get("parent")
+        filhos = _filhos(s, pid)
         no_proj = s["projetos"][pid].get("node")
         del s["projetos"][pid]
+        for f in filhos:
+            s["projetos"][f]["parent"] = avo if avo in s["projetos"] else None
         _salvar(s)
         _apagar_vetores(mems)
     with skills._grafo_lock:
@@ -249,7 +386,12 @@ def projeto_excluir(pid, cascata=False):
             if a.get("projeto") == pid:
                 a.pop("projeto", None)
         skills._salvar_grafo(g)
-    return {"deleted": pid, "memories_deleted": len(mems)}
+    with _lock:
+        s = _carregar()
+        for f in filhos:
+            if f in s["projetos"]:
+                _ligar_hierarquia(s, f)
+    return {"deleted": pid, "memories_deleted": len(mems), "children_moved": filhos}
 
 
 # ── memórias ──────────────────────────────────────────────────────────────────
@@ -370,12 +512,15 @@ def memoria_excluir(mid):
     return {"deleted": mid}
 
 
-def _filtrar(s, projeto=None, tags=None, tipo=None, fonte=None, incluir_expiradas=False):
+def _filtrar(s, projeto=None, tags=None, tipo=None, fonte=None, incluir_expiradas=False, escopo="exact"):
+    """Filtra as memórias. Com projeto + escopo, cada item ganha 'distance'
+    (0 = do próprio projeto; n = herdada de n níveis acima/abaixo)."""
     pid = _resolver_projeto(s, projeto) if projeto else None
+    dist = _escopo(s, pid, escopo)
     tags = _limpar_tags(tags or [])
     out = []
     for m in s["memorias"].values():
-        if pid and m["project"] != pid:
+        if dist is not None and m["project"] not in dist:
             continue
         if tags and not all(t in m["tags"] for t in tags):
             continue
@@ -385,15 +530,18 @@ def _filtrar(s, projeto=None, tags=None, tipo=None, fonte=None, incluir_expirada
             continue
         if not incluir_expiradas and _expirada(m):
             continue
+        if dist is not None and escopo != "exact":
+            m = {**m, "distance": dist[m["project"]], "inherited": m["project"] != pid}
         out.append(m)
     return out
 
 
-def memorias_listar(projeto=None, tags=None, tipo=None, fonte=None, limite=50, offset=0, ordem="recent"):
+def memorias_listar(projeto=None, tags=None, tipo=None, fonte=None, limite=50, offset=0, ordem="recent",
+                    escopo="exact"):
     with _lock:
         _checar_cofre()
         s = _carregar()
-        mems = _filtrar(s, projeto, tags, tipo, fonte)
+        mems = _filtrar(s, projeto, tags, tipo, fonte, escopo=escopo)
     mems.sort(key=lambda m: m["updated"], reverse=True)
     if ordem == "importance":
         mems.sort(key=lambda m: m["importance"], reverse=True)   # estável: empate fica por data
@@ -416,13 +564,16 @@ def _score_palavras(q_toks, m):
     return acertos / len(q_toks)
 
 
-def memorias_buscar(query, projeto=None, tags=None, tipo=None, limite=10, semantica=True, min_score=0.05):
-    """Busca híbrida: palavras + (se disponível) similaridade de embeddings."""
+def memorias_buscar(query, projeto=None, tags=None, tipo=None, limite=10, semantica=True, min_score=0.05,
+                    escopo="inherit"):
+    """Busca híbrida: palavras + (se disponível) similaridade de embeddings.
+    Com projeto, o padrão é herdar a memória dos projetos-pai e da geral; o que
+    é do próprio projeto pesa mais que o herdado."""
     query = _texto(query, "query", 2000)
     with _lock:
         _checar_cofre()
         s = _carregar()
-        mems = _filtrar(s, projeto, tags, tipo)
+        mems = _filtrar(s, projeto, tags, tipo, escopo=escopo)
     q_toks = _tokens_busca(query)
     vetores, qv = {}, None
     if semantica and query and mems:
@@ -438,7 +589,7 @@ def memorias_buscar(query, projeto=None, tags=None, tipo=None, limite=10, semant
         base = (0.55 * sem + 0.45 * kw) if sem is not None else kw
         if query and base < min_score:
             continue
-        score = base + 0.02 * m["importance"]
+        score = (base + 0.02 * m["importance"]) * max(0.5, 1 - 0.12 * m.get("distance", 0))
         res.append({**m, "score": round(score, 4)})
     if not query:
         res.sort(key=lambda m: (m["importance"], m["updated"]), reverse=True)
@@ -458,7 +609,7 @@ def _no_out(k, n):
 
 def _aresta_out(a):
     return {"from": a["de"], "to": a["para"], "rel": a.get("rel", ""),
-            "weight": a.get("peso", 1), "project": a.get("projeto")}
+            "weight": a.get("peso", 1), "project": a.get("projeto"), "hierarchy": bool(a.get("hierarquia"))}
 
 
 def _achar_no(g, ref):
@@ -491,11 +642,17 @@ def _pid_existente(projeto):
         return _resolver_projeto(_carregar(), projeto)
 
 
-def grafo(projeto=None):
+def grafo(projeto=None, escopo="exact"):
+    """Grafo inteiro, ou só o de um projeto (escopo 'tree' inclui os subprojetos)."""
     _checar_cofre()
     pid = _pid_existente(projeto)
+    incluidos = None
+    if pid:
+        with _lock:
+            incluidos = set(_escopo(_carregar(), pid, "tree" if escopo == "tree" else "exact") or [pid])
     g = skills.carregar_grafo()
-    nos = {k: n for k, n in g["nos"].items() if not pid or pid in (n.get("projetos") or [])}
+    nos = {k: n for k, n in g["nos"].items()
+           if incluidos is None or incluidos & set(n.get("projetos") or [])}
     arestas = [a for a in g["arestas"].values() if a["de"] in nos and a["para"] in nos]
     return {"project": pid, "nodes": [_no_out(k, n) for k, n in nos.items()],
             "edges": [_aresta_out(a) for a in arestas]}
@@ -698,14 +855,19 @@ def vizinhos(ref, profundidade=1, limite=100):
 
 
 # ── contexto pronto pra injetar no prompt de qualquer IA ──────────────────────
-def contexto(query="", projeto=None, limite=8, incluir_grafo=True, incluir_fatos=True):
+def contexto(query="", projeto=None, limite=8, incluir_grafo=True, incluir_fatos=True, escopo="inherit"):
     _checar_cofre()
-    busca = memorias_buscar(query, projeto=projeto, limite=limite)
+    busca = memorias_buscar(query, projeto=projeto, limite=limite, escopo=escopo)
     mems = busca["items"]
     linhas = []
+    nomes_proj = {p["id"]: p["name"] for p in projetos_listar()}
     if projeto:
         p = projeto_obter(projeto)
-        linhas.append(f"# Project: {p['name']}" + (f" — {p['description']}" if p["description"] else ""))
+        trilha = " › ".join(x["name"] for x in p["path"] if x["id"] != PROJETO_PADRAO or len(p["path"]) == 1)
+        linhas.append(f"# Project: {trilha}" + (f" — {p['description']}" if p["description"] else ""))
+        pais = [x for x in p["path"][:-1] if x["id"] != PROJETO_PADRAO]
+        if escopo == "inherit" and pais:
+            linhas.append("(includes memories inherited from: " + ", ".join(x["name"] for x in pais) + ", Geral)")
     if incluir_fatos:
         fatos = skills.carregar_mem().get("fatos", [])[-15:]
         if fatos:
@@ -715,11 +877,12 @@ def contexto(query="", projeto=None, limite=8, incluir_grafo=True, incluir_fatos
         linhas.append("## Relevant memories")
         for m in mems:
             extra = f" [{', '.join(m['tags'])}]" if m["tags"] else ""
-            linhas.append(f"- ({m['type']}, {m['project']}) {m['content']}{extra}")
+            origem = nomes_proj.get(m["project"], m["project"])
+            linhas.append(f"- ({m['type']}, {origem}) {m['content']}{extra}")
     mapa = ""
     if incluir_grafo:
         if projeto:
-            sub = grafo(projeto)
+            sub = grafo(projeto, escopo="tree")
             nomes = {n["key"]: n["label"] for n in sub["nodes"]}
             rels = [f"- {nomes[e['from']]} {e['rel']} {nomes[e['to']]}" for e in sub["edges"]][:25]
             mapa = "\n".join(rels)

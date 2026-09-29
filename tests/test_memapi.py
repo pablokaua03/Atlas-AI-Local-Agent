@@ -135,6 +135,82 @@ class TestProjetos(Base):
         self.assertEqual(self.api("DELETE", "/v1/projects/geral")[0], 400)
 
 
+class TestHierarquia(Base):
+    def montar(self):
+        self.api("POST", "/v1/projects", {"name": "Empresa"})
+        self.api("POST", "/v1/projects", {"name": "Site", "parent": "empresa"})
+        self.api("POST", "/v1/projects", {"name": "Checkout", "parent": "Site"})
+        self.api("POST", "/v1/memories", {"content": "Pablo gosta de respostas curtas"})              # geral
+        self.api("POST", "/v1/memories", {"content": "A empresa usa Python no backend", "project": "empresa"})
+        self.api("POST", "/v1/memories", {"content": "O site usa React", "project": "site"})
+        self.api("POST", "/v1/memories", {"content": "O checkout usa Stripe", "project": "checkout"})
+
+    def test_estrutura(self):
+        self.montar()
+        p = self.api("GET", "/v1/projects/checkout")[1]
+        self.assertEqual((p["parent"], p["depth"]), ("site", 3))
+        self.assertEqual([x["id"] for x in p["path"]], ["geral", "empresa", "site", "checkout"])
+        ids = [x["id"] for x in self.api("GET", "/v1/projects")[1]["items"]]
+        self.assertEqual(ids, ["geral", "empresa", "site", "checkout"])          # ordem de árvore
+        arv = self.api("GET", "/v1/projects/tree")[1]
+        self.assertEqual(arv["id"], "geral")
+        self.assertEqual(arv["children"][0]["children"][0]["children"][0]["id"], "checkout")
+        self.assertEqual(arv["children"][0]["total_memories"], 3)
+        self.assertEqual(arv["total_memories"], 4)
+        self.assertEqual(self.api("POST", "/v1/projects", {"name": "X", "parent": "nope"})[0], 404)
+
+    def test_heranca(self):
+        self.montar()
+        d = self.api("GET", "/v1/memories?project=checkout&scope=inherit")[1]
+        self.assertEqual(d["total"], 4)
+        dist = {m["content"]: (m["distance"], m["inherited"]) for m in d["items"]}
+        self.assertEqual(dist["O checkout usa Stripe"], (0, False))
+        self.assertEqual(dist["Pablo gosta de respostas curtas"], (3, True))
+        self.assertEqual(self.api("GET", "/v1/memories?project=checkout")[1]["total"], 1)        # exact
+        self.assertEqual(self.api("GET", "/v1/memories?project=empresa&scope=tree")[1]["total"], 3)
+        self.assertEqual(self.api("GET", "/v1/memories?project=site&scope=bad")[0], 400)
+        # busca herda por padrão, e o próprio projeto pesa mais
+        self.api("POST", "/v1/memories", {"content": "Pagamentos: Stripe na empresa", "project": "empresa"})
+        r = self.api("POST", "/v1/memories/search", {"query": "stripe", "project": "checkout"})[1]
+        self.assertEqual([m["content"] for m in r["items"]][:2],
+                         ["O checkout usa Stripe", "Pagamentos: Stripe na empresa"])
+        r = self.api("POST", "/v1/memories/search", {"query": "stripe", "project": "site", "scope": "exact"})[1]
+        self.assertEqual(r["items"], [])
+        ctx = self.api("POST", "/v1/context", {"query": "react python respostas", "project": "site"})[1]["text"]
+        self.assertIn("# Project: Empresa › Site", ctx)
+        self.assertIn("inherited from: Empresa, Geral", ctx)
+        self.assertIn("A empresa usa Python no backend", ctx)
+
+    def test_mover_e_ciclo(self):
+        self.montar()
+        self.assertEqual(self.api("PATCH", "/v1/projects/empresa", {"parent": "checkout"})[0], 400)
+        self.assertEqual(self.api("PATCH", "/v1/projects/site", {"parent": "site"})[0], 400)
+        self.assertEqual(self.api("PATCH", "/v1/projects/geral", {"parent": "site"})[0], 400)
+        p = self.api("PATCH", "/v1/projects/checkout", {"parent": "empresa"})[1]
+        self.assertEqual(p["parent"], "empresa")
+        p = self.api("PATCH", "/v1/projects/checkout", {"parent": None})[1]
+        self.assertEqual((p["parent"], p["depth"]), ("geral", 1))
+
+    def test_grafo_hierarquia(self):
+        self.montar()
+        arestas = self.api("GET", "/v1/graph")[1]["edges"]
+        hier = {(e["from"], e["to"]) for e in arestas if e["hierarchy"]}
+        self.assertEqual(hier, {("empresa", "site"), ("site", "checkout")})
+        self.api("PATCH", "/v1/projects/checkout", {"parent": "empresa"})
+        hier = {(e["from"], e["to"]) for e in self.api("GET", "/v1/graph")[1]["edges"] if e["hierarchy"]}
+        self.assertEqual(hier, {("empresa", "site"), ("empresa", "checkout")})
+        sub = self.api("GET", "/v1/graph?project=empresa&scope=tree")[1]
+        self.assertEqual({n["key"] for n in sub["nodes"]}, {"empresa", "site", "checkout"})
+
+    def test_excluir_sobe_filhos(self):
+        self.montar()
+        d = self.api("DELETE", "/v1/projects/site?cascade=true")[1]
+        self.assertEqual(d["children_moved"], ["checkout"])
+        self.assertEqual(self.api("GET", "/v1/projects/checkout")[1]["parent"], "empresa")
+        hier = {(e["from"], e["to"]) for e in self.api("GET", "/v1/graph")[1]["edges"] if e["hierarchy"]}
+        self.assertEqual(hier, {("empresa", "checkout")})
+
+
 class TestMemorias(Base):
     def test_crud(self):
         st, m = self.api("POST", "/v1/memories", {
@@ -234,7 +310,8 @@ class TestGrafo(Base):
         self.api("POST", "/v1/projects", {"name": "Loja"})
         self.api("POST", "/v1/memories", {"content": "Front em React", "project": "loja", "entities": ["React"]})
         sub = self.api("GET", "/v1/graph?project=loja")[1]
-        self.assertIn({"from": "loja", "to": "react", "rel": "envolve", "weight": 1, "project": "loja"}, sub["edges"])
+        self.assertIn({"from": "loja", "to": "react", "rel": "envolve", "weight": 1, "project": "loja",
+                       "hierarchy": False}, sub["edges"])
         # memória no "geral" (sem nó de projeto) não cria aresta
         self.api("POST", "/v1/memories", {"content": "Gosto de Rust", "entities": ["Rust"]})
         self.assertEqual(self.api("GET", "/v1/graph/nodes/rust")[1]["incoming"], [])
@@ -353,6 +430,7 @@ class TestMCP(Base):
         self.assertIsNone(mcp_atlas._tratar({"jsonrpc": "2.0", "method": "notifications/initialized"}))
         nomes = [t["name"] for t in self.rpc("tools/list")["tools"]]
         self.assertIn("atlas_remember", nomes)
+        self.assertIn("atlas_project_tree", nomes)
         self.assertTrue(all("run" not in t for t in self.rpc("tools/list")["tools"]))
         with self.assertRaises(NotImplementedError):
             self.rpc("nope")
@@ -374,6 +452,12 @@ class TestMCP(Base):
         err, msg = self.chamar("atlas_forget", {"id": "mem_nope"})
         self.assertTrue(err)
         self.assertIn("404", msg)
+        err, sp = self.chamar("atlas_create_project", {"name": "MCP", "parent": "atlas-api"})
+        self.assertEqual(sp["parent"], "atlas-api")
+        err, arv = self.chamar("atlas_project_tree", {})
+        self.assertEqual(arv["children"][0]["children"][0]["id"], "mcp")
+        err, ctx = self.chamar("atlas_get_context", {"query": "token", "project": "mcp"})
+        self.assertIn("A API usa token", ctx["text"])                 # herdada do pai
         err, d = self.chamar("atlas_delete_project", {"id": "atlas-api", "cascade": True})
         self.assertEqual(d["memories_deleted"], 1)
 
