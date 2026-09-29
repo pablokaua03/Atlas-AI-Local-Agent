@@ -238,17 +238,44 @@ def api_backup_importar():
     try:
         with zipfile.ZipFile(io.BytesIO(f.read())) as z:
             nomes = set(z.namelist())
-            restaurados = []
-            for nome in _BACKUP_ARQS:                 # só nomes da lista branca (nada de path traversal)
-                if nome in nomes:
-                    dados = z.read(nome)
-                    json.loads(dados.decode("utf-8"))  # valida que é JSON antes de gravar
-                    with open(os.path.join(core.BASE_DIR, nome), "wb") as out:
-                        out.write(dados)
-                    restaurados.append(nome)
+            arqs = {n: z.read(n) for n in _BACKUP_ARQS if n in nomes}   # lista branca: nada de path traversal
     except Exception as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
-    return jsonify({"ok": True, "restaurados": restaurados})
+
+    # valida TUDO antes de gravar qualquer coisa (nada de restauração pela metade)
+    cfg_atual = core.carregar_config()
+    cfg_nova = None
+    try:
+        for nome, dados in arqs.items():
+            if dados[:len(cofre.MAGIC)] == cofre.MAGIC:
+                continue                               # cifrado pelo cofre: conferido abaixo
+            obj = json.loads(dados.decode("utf-8"))
+            if nome == "config.json":
+                cfg_nova = obj
+    except Exception as e:
+        return jsonify({"ok": False, "erro": f"arquivo inválido: {e}"}), 400
+    cifrados = [n for n, d in arqs.items() if d[:len(cofre.MAGIC)] == cofre.MAGIC]
+    if "config.json" in cifrados:
+        return jsonify({"ok": False, "erro": "config.json não pode estar cifrado"}), 400
+    cfg_final = cfg_nova if cfg_nova is not None else cfg_atual
+    if cifrados and not cfg_final.get("cripto"):
+        return jsonify({"ok": False, "erro": "o backup tem arquivos cifrados, mas sem a configuração "
+                                             "de criptografia correspondente"}), 400
+
+    if cfg_nova is not None and cfg_atual.get("api_token"):
+        cfg_nova["api_token"] = cfg_atual["api_token"]   # mantém as IAs conectadas funcionando
+        arqs["config.json"] = json.dumps(cfg_nova, ensure_ascii=False, indent=2).encode("utf-8")
+    for nome, dados in arqs.items():
+        tmp = os.path.join(core.BASE_DIR, nome + ".tmp")
+        with open(tmp, "wb") as out:
+            out.write(dados)
+        os.replace(tmp, os.path.join(core.BASE_DIR, nome))
+
+    # senha/chave diferente (ou cripto mudou) → trava; o usuário desbloqueia com a senha do backup
+    if cfg_nova is not None and (cfg_nova.get("cripto_salt") != cfg_atual.get("cripto_salt")
+                                 or bool(cfg_nova.get("cripto")) != bool(cfg_atual.get("cripto"))):
+        cofre.bloquear()
+    return jsonify({"ok": True, "restaurados": sorted(arqs), "cofre": cofre.estado()})
 
 
 # ── API DE MEMÓRIA (token pra interface mostrar/girar) ────────────────────────
