@@ -49,6 +49,9 @@
   .imp span{opacity:.25} .imp span.on{opacity:1}
   .card .ct{font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
   .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+  .herd{font-size:11px;border:1px dashed var(--accent);color:var(--accent);border-radius:6px;padding:1px 7px}
+  .card.herdada{opacity:.82;border-style:dashed}
+  .proj .ac.sub{font-size:12px}
   .tag{font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:1px 8px;color:var(--dim)}
   .ops{margin-left:auto;display:flex;gap:4px}
   .ops button{background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:6px}
@@ -75,6 +78,8 @@
         <input class="in" id="q" autocomplete="off">
         <select class="in" id="fTipo"></select>
         <select class="in" id="ordem"></select>
+        <label class="in" id="herdarBox" style="display:none;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="herdar"><span id="herdarTxt"></span></label>
         <button class="btn pri" id="abrirNovo"></button>
       </div>
       <div id="novo">
@@ -102,6 +107,7 @@ const I18N={
    empty:"Nenhuma memória aqui ainda. As IAs conectadas (API/MCP) e você podem adicionar.",noResult:"Nada encontrado.",
    count:"{n} memória(s)",del:"Esquecer esta memória?",edit:"editar",remove:"esquecer",by:"por",
    locked:"O cofre está bloqueado. Volte à tela principal e desbloqueie.",err:"Erro: ",
+   inherit:"incluir herdadas",inheritedFrom:"herdada de {p}",subNew:"Nome do subprojeto de \"{p}\":",subBtn:"novo subprojeto",
    t_note:"nota",t_fact:"fato",t_preference:"preferência",t_decision:"decisão",t_task:"tarefa",t_event:"evento"},
  en:{title:"Memories",back:"← back",graph:"🕸️ graph",projects:"Projects",all:"All",newProj:"➕ New project",
    projName:"Project name:",projDesc:"Description (optional):",projDel:"Delete project \"{p}\"?",projDelMem:"It has {n} memory(ies). Delete them too?",
@@ -110,6 +116,7 @@ const I18N={
    empty:"No memories here yet. Connected AIs (API/MCP) and you can add them.",noResult:"Nothing found.",
    count:"{n} memory(ies)",del:"Forget this memory?",edit:"edit",remove:"forget",by:"by",
    locked:"The vault is locked. Go back to the main screen and unlock it.",err:"Error: ",
+   inherit:"include inherited",inheritedFrom:"inherited from {p}",subNew:"Name of the subproject of \"{p}\":",subBtn:"new subproject",
    t_note:"note",t_fact:"fact",t_preference:"preference",t_decision:"decision",t_task:"task",t_event:"event"},
  es:{title:"Memorias",back:"← volver",graph:"🕸️ grafo",projects:"Proyectos",all:"Todos",newProj:"➕ Nuevo proyecto",
    projName:"Nombre del proyecto:",projDesc:"Descripción (opcional):",projDel:"¿Eliminar el proyecto \"{p}\"?",projDelMem:"Tiene {n} memoria(s). ¿Eliminarlas también?",
@@ -118,6 +125,7 @@ const I18N={
    empty:"Aún no hay memorias aquí. Las IAs conectadas (API/MCP) y tú pueden añadirlas.",noResult:"Nada encontrado.",
    count:"{n} memoria(s)",del:"¿Olvidar esta memoria?",edit:"editar",remove:"olvidar",by:"por",
    locked:"La caja fuerte está bloqueada. Vuelve a la pantalla principal y desbloquéala.",err:"Error: ",
+   inherit:"incluir heredadas",inheritedFrom:"heredada de {p}",subNew:"Nombre del subproyecto de \"{p}\":",subBtn:"nuevo subproyecto",
    t_note:"nota",t_fact:"hecho",t_preference:"preferencia",t_decision:"decisión",t_task:"tarea",t_event:"evento"},
 };
 let LANG='pt', TK='', PROJ='', projetos=[];
@@ -142,6 +150,7 @@ function textos(){
   $('#fTipo').innerHTML='';$('#fTipo').append(el('option',{value:'',textContent:t('allTypes')}));
   for(const x of TIPOS){$('#fTipo').append(el('option',{value:x,textContent:tipoLbl(x)}));$('#nTipo').append(el('option',{value:x,textContent:tipoLbl(x)}));}
   $('#ordem').append(el('option',{value:'recent',textContent:t('recent')}),el('option',{value:'importance',textContent:t('important')}));
+  $('#herdarTxt').textContent=t('inherit');
 }
 
 async function carregarProjetos(){
@@ -149,8 +158,10 @@ async function carregarProjetos(){
   projetos=d.items;const box=$('#projs');box.innerHTML='';
   const total=projetos.reduce((a,p)=>a+p.memories,0);
   const linha=(id,nome,n,p)=>{
-    const r=el('div',{className:'proj'+(PROJ===id?' on':'')},el('span',{className:'nm',textContent:nome}),el('span',{className:'n',textContent:n}));
+    const r=el('div',{className:'proj'+(PROJ===id?' on':'')},el('span',{className:'nm',textContent:(p&&p.depth>1?'└ ':'')+nome}),el('span',{className:'n',textContent:n}));
+    if(p&&p.depth>1)r.style.paddingLeft=(10+(p.depth-1)*14)+'px';
     if(p){
+      r.append(el('button',{className:'ac sub',textContent:'➕',title:t('subBtn'),onclick:e=>{e.stopPropagation();novoProjeto(p.id==='geral'?null:p);}}));
       r.append(el('button',{className:'ac',textContent:'✎',title:t('edit'),onclick:e=>{e.stopPropagation();editarProjeto(p);}}));
       if(p.id!=='geral')r.append(el('button',{className:'ac del',textContent:'✕',title:'✕',onclick:e=>{e.stopPropagation();excluirProjeto(p);}}));
     }
@@ -158,12 +169,14 @@ async function carregarProjetos(){
   };
   linha('',t('all'),total,null);
   for(const p of projetos)linha(p.id,p.name,p.memories,p);
-  const sel=projetos.find(p=>p.id===PROJ);$('#pdesc').textContent=sel?sel.description:'';
+  const sel=projetos.find(p=>p.id===PROJ);
+  $('#pdesc').textContent=sel?[sel.path.map(x=>x.name).join(' › '),sel.description].filter(Boolean).join('\n'):'';
+  $('#herdarBox').style.display=sel&&sel.id!=='geral'?'flex':'none';
 }
-async function novoProjeto(){
-  const nome=prompt(t('projName'));if(!nome||!nome.trim())return;
+async function novoProjeto(pai){
+  const nome=prompt(pai&&pai.id?t('subNew',{p:pai.name}):t('projName'));if(!nome||!nome.trim())return;
   const desc=prompt(t('projDesc'))||'';
-  const p=await tentar(()=>api('POST','/projects',{name:nome.trim(),description:desc}));
+  const p=await tentar(()=>api('POST','/projects',{name:nome.trim(),description:desc,parent:pai&&pai.id?pai.id:null}));
   if(p){PROJ=p.id;await carregarProjetos();carregarMemorias();}
 }
 async function editarProjeto(p){
@@ -183,6 +196,7 @@ async function excluirProjeto(p){
 async function carregarMemorias(){
   const q=$('#q').value.trim(),tipo=$('#fTipo').value;
   const ps=new URLSearchParams();if(PROJ)ps.set('project',PROJ);if(tipo)ps.set('type',tipo);
+  if(PROJ)ps.set('scope',$('#herdar').checked&&PROJ!=='geral'?'inherit':'exact');
   if(q){ps.set('q',q);ps.set('limit','100');}else{ps.set('sort',$('#ordem').value);ps.set('limit','300');}
   const d=await tentar(()=>api('GET','/memories?'+ps));if(!d)return;
   aviso('');
@@ -197,8 +211,9 @@ function cartao(m){
   for(let i=1;i<=5;i++)imp.append(el('span',{className:i<=m.importance?'on':'',textContent:'●',
     onclick:async()=>{if(await tentar(()=>api('PATCH','/memories/'+m.id,{importance:i})))carregarMemorias();}}));
   const nomeProj=(projetos.find(p=>p.id===m.project)||{}).name||m.project;
+  if(m.inherited)c.classList.add('herdada');
   const meta=el('div',{className:'meta'},el('span',{className:'tipo',textContent:tipoLbl(m.type)}),imp,
-    PROJ?null:el('span',{textContent:'📁 '+nomeProj}),
+    m.inherited?el('span',{className:'herd',textContent:t('inheritedFrom',{p:nomeProj})}):(PROJ?null:el('span',{textContent:'📁 '+nomeProj})),
     el('span',{textContent:t('by')+' '+m.source}),el('span',{textContent:(m.updated||'').replace('T',' ').slice(0,16)}));
   const ct=el('div',{className:'ct',textContent:m.content});
   const ops=el('div',{className:'ops'},
@@ -228,7 +243,7 @@ async function salvarNova(){
 
 let qT;
 $('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(carregarMemorias,300);});
-$('#fTipo').onchange=carregarMemorias;$('#ordem').onchange=carregarMemorias;
+$('#fTipo').onchange=carregarMemorias;$('#ordem').onchange=carregarMemorias;$('#herdar').onchange=carregarMemorias;
 $('#novoProj').onclick=novoProjeto;$('#salvarNovo').onclick=salvarNova;
 $('#abrirNovo').onclick=()=>{const n=$('#novo');n.style.display=n.style.display==='block'?'none':'block';if(n.style.display==='block')$('#nConteudo').focus();};
 $('#nConteudo').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))salvarNova();});
@@ -238,7 +253,10 @@ $('#nConteudo').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e
     document.documentElement.dataset.tema=e.config.tema||'escuro';document.documentElement.lang=LANG;}catch(_){}
   textos();
   try{TK=(await(await fetch('/api/memapi')).json()).token||'';}catch(_){}
-  await carregarProjetos();await carregarMemorias();
+  if(location.hash.length>1)PROJ=decodeURIComponent(location.hash.slice(1));     // /memorias#projeto (vem do grafo)
+  await carregarProjetos();
+  if(PROJ&&!projetos.some(p=>p.id===PROJ)){PROJ='';await carregarProjetos();}
+  await carregarMemorias();
 })();
 </script>
 </body>

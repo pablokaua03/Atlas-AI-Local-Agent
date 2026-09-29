@@ -34,9 +34,55 @@ project node (relation `envolve`), so a project's subgraph stays connected.
 Memories created through the API also show up in Atlas's own chat when they are
 relevant, so what one AI saves, Atlas and every other AI can recall.
 
-In the interface, the 🗂️ button opens the **Memories** page: browse projects,
-search, add, edit, re-rate and delete memories (including the ones other AIs
-wrote). The graph view has a project filter.
+### Project hierarchy and inherited memory
+
+Projects form a tree. The general memory (`geral`) is the root; a project created
+without `parent` sits right below it, and any project can have subprojects:
+
+```
+Geral (general memory)
+└── Company
+    ├── Website
+    │   └── Checkout
+    └── Mobile app
+```
+
+A project's memory **inherits** from its parents and from the general memory. When
+an AI asks for context or searches inside `Checkout`, it also gets what was saved
+in `Website`, `Company` and `Geral`. Memories of the project itself rank higher,
+and inherited ones come with `inherited: true` and a `distance` (levels up). Save
+shared knowledge at the highest level where it applies and every subproject sees
+it.
+
+The `scope` parameter controls this:
+
+| scope | Includes | Default for |
+| --- | --- | --- |
+| `exact` | only the project | listing (`GET /v1/memories`) |
+| `inherit` | the project, its parents and the general memory | search and `/v1/context` |
+| `tree` | the project and all its subprojects | |
+| `all` | everything | |
+
+Move a project with `PATCH /v1/projects/{id}` and `{"parent": "other-id"}` (or
+`null` for the top level); moves that would create a cycle are refused. Deleting a
+project moves its subprojects up one level. In the graph, parent and child project
+nodes are linked by `contém` edges (`hierarchy: true`). `GET /v1/projects/tree`
+returns the whole tree with memory counts.
+
+### In the interface
+
+- 🗂️ **Memories** page: the project tree in the sidebar (➕ creates a subproject),
+  search, add, edit, re-rate and delete memories (including the ones other AIs
+  wrote). With a project open, "include inherited" shows what it inherits.
+- 🕸️ **Graph** page, with three views:
+  - **Network**: 2D force graph with glow, neighborhood highlight and flowing links;
+  - **3D Orbit**: the same graph in 3D, auto-rotating (drag to rotate, wheel to zoom);
+  - **Hierarchy**: radial tree, general memory at the center, then projects,
+    subprojects and their memories (double-click a project to open it in the
+    network view).
+  All views have search, a project filter (with or without subprojects), a
+  clickable type legend and a details panel with the related memories. Everything
+  is drawn locally, with no external libraries.
 
 ## Authentication and safety
 
@@ -88,7 +134,8 @@ Tools:
 | `atlas_list_memories` | List with filters and pagination |
 | `atlas_update_memory` | Edit a memory |
 | `atlas_forget` | Delete a memory |
-| `atlas_list_projects` / `atlas_create_project` / `atlas_update_project` / `atlas_delete_project` | Manage projects |
+| `atlas_project_tree` | The project hierarchy (general memory → projects → subprojects) |
+| `atlas_list_projects` / `atlas_create_project` / `atlas_update_project` / `atlas_delete_project` | Manage projects (`parent` creates or moves subprojects) |
 | `atlas_graph_search` | Find nodes |
 | `atlas_graph_node` | A node with its links and memories, or its neighborhood |
 | `atlas_graph_project` | The whole graph or one project's subgraph |
@@ -106,22 +153,23 @@ Errors always look like `{"error": {"code": "...", "message": "..."}}`.
 | Method | Path | Description |
 | --- | --- | --- |
 | GET | `/v1` | API info and vault state |
-| GET | `/v1/projects` | List projects (with memory and node counts) |
-| POST | `/v1/projects` | Create `{name, description?, tags?, meta?}` |
-| GET / PATCH / DELETE | `/v1/projects/{id}` | Read, update, delete (`?cascade=true` also deletes its memories) |
-| GET | `/v1/memories` | List (`project`, `tag`, `type`, `source`, `sort=recent\|importance`, `limit`, `offset`) or search with `q` |
+| GET | `/v1/projects` | List projects in tree order (with `parent`, `depth`, `path`, `children` and memory/node counts) |
+| GET | `/v1/projects/tree` | The whole hierarchy, nested under the general memory |
+| POST | `/v1/projects` | Create `{name, description?, parent?, tags?, meta?}` |
+| GET / PATCH / DELETE | `/v1/projects/{id}` | Read, update (also `parent` to move it), delete (`?cascade=true` also deletes its memories; subprojects move up) |
+| GET | `/v1/memories` | List (`project`, `scope`, `tag`, `type`, `source`, `sort=recent\|importance`, `limit`, `offset`) or search with `q` |
 | POST | `/v1/memories` | Create a memory (exact duplicates in the same project return the existing one) |
 | POST | `/v1/memories/batch` | Create up to 200 at once `{items: [...]}` |
-| POST | `/v1/memories/search` | `{query, project?, tags?, type?, limit?, semantic?}` |
+| POST | `/v1/memories/search` | `{query, project?, scope?, tags?, type?, limit?, semantic?}` |
 | GET / PATCH / DELETE | `/v1/memories/{id}` | Read, update (also `add_tags`), delete |
-| GET | `/v1/graph` | Whole graph, or `?project=` subgraph |
+| GET | `/v1/graph` | Whole graph, or `?project=` subgraph (`&scope=tree` includes subprojects) |
 | GET | `/v1/graph/nodes` | Find nodes (`q`, `project`, `type`, `limit`) |
 | POST | `/v1/graph/nodes` | Create `{label, type?, project?, description?}` (reuses a matching node) |
 | GET / PATCH / DELETE | `/v1/graph/nodes/{key or label}` | Node with edges and related memories; update (`label`, `type`, `description`, `add_project`, `remove_project`); delete |
 | GET | `/v1/graph/nodes/{key or label}/neighbors?depth=2` | Neighborhood subgraph (1 to 4 hops) |
 | POST | `/v1/graph/edges` | `{from, to, rel?, project?}` (missing nodes are created) |
 | DELETE | `/v1/graph/edges?from=..&to=..` | Remove a relation |
-| POST | `/v1/context` | `{query, project?, limit?, include_graph?, include_facts?}` returns `text` ready for a prompt |
+| POST | `/v1/context` | `{query, project?, scope?, limit?, include_graph?, include_facts?}` returns `text` ready for a prompt |
 | GET | `/v1/export` | Projects, memories and graph as JSON (`?project=` for one) |
 
 ### Examples
