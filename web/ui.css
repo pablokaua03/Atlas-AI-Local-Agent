@@ -1,0 +1,76 @@
+/* Atlas UI — componentes compartilhados (modais, toasts, skeleton, foco, navegação inferior).
+   Usa só as variáveis de cor que as três páginas já definem: --bg --panel2 --line --txt --dim --accent --danger. */
+:root{
+  --ui-r-sm:8px; --ui-r-md:12px; --ui-r-lg:16px;
+  --ui-s1:4px; --ui-s2:8px; --ui-s3:12px; --ui-s4:16px; --ui-s5:24px;
+  --ui-fs-sm:12.5px; --ui-fs-md:14px; --ui-fs-lg:16px;
+  --ui-nav-h:58px;
+}
+
+/* ── foco visível e navegação por teclado ── */
+:where(a,button,input,select,textarea,summary,[tabindex]):focus{outline:none}
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--ui-r-sm)}
+.ui-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+
+/* ── botões ── */
+.ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--ui-s2);min-height:38px;
+  padding:0 var(--ui-s4);border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);
+  font:inherit;font-size:var(--ui-fs-md);font-weight:600;cursor:pointer}
+.ui-btn:hover{border-color:var(--accent)}
+.ui-btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.ui-btn.pri:hover{filter:brightness(1.08)}
+.ui-btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.ui-btn:disabled{opacity:.5;cursor:default}
+
+/* ── modal ── */
+.ui-back{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;
+  padding:var(--ui-s4);animation:ui-fade .12s ease-out}
+.ui-modal{width:min(420px,100%);max-height:calc(100% - 32px);overflow:auto;background:var(--panel2);color:var(--txt);
+  border:1px solid var(--line);border-radius:var(--ui-r-lg);padding:var(--ui-s5);box-shadow:0 20px 60px rgba(0,0,0,.45);
+  animation:ui-pop .14s ease-out}
+.ui-modal h2{margin:0 0 var(--ui-s2);font-size:var(--ui-fs-lg);font-weight:700;line-height:1.3}
+.ui-modal p{margin:0 0 var(--ui-s3);font-size:var(--ui-fs-md);line-height:1.5;color:var(--dim);white-space:pre-wrap}
+.ui-field{display:flex;flex-direction:column;gap:6px;margin:0 0 var(--ui-s3);font-size:var(--ui-fs-sm);color:var(--dim)}
+.ui-field input[type=text],.ui-field textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+  border-radius:10px;padding:10px 12px;font:inherit;font-size:var(--ui-fs-md);outline:none}
+.ui-field textarea{min-height:72px;resize:vertical}
+.ui-field input[type=text]:focus,.ui-field textarea:focus{border-color:var(--accent)}
+.ui-field.chk{flex-direction:row;align-items:center;gap:var(--ui-s2);cursor:pointer;color:var(--txt);font-size:var(--ui-fs-md)}
+.ui-err{min-height:16px;margin:-4px 0 var(--ui-s2);font-size:var(--ui-fs-sm);color:var(--danger)}
+.ui-actions{display:flex;justify-content:flex-end;gap:var(--ui-s2);margin-top:var(--ui-s4)}
+@keyframes ui-fade{from{opacity:0}to{opacity:1}}
+@keyframes ui-pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+
+/* ── toasts (só para erros e confirmações reais — nunca para listas vazias) ── */
+#ui-toasts{position:fixed;z-index:120;left:50%;bottom:calc(var(--ui-s5) + env(safe-area-inset-bottom));transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:var(--ui-s2);align-items:center;pointer-events:none;width:min(440px,calc(100% - 32px))}
+.ui-toast{pointer-events:auto;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:10px;padding:10px 14px;font-size:var(--ui-fs-md);box-shadow:0 8px 30px rgba(0,0,0,.4);animation:ui-pop .14s ease-out;max-width:100%}
+.ui-toast.err{border-left-color:var(--danger)}
+.ui-toast.ok{border-left-color:#3fbf9f}
+body.ui-has-nav #ui-toasts{bottom:calc(var(--ui-nav-h) + var(--ui-s4) + env(safe-area-inset-bottom))}
+
+/* ── skeleton ── */
+.ui-skel{display:block;border-radius:var(--ui-r-sm);background:linear-gradient(90deg,var(--panel2) 25%,var(--line) 37%,var(--panel2) 63%);
+  background-size:400% 100%;animation:ui-shimmer 1.3s ease infinite}
+.ui-skel.line{height:14px;margin:8px 0}
+.ui-skel.card{height:74px;margin-bottom:var(--ui-s2);border-radius:var(--ui-r-md)}
+.ui-skel.pill{height:34px;margin:4px 0;border-radius:var(--ui-r-sm)}
+@keyframes ui-shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+/* ── estado vazio (somente mensagem) ── */
+.ui-empty{color:var(--dim);text-align:center;padding:40px var(--ui-s3);font-size:var(--ui-fs-md);line-height:1.6}
+
+/* ── navegação inferior (somente no celular) ── */
+.ui-bnav{display:none}
+@media (max-width:680px){
+  body.ui-has-nav{padding-bottom:calc(var(--ui-nav-h) + env(safe-area-inset-bottom))}
+  .ui-bnav{display:flex;position:fixed;z-index:50;left:0;right:0;bottom:0;height:calc(var(--ui-nav-h) + env(safe-area-inset-bottom));
+    padding-bottom:env(safe-area-inset-bottom);background:var(--panel2);border-top:1px solid var(--line)}
+  .ui-bnav a,.ui-bnav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    background:none;border:none;color:var(--dim);font:inherit;font-size:11px;text-decoration:none;cursor:pointer;min-width:0}
+  .ui-bnav .ic{font-size:19px;line-height:1}
+  .ui-bnav .on{color:var(--accent);font-weight:700}
+}
