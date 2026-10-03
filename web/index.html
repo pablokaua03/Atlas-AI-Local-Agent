@@ -151,6 +151,64 @@
   .sw.on::after{left:21px}
   .tag{font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:1px 5px;margin-left:6px}
   .foot{font-size:11px;color:var(--dim);margin-top:18px;line-height:1.5}
+
+  /* ── AJUSTES EM SEÇÕES ── */
+  details.sec{border:1px solid var(--line);border-radius:12px;margin:0 0 10px;background:var(--panel)}
+  details.sec>summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:2px;border-radius:12px}
+  details.sec>summary::-webkit-details-marker{display:none}
+  details.sec>summary .stt{font-size:14px;font-weight:700;color:var(--txt)}
+  details.sec>summary .stt::before{content:"▸";display:inline-block;width:16px;color:var(--dim);transition:transform .15s}
+  details.sec[open]>summary .stt::before{transform:rotate(90deg)}
+  details.sec>summary .std{font-size:12px;color:var(--dim);padding-left:16px}
+  details.sec .sbody{padding:2px 14px 14px;border-top:1px solid var(--line)}
+  details.sec .sfoot{margin-top:14px;display:flex;justify-content:flex-end}
+  .sub{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:16px 0 8px;font-weight:700}
+  .rest{background:transparent;border:1px dashed var(--line);color:var(--dim);border-radius:9px;padding:7px 12px;font-size:12.5px;cursor:pointer;min-height:34px}
+  .rest:hover{color:var(--txt);border-color:var(--accent)}
+  .skill.col{flex-direction:column;align-items:stretch;gap:8px}
+  .numbox{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+  .num{width:84px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px;font-family:inherit;text-align:center}
+  .num:focus,.ta:focus,.sel:focus{border-color:var(--accent)}
+  .rg{font-size:10.5px;color:var(--dim)}
+  .ta,.sel{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font:inherit;font-size:13.5px;margin:6px 0;resize:vertical}
+  .d.warn,.warn{color:var(--warn)} .d.note{margin-top:10px;line-height:1.5}
+  .budget{margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:9px}
+  .nm.sp{margin-top:16px}
+  #mFilter{flex-wrap:wrap;margin-bottom:10px} #mFilter button{flex:0 0 auto;padding:6px 10px;font-size:12.5px}
+  .modelo{cursor:default} .modelo .tags{margin-top:5px;display:flex;gap:4px;flex-wrap:wrap} .modelo .tags .tag{margin-left:0}
+  .modelo .meta{font-size:12px;color:var(--dim);margin-top:5px}
+  .acts2{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px}
+  .baixar.danger{border-color:var(--danger);color:var(--danger)} .baixar.danger:hover{background:var(--danger);color:#fff}
+  .baixar:disabled{opacity:.6;cursor:default}
+  .presets{display:flex;flex-direction:column;gap:7px;margin:8px 0}
+  .preset{border:1px solid var(--line);border-radius:11px;padding:10px 12px;background:var(--bg);cursor:pointer}
+  .preset.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--bg))}
+  .preset .top{display:flex;align-items:center;gap:6px} .preset .rot{font-weight:600;font-size:14px}
+  .preset .d{font-size:12px;color:var(--dim);margin-top:3px}
+  .preset:focus-visible,.sel:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  /* ── CONTEXTO NO CHAT ── */
+  #ctxBar{max-width:780px;margin:0 auto 7px;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim)}
+  #ctxBar select{flex:1;min-width:0;max-width:260px;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:6px 8px;font:inherit;font-size:12.5px}
+  #ctxBar button{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:9px;padding:6px 11px;font-size:12.5px;cursor:pointer;min-height:32px;white-space:nowrap}
+  #ctxBar button:hover{color:var(--txt);border-color:var(--accent)}
+  #fatoBar{max-width:780px;margin:0 auto 8px;padding:9px 12px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 10%,var(--panel));
+    border-radius:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+  #fatoBar[hidden]{display:none} #fatoBar .ft{flex:1;min-width:180px}
+  details.usadas{margin-top:9px;border-top:1px dashed var(--line);padding-top:7px;font-size:12.5px;color:var(--dim);white-space:normal}
+  details.usadas>summary{cursor:pointer;user-select:none} details.usadas>summary:hover{color:var(--txt)}
+  details.usadas ul{list-style:none;margin:7px 0 4px;padding:0;display:flex;flex-direction:column;gap:6px}
+  details.usadas li{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;background:var(--bg);border-radius:8px}
+  details.usadas .mt{flex:1;color:var(--txt);word-break:break-word} details.usadas .mm .tag{margin-left:0}
+  details.usadas .ma{display:flex;gap:2px;flex-shrink:0}
+  .tag.pin{color:var(--accent);border-color:var(--accent)}
+  .ctxlist h3{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:12px 0 6px}
+  .ctxitem{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .ctxitem .mt{flex:1;word-break:break-word} .ctxitem .tag{margin-left:0;white-space:nowrap}
+  @media(max-width:680px){
+    #ctxBar{margin-bottom:6px} #ctxBar select{max-width:none}
+    details.sec>summary{padding:14px} .rest{min-height:40px}
+    .num{width:92px;min-height:38px} details.usadas li{flex-wrap:wrap} details.usadas .ma .ic{padding:8px}
+  }
   @media(max-width:680px){#side{position:fixed;z-index:8;height:100%}}
   /* ── refinamentos (consistência, teclado, celular) ── */
   button,input,select,textarea{font-family:inherit}
@@ -205,7 +263,9 @@
     <div id="banner" role="status"><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button></div>
     <div id="chat" aria-live="polite"><div class="ld"><span class="ui-skel"></span><span class="ui-skel"></span><span class="ui-skel"></span></div></div>
     <div id="chatActions" style="display:none"><button id="regenBtn"><span>↻</span><span id="regenTxt"></span></button></div>
+    <div id="fatoBar" hidden role="status"></div>
     <div id="bar">
+      <div id="ctxBar"><label for="projSel" id="projLabel">Projeto</label><select id="projSel"></select><button type="button" id="ctxBtn">🧠</button></div>
       <div id="anexosBar"></div>
       <div class="barin">
         <button id="attachBtn" title="anexar">📎</button>
@@ -231,24 +291,74 @@
 <div id="sideScrim"></div>
 <div id="cfg" role="dialog" aria-modal="true" aria-label="Configurações">
   <button class="close" id="cfgClose" aria-label="Fechar">✕</button>
-  <h2 id="h-lang">Idioma</h2><div class="seg" id="langSeg"></div>
-  <h2 id="h-theme">Tema</h2><div class="seg" id="themeSeg"></div>
-  <h2 id="h-name">Seu nome</h2><div class="field"><input type="text" id="nome"></div>
-  <h2 id="h-model">Modelo</h2><div id="modelos"></div>
-  <h2 id="h-skills">Habilidades</h2><div id="skills"></div>
-  <h2 id="h-init">Inicialização</h2><div id="initBox"></div>
-  <h2 id="h-sec">Segurança</h2><div id="secBox"></div>
-  <h2 id="h-api">API de memória</h2><div id="apiBox"></div>
-  <h2 id="h-rem">Lembretes</h2><div id="remBox"></div>
-  <h2 id="h-folder">Arquivos</h2>
-  <button id="abrirPasta" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px"></button>
-  <button id="btnExport" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;margin-bottom:8px"></button>
-  <button id="btnImport" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px"></button>
+  <details class="sec" id="sec-modelo" open>
+    <summary></summary>
+    <div class="sbody">
+      <div class="seg" id="mFilter" role="group"></div>
+      <div id="mInfo"></div>
+      <div id="modelos"></div>
+      <div id="mCtxRow"></div>
+      <div id="mProv" class="skill col"></div>
+      <div class="sfoot"><button type="button" class="rest" data-rest="modelo"></button></div>
+    </div>
+  </details>
+  <details class="sec" id="sec-memoria">
+    <summary></summary>
+    <div class="sbody">
+      <div id="ctxBox"></div>
+      <h3 class="sub" id="h-skills">Habilidades</h3><div id="skills"></div>
+      <div class="sfoot"><button type="button" class="rest" data-rest="memoria"></button></div>
+    </div>
+  </details>
+  <details class="sec" id="sec-personalidade">
+    <summary></summary>
+    <div class="sbody">
+      <div id="persBox"></div>
+      <div class="sfoot"><button type="button" class="rest" data-rest="personalidade"></button></div>
+    </div>
+  </details>
+  <details class="sec" id="sec-geracao">
+    <summary></summary>
+    <div class="sbody">
+      <div id="genBox"></div>
+      <div class="sfoot"><button type="button" class="rest" data-rest="geracao"></button></div>
+    </div>
+  </details>
+  <details class="sec" id="sec-privacidade">
+    <summary></summary>
+    <div class="sbody">
+      <div id="privBox"></div>
+      <h3 class="sub" id="h-sec">Segurança</h3><div id="secBox"></div>
+      <h3 class="sub" id="h-api">API de memória</h3><div id="apiBox"></div>
+      <div class="sfoot"><button type="button" class="rest" data-rest="privacidade"></button></div>
+    </div>
+  </details>
+  <details class="sec" id="sec-geral">
+    <summary></summary>
+    <div class="sbody">
+      <h3 class="sub" id="h-lang">Idioma</h3><div class="seg" id="langSeg"></div>
+      <h3 class="sub" id="h-theme">Tema</h3><div class="seg" id="themeSeg"></div>
+      <h3 class="sub" id="h-name">Seu nome</h3><div class="field"><input type="text" id="nome"></div>
+      <h3 class="sub" id="h-init">Inicialização</h3><div id="initBox"></div>
+      <h3 class="sub" id="h-rem">Lembretes</h3><div id="remBox"></div>
+      <div class="sfoot"><button type="button" class="rest" data-rest="geral"></button></div>
+    </div>
+  </details>
+  <details class="sec" id="sec-backup">
+    <summary></summary>
+    <div class="sbody">
+      <h3 class="sub" id="h-folder">Arquivos</h3>
+      <button id="abrirPasta" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px"></button>
+      <button id="btnExport" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;margin-bottom:8px"></button>
+      <button id="btnImport" style="width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:11px;cursor:pointer;font-size:14px;"></button>
+    </div>
+  </details>
   <input type="file" id="importFile" accept=".zip" style="display:none">
   <div class="foot" id="foot"></div>
 </div>
 
 <script src="/static/ui.js"></script>
+<script src="/static/ajustes.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 let estado=null, ocupado=false, LANG='pt', TEMA='escuro', chatAtual=null, ctrl=null, ultimaPergunta=null, anexos=[];
@@ -401,6 +511,7 @@ const I18N={
 };
 const t=(k,v)=>{let s=(I18N[LANG]&&I18N[LANG][k])||I18N.pt[k]||k; if(v)for(const x in v)s=s.replace('{'+x+'}',v[x]); return s;};
 const mdesc=n=>((I18N[LANG]||{}).mdesc||{})[n]||(I18N.pt.mdesc||{})[n]||'';
+window.mdesc=mdesc;
 const SKILLS={memoria:true,tela:true,grafo:true,iniciativa:true,wikipedia:true,documentos:true};
 
 function aplicarTema(){ document.documentElement.setAttribute('data-tema',TEMA);
@@ -427,12 +538,13 @@ function fixos(){
   $('#input').placeholder=t('ph'); $('#sbfoot').textContent=t('foot');
   $('#h-lang').textContent=t('lang'); $('#h-theme').textContent=t('theme');
   $('#h-name').textContent=t('name'); $('#nome').placeholder=t('namePh');
-  $('#h-model').textContent=t('model'); $('#h-skills').textContent=t('skills');
+  $('#h-skills').textContent=t('skills');
   $('#h-init').textContent=t('initHdr'); $('#grafoBtn').title=t('btnGrafo'); $('#memBtn').title=t('btnMem'); $('#foot').textContent=t('foot');
   $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
   $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
   $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr'); $('#h-api').textContent=t('apiHdr');
   $('#regenTxt').textContent=t('regen'); $('#attachBtn').title=t('attach');
+  AjustesUI.setLang(LANG);AjustesUI.titulos();
   if(_navLang!==LANG){_navLang=LANG;AtlasUI.labels({ok:t('confirmT'),cancel:t('cancel')});AtlasUI.nav('chat',{idioma:LANG,onConfig:abrirCfg});}
 }
 let _navLang=null;
@@ -475,7 +587,7 @@ function render(){
   lb.title=co.desbloqueado?t('lockNow'):t('unlock');
   if(co.ligada&&!co.desbloqueado){if($('#cofreModal').style.display!=='flex')abrirCofreModal();}else{$('#cofreModal').style.display='none';}
   // banner
-  const b=$('#banner'),bt=$('#bannerTxt'),bb=$('#bannerBtn'),mA=estado.catalogo.find(m=>m.ativo);
+  const b=$('#banner'),bt=$('#bannerTxt'),bb=$('#bannerBtn'),mA=estado.catalogo.find(m=>m.ativo&&m.tipo!=='embed');
   b.style.display='none';bb.style.display='none';
   if(!estado.ollama_online){b.style.display='flex';bb.style.display='inline-block';bb.disabled=false;
     if(estado.ollama_instalado){bt.textContent=t('ollamaOff');bb.textContent=t('startOllama');bb.onclick=iniciarOllama;}
@@ -485,24 +597,6 @@ function render(){
   seg('#langSeg',['pt','en','es'],LANG,l=>l.toUpperCase(),l=>salvarConfig({idioma:l}));
   seg('#themeSeg',['escuro','claro'],TEMA,l=>t(l==='escuro'?'dark':'light'),l=>{TEMA=l;aplicarTema();salvarConfig({tema:l});});
   $('#nome').value=['você','you','tú'].includes(cfg.nome)?'':cfg.nome;
-  // modelos (catálogo completo)
-  $('#modelos').innerHTML='';
-  for(const m of estado.catalogo){
-    const div=document.createElement('div');div.className='modelo'+(m.ativo?' sel':'');
-    div.innerHTML=`<div class="top"><span class="rot">${m.rotulo}</span><span class="nm">${m.nome}</span></div>
-      <div class="desc">${mdesc(m.nome)} · ${m.vram}</div>
-      <div class="st ${m.instalado?'ok':'no'}">${m.instalado?t('installed'):t('notInstalled')}</div>`;
-    if(estado.ollama_online&&!m.instalado){const bd=document.createElement('button');bd.className='baixar';bd.textContent=t('download');
-      const pr=document.createElement('div');pr.className='prog';pr.innerHTML='<div></div>';
-      bd.onclick=e=>{e.stopPropagation();baixar(m.nome,bd,pr);};div.appendChild(bd);div.appendChild(pr);}
-    if(estado.ollama_online&&m.instalado){const dl=document.createElement('button');dl.className='baixar';
-      dl.style.borderColor='var(--danger)';dl.style.color='var(--danger)';dl.textContent='🗑 '+t('delModel');
-      dl.onclick=e=>{e.stopPropagation();excluirModelo(m.nome);};div.appendChild(dl);}
-    div.onclick=()=>{ if(m.instalado) salvarConfig({modelo:m.nome}); };
-    if(m.instalado){div.tabIndex=0;div.setAttribute('role','button');div.setAttribute('aria-pressed',String(!!m.ativo));
-      div.onkeydown=e=>{if(e.target===div&&(e.key==='Enter'||e.key===' ')){e.preventDefault();div.click();}};}
-    $('#modelos').appendChild(div);
-  }
   // skills
   $('#skills').innerHTML='';
   for(const k of Object.keys(SKILLS)){const on=!!cfg.habilidades[k];
@@ -560,7 +654,7 @@ function render(){
   const ir=document.createElement('div');ir.className='skill';ir.style.borderBottom='none';
   ir.innerHTML=`<div class="info"><div class="nm">${t('autostart')}</div><div class="d">${t('autostart_d')}</div></div><div class="sw ${aon?'on':''}"></div>`;
   ir.querySelector('.sw').onclick=()=>salvarConfig({iniciar_com_windows:!aon});$('#initBox').appendChild(ir);
-  renderSeguranca(); renderApi(); renderLembretes(); acessivel();
+  renderSeguranca(); renderApi(); renderLembretes(); AjustesUI.render(); acessivel();
 }
 
 // teclado/leitor de tela: interruptores viram role=switch e botões de ícone ganham nome
@@ -663,13 +757,15 @@ async function renderLembretes(){
 function seg(sel,vals,cur,lab,cb){const e=$(sel);e.innerHTML='';for(const v of vals){const b=document.createElement('button');
   b.textContent=lab(v);if(v===cur)b.className='on';b.onclick=()=>cb(v);e.appendChild(b);}}
 
+function aplicarEstado(o){estado=o;LANG=estado.config.idioma||'pt';TEMA=estado.config.tema||'escuro';aplicarTema();render();}
 async function salvarConfig(patch){
   try{
     const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});
     if(!r.ok)throw new Error('HTTP '+r.status);
-    estado=await r.json();
-  }catch(e){AtlasUI.toast(t('connErr'),{kind:'err'});return;}
-  LANG=estado.config.idioma||'pt';TEMA=estado.config.tema||'escuro';aplicarTema();render();
+    const o=await r.json();
+    if(o.avisos&&o.avisos.length)AtlasUI.toast(o.avisos.join('\n'),{kind:'err'});   // valor recusado/ajustado pelo servidor
+    aplicarEstado(o);
+  }catch(e){AtlasUI.toast(t('connErr'),{kind:'err'});}
 }
 let nomeT;document.addEventListener('input',e=>{if(e.target.id==='nome'){clearTimeout(nomeT);nomeT=setTimeout(()=>salvarConfig({nome:e.target.value||'você'}),500);}});
 
@@ -696,7 +792,9 @@ async function baixarWiki(btn,pr){
 }
 async function excluirModelo(nome){
   if(!await conf(t('confDelModel',{m:nome}),{ok:t('delBtn'),danger:true}))return;
-  await fetch('/api/ollama/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:nome})});
+  try{const r=await fetch('/api/ollama/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:nome})});
+    if(!r.ok){const o=await r.json().catch(()=>({}));AtlasUI.toast(o.erro||('HTTP '+r.status),{kind:'err'});}
+  }catch(e){AtlasUI.toast(t('connErr'),{kind:'err'});}
   await carregarEstado();
 }
 
@@ -725,13 +823,26 @@ async function importarBackup(file){
   }catch(e){b.textContent='erro';}
   setTimeout(()=>{b.disabled=false;b.textContent=t('bkImport');},1500);
 }
-async function baixar(nome,btn,pr){btn.disabled=true;btn.textContent=t('downloading');pr.style.display='block';const bar=pr.firstChild;
+async function baixar(nome,btn,pr){
+  const A=AjustesUI.t;btn.disabled=true;btn.textContent=A('dling');pr.style.display='block';const bar=pr.firstChild;bar.style.width='0';
+  let erro=null;
   try{const r=await fetch('/api/pull',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:nome})});
+    if(!r.ok||!r.body)throw new Error('HTTP '+r.status);
     const rd=r.body.getReader();const dc=new TextDecoder();let bf='';
     while(true){const{done,value}=await rd.read();if(done)break;bf+=dc.decode(value,{stream:true});const ls=bf.split('\n');bf=ls.pop();
       for(const l of ls){if(!l.trim())continue;let o;try{o=JSON.parse(l)}catch(_){continue}
-        if(o.total)bar.style.width=Math.round((o.completed||0)/o.total*100)+'%';if(o.status)btn.textContent=o.status;}}
-    btn.textContent=t('ready');await carregarEstado();}catch(e){btn.textContent='erro';btn.disabled=false;}}
+        if(o.error){erro=String(o.error);continue;}
+        if(o.total){const pc=Math.round((o.completed||0)/o.total*100);bar.style.width=pc+'%';btn.textContent=(o.status||A('dling'))+' '+pc+'%';}
+        else if(o.status)btn.textContent=o.status;}}
+  }catch(e){erro=erro||A('dlNoOllama');}
+  if(erro){
+    const low=erro.toLowerCase();
+    const msg=/no space|disk|espa/.test(low)?A('dlDisk'):/dial|lookup|timeout|no such host|network|connection|ECONN/i.test(erro)?A('dlOffline'):/refused|10061|failed to fetch|HTTP 5/i.test(erro)?A('dlNoOllama'):erro;
+    AtlasUI.toast(A('dlErr',{m:nome,e:msg}),{kind:'err'});
+    btn.textContent=A('retry');btn.disabled=false;pr.style.display='none';return;
+  }
+  btn.textContent=t('ready');AtlasUI.toast(A('dlDone',{m:nome}),{kind:'ok'});await carregarEstado();
+}
 
 // ── chats ──
 async function carregarChats(){
@@ -739,6 +850,7 @@ async function carregarChats(){
   try{const r=await fetch('/api/chats');if(!r.ok)throw new Error('HTTP '+r.status);d=await r.json();}
   catch(e){$('#lista').innerHTML='';$('#chat').innerHTML='';vazio();semConexao();return;}
   chatAtual=d.atual;
+  const cur=d.chats.find(c=>c.id===chatAtual);AjustesUI.chat.definirProjetoDoChat(cur&&cur.projeto);
   const L=$('#lista');L.innerHTML='';
   for(const c of d.chats){
     const it=document.createElement('div');it.className='item'+(c.id===chatAtual?' sel':'');
@@ -759,7 +871,7 @@ async function abrirMensagens(id){
   $('#chat').innerHTML='';$('#chatActions').style.display='none';if(!id){vazio();return;}
   let c;try{c=await(await fetch('/api/chats/'+id)).json();}catch(e){vazio();return;}
   if(!c.mensagens||!c.mensagens.length){vazio();return;}
-  for(const m of c.mensagens){addMsg('user',m.u);addMsg('a',m.a,true);}
+  for(const m of c.mensagens){addMsg('user',m.u);const el=addMsg('a',m.a,true);if(m.ctx&&m.ctx.length)AjustesUI.chat.usadas(el,m.ctx,null);}
   ultimaPergunta=c.mensagens[c.mensagens.length-1].u;
   if(!ocupado)$('#chatActions').style.display='block';
 }
@@ -800,7 +912,7 @@ async function enviar(){
 async function enviarTexto(texto,envs){
   envs=envs||[];
   if(!estado.ollama_online){addMsg('a',t('errOllama'),true);return;}
-  const mA=estado.catalogo.find(m=>m.ativo);
+  const mA=estado.catalogo.find(m=>m.ativo&&m.tipo!=='embed');
   if(mA&&!mA.instalado){addMsg('a',t('errModel',{m:mA.nome}),true);return;}
   ultimaPergunta=texto;ocupado=true;modoStop(true);$('#chatActions').style.display='none';
   const imgsURL=envs.filter(a=>a.tipo==='img').map(a=>a.dataURL);
@@ -810,12 +922,14 @@ async function enviarTexto(texto,envs){
   const corpo={texto,chat_id:chatAtual,
     imagens:envs.filter(a=>a.tipo==='img').map(a=>a.dataURL),
     anexos:envs.filter(a=>a.tipo==='arq').map(a=>({nome:a.nome,b64:a.dataURL}))};
-  const bub=addMsg('a','');let acc='';ctrl=new AbortController();
+  const bub=addMsg('a','');let acc='';let infoCtx=null;ctrl=new AbortController();
   try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:ctrl.signal});
+    infoCtx=AjustesUI.chat.parseHeader(r.headers.get('X-Atlas-Contexto'));
     const rd=r.body.getReader(),dc=new TextDecoder();
     while(true){const{done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});bub.textContent=acc;$('#chat').scrollTop=$('#chat').scrollHeight;}
   }catch(e){if(e.name!=='AbortError')acc+='\n'+t('errStream');}
   bub.classList.add('md');bub.innerHTML=md(acc);
+  if(infoCtx&&infoCtx.mems&&infoCtx.mems.length)AjustesUI.chat.usadas(bub,infoCtx.mems,infoCtx);
   ocupado=false;ctrl=null;modoStop(false);$('#input').focus();$('#chatActions').style.display='block';
   fetch('/api/chats').then(r=>r.json()).then(d=>{const L=$('#lista');
     [...L.children].forEach((el,i)=>{if(d.chats[i])el.querySelector('.tit')&&(el.querySelector('.tit').textContent=d.chats[i].titulo);});});
@@ -893,17 +1007,20 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#cfg').classList
 $('#cfgClose').onclick=fechar;$('#scrim').onclick=fechar;
 
 try{const es=new EventSource('/eventos');es.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}
-  if(m.tipo==='iniciativa'&&m.payload)addMsg('a',m.payload,true);};}catch(e){}
+  if(m.tipo==='iniciativa'&&m.payload)addMsg('a',m.payload,true);
+  if(m.tipo==='sugestao_fato')AjustesUI.chat.sugestao(m.payload);};}catch(e){}
 
 async function atualizarSistema(){
   try{const s=await(await fetch('/api/sistema')).json();const p=[];
     if(s.vram_total)p.push('🎮 '+(s.vram_usada/1024).toFixed(1)+'/'+(s.vram_total/1024).toFixed(1)+'GB');
     if(s.cpu!=null)p.push('CPU '+s.cpu+'%');
-    if(s.ram_total)p.push('RAM '+s.ram_pct+'%');
+    if(s.ram_total){p.push('RAM '+s.ram_pct+'%');const gb=s.ram_total/1073741824;if(Math.abs((hostAj.ramTotalGB||0)-gb)>0.05){hostAj.ramTotalGB=gb;if(estado)AjustesUI.render();}}
     $('#sysPill').textContent=p.join('  ');
   }catch(e){$('#sysPill').textContent='';}
 }
-(async()=>{await carregarEstado();await carregarChats();})();
+const hostAj={estado:()=>estado,salvar:salvarConfig,conf:conf,baixar:baixar,excluir:excluirModelo,chat:()=>chatAtual,seg:seg,setEstado:aplicarEstado,ramTotalGB:0};
+AjustesUI.init(hostAj);
+(async()=>{await carregarEstado();await carregarChats();AjustesUI.chat.carregarProjetos();})();
 // não recarrega o estado com o painel de ajustes aberto (isso apagava a senha digitada)
 setInterval(()=>{if(!ocupado&&!$('#cfg').classList.contains('open'))carregarEstado();},10000);
 atualizarSistema();setInterval(atualizarSistema,3000);
