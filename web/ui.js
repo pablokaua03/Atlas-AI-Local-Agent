@@ -1,13 +1,14 @@
 /* Atlas UI — modais, toasts e navegação inferior compartilhados (sem dependências).
    AtlasUI.confirm({title,message,okText,cancelText,danger}) -> Promise<boolean>
-   AtlasUI.form({title,message,fields:[{name,label,value,type:'text'|'textarea'|'checkbox',placeholder,required}],okText,cancelText,danger})
+   AtlasUI.form({title,message,fields:[{name,label,value,type:'text'|'textarea'|'checkbox'|'select'|'number',options:[{v,l}],min,max,step,hint,placeholder,required}],okText,cancelText,danger})
        -> Promise<{[name]:valor} | null>
+   AtlasUI.modal({title,message,build:function(box,fechar){...}}) -> Promise (conteúdo livre; fechar(valor) resolve)
    AtlasUI.prompt({title,label,value,...}) -> Promise<string|null>
    AtlasUI.toast(msg,{kind:'err'|'ok'|'info',ms})
    AtlasUI.nav(ativo,{idioma,onConfig}) monta o menu inferior (celular) */
 (function(){
   'use strict';
-  var L={ok:'Confirmar',cancel:'Cancelar',close:'Fechar',required:'Preencha este campo.'};
+  var L={ok:'Confirmar',cancel:'Cancelar',close:'Fechar',required:'Preencha este campo.',range:'Valor entre {min} e {max}.'};
   function el(tag,props,kids){var e=document.createElement(tag);if(props)Object.keys(props).forEach(function(k){
     if(k==='class')e.className=props[k];else if(k==='text')e.textContent=props[k];else e[k]=props[k];});
     (kids||[]).forEach(function(c){if(c)e.append(c);});return e;}
@@ -63,12 +64,20 @@
         var tipo=c.type||'text',inp;
         var lab=el('label',{class:'ui-field'+(tipo==='checkbox'?' chk':'')});
         if(tipo==='checkbox'){inp=el('input',{type:'checkbox',checked:!!c.value});lab.append(inp,el('span',{text:c.label||''}));}
+        else if(tipo==='select'){
+          inp=el('select',{});(c.options||[]).forEach(function(op){var v=typeof op==='object'?op.v:op,l=typeof op==='object'?op.l:op;
+            var o2=el('option',{value:v,text:l});if(String(v)===String(c.value))o2.selected=true;inp.append(o2);});
+          lab.append(el('span',{text:c.label||''}),inp);
+        }
         else{
-          inp=tipo==='textarea'?el('textarea',{value:c.value||''}):el('input',{type:'text',value:c.value||''});
+          if(tipo==='number'){inp=el('input',{type:'number',value:(c.value==null?'':c.value)});
+            if(c.min!=null)inp.min=c.min;if(c.max!=null)inp.max=c.max;inp.step=c.step!=null?c.step:'any';}
+          else inp=tipo==='textarea'?el('textarea',{value:c.value||''}):el('input',{type:'text',value:c.value||''});
           if(c.placeholder)inp.placeholder=c.placeholder;
           if(c.maxLength)inp.maxLength=c.maxLength;
           lab.append(el('span',{text:c.label||''}),inp);
         }
+        if(c.hint)lab.append(el('small',{class:'ui-hint',text:c.hint}));
         inputs[c.name]=inp;form.append(lab);
       });
       var err=el('div',{class:'ui-err',role:'alert'});form.append(err);
@@ -79,7 +88,13 @@
       form.onsubmit=function(e){e.preventDefault();var out={};
         for(var i=0;i<campos.length;i++){var c=campos[i],inp=inputs[c.name];
           var v=(c.type==='checkbox')?inp.checked:inp.value.trim();
-          if(c.required&&!v){err.textContent=L.required;inp.focus();return;}
+          if(c.required&&v===''){err.textContent=L.required;inp.focus();return;}
+          if(c.type==='number'){
+            if(v===''){v=null;}
+            else{var n=Number(v);
+              if(!isFinite(n)||(c.min!=null&&n<c.min)||(c.max!=null&&n>c.max)){
+                err.textContent=L.range.replace('{min}',c.min).replace('{max}',c.max);inp.focus();return;}
+              v=n;}}
           out[c.name]=v;}
         fechar(out);};
       // Enter em textarea quebra linha; Ctrl+Enter envia
@@ -88,6 +103,12 @@
       var primeiro=campos.length?inputs[campos[0].name]:ok;
       setTimeout(function(){primeiro.focus();if(primeiro.select&&primeiro.type==='text')primeiro.select();},20);
     });
+  }
+
+  // modal de conteúdo livre: build(box, fechar) preenche o corpo; devolve o valor passado a fechar()
+  function modal(o){
+    o=o||{};
+    return abrir(function(box,id,fechar){cabeca(box,id,o.title,o.message);if(o.wide)box.classList.add('wide');o.build(box,fechar);});
   }
 
   function prompt_(o){
@@ -116,6 +137,6 @@
     document.body.append(n);document.body.classList.add('ui-has-nav');
   }
 
-  window.AtlasUI={confirm:confirmar,form:formulario,prompt:prompt_,toast:toast,nav:nav,
+  window.AtlasUI={confirm:confirmar,form:formulario,modal:modal,el:el,prompt:prompt_,toast:toast,nav:nav,
     labels:function(o){Object.keys(o||{}).forEach(function(k){L[k]=o[k];});}};
 })();
