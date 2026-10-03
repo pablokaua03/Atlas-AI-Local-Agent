@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Memórias</title>
 <link rel="icon" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/ui.css">
 <style>
   :root{
     --bg:#0d0f13; --bg2:#0b0d11; --panel:#161a21; --panel2:#1b2029; --line:#222834;
@@ -59,6 +60,29 @@
   .card textarea{width:100%;min-height:60px;margin-top:4px}
   #vazio,#aviso{color:var(--dim);text-align:center;padding:40px 10px;font-size:14px}
   @media (max-width:720px){#wrap{flex-direction:column;height:auto}#side{width:auto;border-right:none;border-bottom:1px solid var(--line)}}
+  /* ── refinamentos (teclado, toque, celular, skeleton) ── */
+  .proj:hover .ac,.proj.on .ac,.proj:focus-within .ac{display:inline}
+  .proj:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .proj .ac,.ops button{min-width:28px;min-height:28px}
+  .imp span:focus-visible{outline:2px solid var(--accent);border-radius:4px}
+  .btn{min-height:38px;font-weight:600}
+  .btn:not(.pri){font-weight:500}
+  .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+  #lista .ui-skel.card{margin-bottom:9px}
+  #vazio,#aviso{line-height:1.6}
+  @media (max-width:720px){
+    #top{padding:0 12px}#top .links{display:none}#top .s{margin-left:auto}
+    #wrap{flex-direction:column;height:auto;min-height:calc(100% - 52px)}
+    #side{width:auto;border-right:none;border-bottom:1px solid var(--line);padding:10px 12px}
+    #projs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+    #projs .proj{flex:0 0 auto;border:1px solid var(--line);border-radius:20px;padding:6px 12px;white-space:nowrap}
+    #projs .proj.on{border-color:var(--accent)}
+    #projs .proj .nm{overflow:visible}
+    #novoProj{width:auto !important}
+    #main{padding:12px}
+    .bar .in,.bar .btn{flex:1 1 100%}
+    .bar select.in{flex:1 1 40%}
+  }
 </style>
 </head>
 <body>
@@ -67,12 +91,12 @@
 <div id="wrap">
   <div id="side">
     <h2 id="hP">Projetos</h2>
-    <div id="projs"></div>
+    <div id="projs"><span class="ui-skel pill"></span><span class="ui-skel pill"></span><span class="ui-skel pill"></span></div>
     <div class="pdesc" id="pdesc"></div>
     <button class="btn" id="novoProj" style="width:100%"></button>
   </div>
   <div id="main">
-    <div id="aviso" style="display:none"></div>
+    <div id="aviso" role="status" style="display:none"></div>
     <div id="conteudo">
       <div class="bar">
         <input class="in" id="q" autocomplete="off">
@@ -91,11 +115,12 @@
           <button class="btn pri" id="salvarNovo"></button>
         </div>
       </div>
-      <div id="lista"></div>
+      <div id="lista" aria-live="polite"><span class="ui-skel card"></span><span class="ui-skel card"></span><span class="ui-skel card"></span></div>
       <div id="vazio" style="display:none"></div>
     </div>
   </div>
 </div>
+<script src="/static/ui.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const TIPOS=['note','fact','preference','decision','task','event'];
@@ -107,6 +132,10 @@ const I18N={
    empty:"Nenhuma memória aqui ainda. As IAs conectadas (API/MCP) e você podem adicionar.",noResult:"Nada encontrado.",
    count:"{n} memória(s)",del:"Esquecer esta memória?",edit:"editar",remove:"esquecer",by:"por",
    locked:"O cofre está bloqueado. Volte à tela principal e desbloqueie.",err:"Erro: ",
+   cancel:"Cancelar",confirmT:"Confirmar",delBtn:"Excluir",forgetBtn:"Esquecer",newProjT:"Novo projeto",editProjT:"Editar projeto",
+   projNameL:"Nome",projDescL:"Descrição (opcional)",delProjT:"Excluir projeto",delMemT:"Esquecer memória",
+   projDelMemAll:"O projeto \"{p}\" tem {n} memória(s). Excluir o projeto e todas as memórias?",importance:"importância",
+   noauth:"Não foi possível autenticar na API de memória. Recarregue a página ou ative a API em Ajustes.",loadErr:"Não foi possível carregar agora. Tente novamente.",retry:"Tentar de novo",
    inherit:"incluir herdadas",inheritedFrom:"herdada de {p}",subNew:"Nome do subprojeto de \"{p}\":",subBtn:"novo subprojeto",
    t_note:"nota",t_fact:"fato",t_preference:"preferência",t_decision:"decisão",t_task:"tarefa",t_event:"evento"},
  en:{title:"Memories",back:"← back",graph:"🕸️ graph",projects:"Projects",all:"All",newProj:"➕ New project",
@@ -116,6 +145,10 @@ const I18N={
    empty:"No memories here yet. Connected AIs (API/MCP) and you can add them.",noResult:"Nothing found.",
    count:"{n} memory(ies)",del:"Forget this memory?",edit:"edit",remove:"forget",by:"by",
    locked:"The vault is locked. Go back to the main screen and unlock it.",err:"Error: ",
+   cancel:"Cancel",confirmT:"Confirm",delBtn:"Delete",forgetBtn:"Forget",newProjT:"New project",editProjT:"Edit project",
+   projNameL:"Name",projDescL:"Description (optional)",delProjT:"Delete project",delMemT:"Forget memory",
+   projDelMemAll:"Project \"{p}\" has {n} memory(ies). Delete the project and all its memories?",importance:"importance",
+   noauth:"Could not authenticate with the memory API. Reload the page or enable the API in Settings.",loadErr:"Could not load right now. Try again.",retry:"Try again",
    inherit:"include inherited",inheritedFrom:"inherited from {p}",subNew:"Name of the subproject of \"{p}\":",subBtn:"new subproject",
    t_note:"note",t_fact:"fact",t_preference:"preference",t_decision:"decision",t_task:"task",t_event:"event"},
  es:{title:"Memorias",back:"← volver",graph:"🕸️ grafo",projects:"Proyectos",all:"Todos",newProj:"➕ Nuevo proyecto",
@@ -125,6 +158,10 @@ const I18N={
    empty:"Aún no hay memorias aquí. Las IAs conectadas (API/MCP) y tú pueden añadirlas.",noResult:"Nada encontrado.",
    count:"{n} memoria(s)",del:"¿Olvidar esta memoria?",edit:"editar",remove:"olvidar",by:"por",
    locked:"La caja fuerte está bloqueada. Vuelve a la pantalla principal y desbloquéala.",err:"Error: ",
+   cancel:"Cancelar",confirmT:"Confirmar",delBtn:"Eliminar",forgetBtn:"Olvidar",newProjT:"Nuevo proyecto",editProjT:"Editar proyecto",
+   projNameL:"Nombre",projDescL:"Descripción (opcional)",delProjT:"Eliminar proyecto",delMemT:"Olvidar memoria",
+   projDelMemAll:"El proyecto \"{p}\" tiene {n} memoria(s). ¿Eliminar el proyecto y todas sus memorias?",importance:"importancia",
+   noauth:"No se pudo autenticar con la API de memoria. Recarga la página o activa la API en Ajustes.",loadErr:"No se pudo cargar ahora. Inténtalo de nuevo.",retry:"Reintentar",
    inherit:"incluir heredadas",inheritedFrom:"heredada de {p}",subNew:"Nombre del subproyecto de \"{p}\":",subBtn:"nuevo subproyecto",
    t_note:"nota",t_fact:"hecho",t_preference:"preferencia",t_decision:"decisión",t_task:"tarea",t_event:"evento"},
 };
@@ -141,7 +178,15 @@ async function api(m,path,body){
   return d;
 }
 function aviso(msg){$('#aviso').textContent=msg;$('#aviso').style.display=msg?'block':'none';$('#conteudo').style.display=msg?'none':'block';}
-async function tentar(fn){try{return await fn();}catch(e){if(e.code==='vault_locked')aviso(t('locked'));else alert(t('err')+e.message);}}
+// Erros reais viram aviso inline (cofre/token) ou toast; lista vazia NUNCA chega aqui como erro.
+async function tentar(fn,silencioso){
+  try{return await fn();}
+  catch(e){
+    if(e.code==='vault_locked')aviso(t('locked'));
+    else if(e.code==='unauthorized')aviso(t('noauth'));
+    else if(!silencioso)AtlasUI.toast(t('err')+e.message,{kind:'err'});
+  }
+}
 
 function textos(){
   document.title=t('title');$('#tt').textContent='🗂️ '+t('title');$('#lkV').textContent=t('back');$('#lkG').textContent=t('graph');
@@ -154,18 +199,20 @@ function textos(){
 }
 
 async function carregarProjetos(){
-  const d=await tentar(()=>api('GET','/projects'));if(!d)return;
+  const d=await tentar(()=>api('GET','/projects'));if(!d){$('#projs').innerHTML='';return;}
   projetos=d.items;const box=$('#projs');box.innerHTML='';
   const total=projetos.reduce((a,p)=>a+p.memories,0);
   const linha=(id,nome,n,p)=>{
     const r=el('div',{className:'proj'+(PROJ===id?' on':'')},el('span',{className:'nm',textContent:(p&&p.depth>1?'└ ':'')+nome}),el('span',{className:'n',textContent:n}));
     if(p&&p.depth>1)r.style.paddingLeft=(10+(p.depth-1)*14)+'px';
     if(p){
-      r.append(el('button',{className:'ac sub',textContent:'➕',title:t('subBtn'),onclick:e=>{e.stopPropagation();novoProjeto(p.id==='geral'?null:p);}}));
-      r.append(el('button',{className:'ac',textContent:'✎',title:t('edit'),onclick:e=>{e.stopPropagation();editarProjeto(p);}}));
-      if(p.id!=='geral')r.append(el('button',{className:'ac del',textContent:'✕',title:'✕',onclick:e=>{e.stopPropagation();excluirProjeto(p);}}));
+      r.append(el('button',{className:'ac sub',textContent:'➕',title:t('subBtn'),ariaLabel:t('subBtn'),onclick:e=>{e.stopPropagation();novoProjeto(p.id==='geral'?null:p);}}));
+      r.append(el('button',{className:'ac',textContent:'✎',title:t('edit'),ariaLabel:t('edit'),onclick:e=>{e.stopPropagation();editarProjeto(p);}}));
+      if(p.id!=='geral')r.append(el('button',{className:'ac del',textContent:'✕',title:t('delBtn'),ariaLabel:t('delBtn'),onclick:e=>{e.stopPropagation();excluirProjeto(p);}}));
     }
-    r.onclick=()=>{PROJ=id;carregarProjetos();carregarMemorias();};box.append(r);
+    r.onclick=()=>{PROJ=id;carregarProjetos();carregarMemorias();};
+    r.tabIndex=0;r.setAttribute('role','button');r.onkeydown=e=>{if(e.target===r&&(e.key==='Enter'||e.key===' ')){e.preventDefault();r.click();}};
+    box.append(r);
   };
   linha('',t('all'),total,null);
   for(const p of projetos)linha(p.id,p.name,p.memories,p);
@@ -174,20 +221,22 @@ async function carregarProjetos(){
   $('#herdarBox').style.display=sel&&sel.id!=='geral'?'flex':'none';
 }
 async function novoProjeto(pai){
-  const nome=prompt(pai&&pai.id?t('subNew',{p:pai.name}):t('projName'));if(!nome||!nome.trim())return;
-  const desc=prompt(t('projDesc'))||'';
-  const p=await tentar(()=>api('POST','/projects',{name:nome.trim(),description:desc,parent:pai&&pai.id?pai.id:null}));
+  const r=await AtlasUI.form({title:pai&&pai.id?t('subNew',{p:pai.name}):t('newProjT'),okText:t('save'),cancelText:t('cancel'),
+    fields:[{name:'nome',label:t('projNameL'),required:true,maxLength:80},{name:'desc',label:t('projDescL'),type:'textarea',maxLength:2000}]});
+  if(!r)return;
+  const p=await tentar(()=>api('POST','/projects',{name:r.nome,description:r.desc,parent:pai&&pai.id?pai.id:null}));
   if(p){PROJ=p.id;await carregarProjetos();carregarMemorias();}
 }
 async function editarProjeto(p){
-  const nome=prompt(t('projName'),p.name);if(nome===null)return;
-  const desc=prompt(t('projDesc'),p.description);if(desc===null)return;
-  if(await tentar(()=>api('PATCH','/projects/'+encodeURIComponent(p.id),{name:nome.trim()||p.name,description:desc})))carregarProjetos();
+  const r=await AtlasUI.form({title:t('editProjT'),okText:t('save'),cancelText:t('cancel'),
+    fields:[{name:'nome',label:t('projNameL'),value:p.name,required:true,maxLength:80},{name:'desc',label:t('projDescL'),value:p.description||'',type:'textarea',maxLength:2000}]});
+  if(!r)return;
+  if(await tentar(()=>api('PATCH','/projects/'+encodeURIComponent(p.id),{name:r.nome||p.name,description:r.desc})))carregarProjetos();
 }
 async function excluirProjeto(p){
-  if(!confirm(t('projDel',{p:p.name})))return;
-  let cascade=false;
-  if(p.memories){if(!confirm(t('projDelMem',{n:p.memories})))return;cascade=true;}
+  const cascade=!!p.memories;
+  if(!await AtlasUI.confirm({title:t('delProjT'),message:cascade?t('projDelMemAll',{p:p.name,n:p.memories}):t('projDel',{p:p.name}),
+    okText:t('delBtn'),cancelText:t('cancel'),danger:true}))return;
   if(await tentar(()=>api('DELETE','/projects/'+encodeURIComponent(p.id)+(cascade?'?cascade=true':'')))){
     if(PROJ===p.id)PROJ='';await carregarProjetos();carregarMemorias();
   }
@@ -198,7 +247,8 @@ async function carregarMemorias(){
   const ps=new URLSearchParams();if(PROJ)ps.set('project',PROJ);if(tipo)ps.set('type',tipo);
   if(PROJ)ps.set('scope',$('#herdar').checked&&PROJ!=='geral'?'inherit':'exact');
   if(q){ps.set('q',q);ps.set('limit','100');}else{ps.set('sort',$('#ordem').value);ps.set('limit','300');}
-  const d=await tentar(()=>api('GET','/memories?'+ps));if(!d)return;
+  const d=await tentar(()=>api('GET','/memories?'+ps));
+  if(!d){$('#lista').innerHTML='';return;}
   aviso('');
   const itens=d.items,box=$('#lista');box.innerHTML='';
   $('#s').textContent=t('count',{n:q?itens.length:d.total});
@@ -207,9 +257,11 @@ async function carregarMemorias(){
 }
 function cartao(m){
   const c=el('div',{className:'card'});
-  const imp=el('span',{className:'imp',title:'importância'});
-  for(let i=1;i<=5;i++)imp.append(el('span',{className:i<=m.importance?'on':'',textContent:'●',
-    onclick:async()=>{if(await tentar(()=>api('PATCH','/memories/'+m.id,{importance:i})))carregarMemorias();}}));
+  const imp=el('span',{className:'imp',title:t('importance')});
+  for(let i=1;i<=5;i++){const dot=el('span',{className:i<=m.importance?'on':'',textContent:'●',tabIndex:0,
+    onclick:async()=>{if(await tentar(()=>api('PATCH','/memories/'+m.id,{importance:i})))carregarMemorias();}});
+    dot.setAttribute('role','button');dot.setAttribute('aria-label',t('importance')+' '+i);
+    dot.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();dot.click();}};imp.append(dot);}
   const nomeProj=(projetos.find(p=>p.id===m.project)||{}).name||m.project;
   if(m.inherited)c.classList.add('herdada');
   const meta=el('div',{className:'meta'},el('span',{className:'tipo',textContent:tipoLbl(m.type)}),imp,
@@ -217,9 +269,10 @@ function cartao(m){
     el('span',{textContent:t('by')+' '+m.source}),el('span',{textContent:(m.updated||'').replace('T',' ').slice(0,16)}));
   const ct=el('div',{className:'ct',textContent:m.content});
   const ops=el('div',{className:'ops'},
-    el('button',{textContent:'✎',title:t('edit'),onclick:()=>editar(c,m,ct)}),
-    el('button',{className:'del',textContent:'🗑',title:t('remove'),onclick:async()=>{
-      if(confirm(t('del'))&&await tentar(()=>api('DELETE','/memories/'+m.id))){carregarMemorias();carregarProjetos();}}}));
+    el('button',{textContent:'✎',title:t('edit'),ariaLabel:t('edit'),onclick:()=>editar(c,m,ct)}),
+    el('button',{className:'del',textContent:'🗑',title:t('remove'),ariaLabel:t('remove'),onclick:async()=>{
+      if(await AtlasUI.confirm({title:t('delMemT'),message:t('del')+'\n\n“'+(m.content.length>140?m.content.slice(0,140)+'…':m.content)+'”',
+        okText:t('forgetBtn'),cancelText:t('cancel'),danger:true})&&await tentar(()=>api('DELETE','/memories/'+m.id))){carregarMemorias();carregarProjetos();}}}));
   meta.append(ops);c.append(meta,ct);
   if(m.tags&&m.tags.length)c.append(el('div',{className:'tags'},...m.tags.map(x=>el('span',{className:'tag',textContent:'#'+x}))));
   return c;
@@ -251,7 +304,7 @@ $('#nConteudo').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e
 (async()=>{
   try{const e=await(await fetch('/api/estado')).json();LANG=e.config.idioma||'pt';
     document.documentElement.dataset.tema=e.config.tema||'escuro';document.documentElement.lang=LANG;}catch(_){}
-  textos();
+  textos();AtlasUI.labels({ok:t('confirmT'),cancel:t('cancel')});AtlasUI.nav('mem',{idioma:LANG});
   try{TK=(await(await fetch('/api/memapi')).json()).token||'';}catch(_){}
   if(location.hash.length>1)PROJ=decodeURIComponent(location.hash.slice(1));     // /memorias#projeto (vem do grafo)
   await carregarProjetos();
