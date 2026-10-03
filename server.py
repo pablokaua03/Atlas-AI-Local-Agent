@@ -298,7 +298,7 @@ def api_backup_importar():
         tmp = os.path.join(core.BASE_DIR, nome + ".tmp")
         with open(tmp, "wb") as out:
             out.write(dados)
-        os.replace(tmp, os.path.join(core.BASE_DIR, nome))
+        core.substituir_arquivo(tmp, os.path.join(core.BASE_DIR, nome))
 
     # senha/chave diferente (ou cripto mudou) → trava; o usuário desbloqueia com a senha do backup
     if cfg_nova is not None and (cfg_nova.get("cripto_salt") != cfg_atual.get("cripto_salt")

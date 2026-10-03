@@ -62,13 +62,38 @@ CONFIG_PADRAO = {
 _lock = threading.Lock()
 
 
+def substituir_arquivo(tmp: str, destino: str, tentativas: int = 60):
+    """os.replace com novas tentativas. No Windows o replace falha com PermissionError
+    enquanto outra thread está lendo o arquivo de destino; a leitura dura milissegundos."""
+    for i in range(tentativas):
+        try:
+            os.replace(tmp, destino)
+            return
+        except PermissionError:
+            if i == tentativas - 1:
+                raise
+            time.sleep(0.02)
+
+
+def abrir_leitura(caminho: str, modo: str = "rb", tentativas: int = 6, **kw):
+    """open() de leitura que repete se o arquivo estiver trocado/bloqueado naquele instante
+    (Windows). FileNotFoundError continua sendo propagado na hora."""
+    for i in range(tentativas):
+        try:
+            return open(caminho, modo, **kw)
+        except PermissionError:
+            if i == tentativas - 1:
+                raise
+            time.sleep(0.02)
+
+
 # Campos que nunca devem sair pela interface /api/estado (segredos do cofre e da API)
 _CAMPOS_SECRETOS = ("api_token", "cripto_salt", "cripto_verif")
 
 
 def carregar_config() -> dict:
     try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        with abrir_leitura(CONFIG_FILE, "r", encoding="utf-8") as f:
             cfg = json.load(f)
         if not isinstance(cfg, dict):
             cfg = {}
@@ -100,7 +125,7 @@ def salvar_config(cfg: dict) -> dict:
                 json.dump(cfg, f, ensure_ascii=False, indent=2)
                 f.flush()
                 os.fsync(f.fileno())
-            os.replace(tmp, CONFIG_FILE)
+            substituir_arquivo(tmp, CONFIG_FILE)
         finally:
             if os.path.exists(tmp):
                 try:

@@ -114,7 +114,7 @@ def desbloquear(senha: str) -> bool:
 def ler_json(caminho, default):
     """Lê JSON, decifrando se preciso. Se estiver cifrado e travado, devolve o default."""
     try:
-        with open(caminho, "rb") as f:
+        with core.abrir_leitura(caminho, "rb") as f:
             raw = f.read()
     except Exception:
         return default
@@ -146,7 +146,7 @@ def salvar_json(caminho, obj, indent=2):
             f.write(data)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp, caminho)
+        core.substituir_arquivo(tmp, caminho)
     finally:
         if os.path.exists(tmp):
             try:
