@@ -17,6 +17,7 @@ import queue
 import ctypes
 import threading
 import unicodedata
+import uuid
 import urllib.request
 
 import requests
@@ -235,24 +236,60 @@ def extrair_fato(user_msg, resposta):
             emitir("status", f"agora sei que você é o {nome}")
         definir_nome(nome)                      # cria o nó-pessoa no grafo + fato na memória
 
-    # outros fatos via modelo
-    if len(user_msg.split()) >= 4:
-        m = carregar_mem()
-        fatos = m["fatos"]
-        p = ("A partir da FALA, escreva UM fato durável sobre o usuário (gosto, trabalho, rotina, "
-             "projeto, objetivo), em uma frase curta começando com 'O usuário'. "
-             "Se for algo passageiro ou vazio, responda exatamente: NADA.\n"
-             "Exemplos:\n"
-             "FALA: 'acabei de acordar' → NADA\n"
-             "FALA: 'amo programar em Rust' → O usuário gosta de programar em Rust.\n"
-             "FALA: 'sou dentista e jogo xadrez' → O usuário é dentista e joga xadrez.\n\n"
-             f"FALA: \"{user_msg}\" →")
-        fato = _chat(p, npred=50, temp=0.1, timeout=60).strip().strip('"').strip()
-        if fato and "NADA" not in fato.upper() and 6 <= len(fato) <= 160 and fato not in fatos:
-            fatos.append(fato)
-            m["fatos"] = fatos[-60:]
-            salvar_mem(m)
+    # outros fatos via modelo — conforme contexto.fatos_modo: perguntar | automatico | desligado
+    modo = (core.carregar_config().get("contexto") or {}).get("fatos_modo", "perguntar")
+    if modo == "desligado":
+        return
+    fato = propor_fato(user_msg)
+    if not fato:
+        return
+    if modo == "automatico":
+        if salvar_fato(fato):
             emitir("status", "anotei na memória")
+    else:                                    # pergunta antes de gravar (confirmação na interface)
+        emitir("sugestao_fato", {"id": uuid.uuid4().hex[:10], "texto": fato})
+
+
+def fato_valido(texto) -> bool:
+    """Um fato só pode ser gravado se tiver tamanho razoável e NÃO for dado sensível."""
+    import contexto
+    t = (texto or "").strip()
+    return isinstance(texto, str) and 6 <= len(t) <= 160 and not contexto.sensivel(t)
+
+
+def propor_fato(user_msg):
+    """Pede ao modelo UM fato durável da fala. Devolve o texto (ainda NÃO salvo) ou None.
+    Falas com senha/token/cartão nem chegam ao modelo."""
+    import contexto
+    if len(user_msg.split()) < 4 or contexto.sensivel(user_msg):
+        return None
+    m = carregar_mem()
+    p = ("A partir da FALA, escreva UM fato durável sobre o usuário (gosto, trabalho, rotina, "
+         "projeto, objetivo), em uma frase curta começando com 'O usuário'. "
+         "Se for algo passageiro ou vazio, responda exatamente: NADA.\n"
+         "Exemplos:\n"
+         "FALA: 'acabei de acordar' → NADA\n"
+         "FALA: 'amo programar em Rust' → O usuário gosta de programar em Rust.\n"
+         "FALA: 'sou dentista e jogo xadrez' → O usuário é dentista e joga xadrez.\n\n"
+         f"FALA: \"{user_msg}\" →")
+    fato = _chat(p, npred=50, temp=0.1, timeout=60).strip().strip('"').strip()
+    if fato and "NADA" not in fato.upper() and fato_valido(fato) and fato not in m["fatos"]:
+        return fato
+    return None
+
+
+def salvar_fato(texto) -> bool:
+    """Grava um fato (já confirmado) em memoria.json. False se inválido/sensível/duplicado."""
+    if not fato_valido(texto):
+        return False
+    texto = texto.strip()
+    m = carregar_mem()
+    import contexto
+    if any(contexto.parecido(texto, f) for f in m["fatos"]):
+        return False
+    m["fatos"] = (m["fatos"] + [texto])[-60:]
+    salvar_mem(m)
+    return True
 
 
 # ── grafo (Tecelão) ───────────────────────────────────────────────────────────

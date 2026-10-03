@@ -47,7 +47,7 @@ def listar():
         _save(d)
         return {"atual": d["atual"],
                 "chats": [{"id": c["id"], "titulo": c["titulo"], "atualizado": c.get("atualizado", 0),
-                           "n": len(c.get("mensagens", []))} for c in d["chats"]]}
+                           "n": len(c.get("mensagens", [])), "projeto": c.get("projeto")} for c in d["chats"]]}
 
 
 def get(cid):
@@ -99,17 +99,54 @@ def excluir(cid):
         return d["atual"]
 
 
-def adicionar(cid, u, a):
+def adicionar(cid, u, a, ctx=None):
+    """ctx (opcional): memórias usadas na resposta, [{id,t,p}], para a interface citar a fonte."""
     with _lock:
         d = _load()
         for c in d["chats"]:
             if c["id"] == cid:
-                c["mensagens"].append({"u": u, "a": a})
+                msg = {"u": u, "a": a}
+                if ctx:
+                    msg["ctx"] = ctx
+                c["mensagens"].append(msg)
                 c["atualizado"] = time.time()
                 if c["titulo"] in _NOVOS:           # primeiro título = começo da pergunta
                     c["titulo"] = (u.strip()[:42] or "Sem título")
                 _save(d)
                 return
+
+
+_ID_OK = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
+
+
+def definir_ctx(cid, projeto=..., fixas=None, excluidas=None):
+    """Projeto ativo e memórias fixadas/excluídas DESTA conversa (campos opcionais do chat).
+    projeto=... mantém o atual; projeto=None/"" limpa. Devolve o chat (resumo) ou None."""
+    with _lock:
+        d = _load()
+        for c in d["chats"]:
+            if c["id"] != cid:
+                continue
+            if projeto is not ...:
+                if projeto and _ID_OK.match(str(projeto)):
+                    c["projeto"] = str(projeto)
+                else:
+                    c.pop("projeto", None)
+            for chave, val in (("ctx_fixas", fixas), ("ctx_excluidas", excluidas)):
+                if val is not None:
+                    ids = [i for i in dict.fromkeys(val) if isinstance(i, str) and _ID_OK.match(i)][:200]
+                    if ids:
+                        c[chave] = ids
+                    else:
+                        c.pop(chave, None)
+            # uma memória não pode estar nas duas listas
+            exc = set(c.get("ctx_excluidas") or [])
+            if exc & set(c.get("ctx_fixas") or []):
+                c["ctx_fixas"] = [i for i in c["ctx_fixas"] if i not in exc]
+            _save(d)
+            return {"id": cid, "projeto": c.get("projeto"), "fixas": c.get("ctx_fixas", []),
+                    "excluidas": c.get("ctx_excluidas", [])}
+    return None
 
 
 def remover_ultima(cid):
