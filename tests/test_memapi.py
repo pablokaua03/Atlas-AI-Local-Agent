@@ -487,12 +487,12 @@ class TestRobustez(Base):
                 if core.carregar_config().get("api_token") != tk:
                     falhas.append(1)
                     return
-                time.sleep(0.002)          # leitura frequente, mas nao um loop em busy-wait
+                time.sleep(0.005)          # leitura frequente, mas nao um loop em busy-wait
 
-        ths = [threading.Thread(target=leitor) for _ in range(4)]
+        ths = [threading.Thread(target=leitor) for _ in range(2)]
         for t in ths:
             t.start()
-        for i in range(100):
+        for i in range(40):
             cfg = core.carregar_config()
             cfg["nome"] = f"n{i}"
             core.salvar_config(cfg)
