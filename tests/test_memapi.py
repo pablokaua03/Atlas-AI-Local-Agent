@@ -462,5 +462,88 @@ class TestMCP(Base):
         self.assertEqual(d["memories_deleted"], 1)
 
 
+class TestRobustez(Base):
+    """Correções da revisão de bugs: segredos fora da UI, gravação atômica e validação de entrada."""
+
+    def test_estado_nao_vaza_token_nem_material_do_cofre(self):
+        memapi.token()                                   # garante um api_token no config
+        d = self.c.get("/api/estado").get_json()
+        for campo in ("api_token", "cripto_salt", "cripto_verif"):
+            self.assertNotIn(campo, d["config"])
+        self.assertNotIn(memapi.token(), json.dumps(d))
+        d2 = self.c.post("/api/config", json={"tema": "claro"}).get_json()
+        self.assertNotIn("api_token", d2["config"])
+        self.assertEqual(d2["config"]["tema"], "claro")
+        self.assertTrue(memapi.token())                  # e o token continua no arquivo
+
+    def test_salvar_config_atomico_com_leitores_concorrentes(self):
+        import threading
+        tk = memapi.token()
+        parar, falhas = threading.Event(), []
+
+        def leitor():
+            while not parar.is_set():
+                if core.carregar_config().get("api_token") != tk:
+                    falhas.append(1)
+                    return
+
+        ths = [threading.Thread(target=leitor) for _ in range(4)]
+        for t in ths:
+            t.start()
+        for i in range(150):
+            cfg = core.carregar_config()
+            cfg["nome"] = f"n{i}"
+            core.salvar_config(cfg)
+        parar.set()
+        for t in ths:
+            t.join()
+        self.assertEqual(falhas, [])
+        self.assertEqual([f for f in os.listdir(self.dir) if f.endswith(".tmp")], [])
+
+    def test_config_com_valores_estranhos_nao_quebra(self):
+        for corpo in ({"obs_intervalo": float("nan")}, {"obs_intervalo": float("inf")},
+                      {"iniciativa_intervalo": "10"}, {"obs_intervalo": True}, {"habilidades": ["x"]}):
+            r = self.c.post("/api/config", data=json.dumps(corpo), content_type="application/json")
+            self.assertEqual(r.status_code, 200, corpo)
+        r = self.c.post("/api/config", json=[1, 2, 3])          # corpo que nao e objeto
+        self.assertEqual(r.status_code, 200)
+        r = self.c.post("/api/config", json={"obs_intervalo": 99999})
+        self.assertEqual(r.get_json()["config"]["obs_intervalo"], 900)
+
+    def test_chat_valida_entrada(self):
+        self.assertEqual(self.c.post("/chat", json=[1]).status_code, 400)
+        self.assertEqual(self.c.post("/chat", json={"texto": 5}).status_code, 400)
+        self.assertEqual(self.c.post("/chat", json={"texto": "", "anexos": ["x", 3]}).status_code, 400)
+
+    def test_backup_com_config_invalido(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("config.json", "[1, 2]")
+        buf.seek(0)
+        r = self.c.post("/api/backup/importar", data={"arquivo": (buf, "b.zip")},
+                        content_type="multipart/form-data")
+        self.assertEqual(r.status_code, 400)
+
+    def test_entidades_como_texto_e_projeto_nao_textual(self):
+        st, m = self.api("POST", "/v1/memories", {"content": "Pagamentos via Stripe", "entities": "Stripe"})
+        self.assertEqual(st, 201)
+        self.assertEqual(len(m["entities"]), 1)           # antes: um no por letra
+        st, _ = self.api("POST", "/v1/memories", {"content": "outra", "project": 123})
+        self.assertEqual(st, 201)
+        st, _ = self.api("POST", "/v1/memories", {"content": "terceira", "entities": 7})
+        self.assertEqual(st, 201)
+
+    def test_erro_inesperado_vira_json(self):
+        orig = memstore.projetos_listar
+        memstore.projetos_listar = lambda: 1 / 0
+        try:
+            r = self.c.get("/v1/projects", base_url=BASE, headers={"Authorization": "Bearer " + memapi.token()})
+        finally:
+            memstore.projetos_listar = orig
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.get_json()["error"]["code"], "internal_error")
+        self.assertNotIn("division", json.dumps(r.get_json()))
+
+
 if __name__ == "__main__":
     unittest.main()

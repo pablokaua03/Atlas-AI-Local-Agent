@@ -210,7 +210,7 @@ def _projeto_out(s, pid, g=None):
 
 def _resolver_projeto(s, pid, criar=False):
     """Aceita id ou nome. Com criar=True, cria o projeto se não existir."""
-    pid = (pid or PROJETO_PADRAO).strip()
+    pid = (str(pid) if pid is not None else "").strip() or PROJETO_PADRAO
     if pid in s["projetos"]:
         return pid
     alvo = _slug(pid)
@@ -404,7 +404,11 @@ def _garantir_entidades(entidades, projeto, no_projeto=""):
     """Garante os nós das entidades e liga cada um ao nó do projeto ("envolve"),
     pra que o subgrafo do projeto fique conectado."""
     chaves = []
-    for e in (entidades or [])[:30]:
+    if isinstance(entidades, str):          # "Stripe" vira ["Stripe"] (antes virava um nó por letra)
+        entidades = [entidades]
+    if not isinstance(entidades, (list, tuple)):
+        entidades = []
+    for e in entidades[:30]:
         no = no_criar(str(e), "tema", projeto=projeto, _interno=True) if str(e).strip() else None
         if no and no["key"] not in chaves:
             chaves.append(no["key"])

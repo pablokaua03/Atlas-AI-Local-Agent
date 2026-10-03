@@ -15,9 +15,11 @@ Segurança:
 Especificação: GET /v1/openapi.json  ·  Guia: API.md
 """
 import hmac
+import logging
 import secrets
 
 from flask import Blueprint, request, jsonify
+from werkzeug.exceptions import HTTPException
 
 import core
 import cofre
@@ -26,6 +28,7 @@ from memstore import ErroAPI
 
 VERSAO = "1.0.0"
 bp = Blueprint("memapi", __name__)
+log = logging.getLogger("atlas.memapi")
 _hosts = set()
 
 
@@ -85,6 +88,15 @@ def _erro_api(e):
 @bp.errorhandler(ValueError)
 def _erro_valor(e):
     return _erro(400, "invalid_request", str(e))
+
+
+@bp.errorhandler(Exception)
+def _erro_interno(e):
+    """Qualquer falha inesperada vira JSON no formato da API (sem vazar detalhes internos)."""
+    if isinstance(e, HTTPException):
+        return _erro(e.code or 500, (e.name or "error").lower().replace(" ", "_"), e.description or e.name)
+    log.exception("erro inesperado na API de memória")
+    return _erro(500, "internal_error", "Unexpected error. Check the Atlas log.")
 
 
 def _corpo():
