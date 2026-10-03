@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/ui.css">
 <title>Agente Local</title>
 <style>
   :root{
@@ -151,6 +152,31 @@
   .tag{font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:1px 5px;margin-left:6px}
   .foot{font-size:11px;color:var(--dim);margin-top:18px;line-height:1.5}
   @media(max-width:680px){#side{position:fixed;z-index:8;height:100%}}
+  /* ── refinamentos (consistência, teclado, celular) ── */
+  button,input,select,textarea{font-family:inherit}
+  .item:focus-visible,.modelo:focus-visible,.sw:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .item:focus-within .acts{display:flex}
+  .sw{border:none;padding:0}
+  .baixar{min-height:34px}
+  #chat .ld{display:flex;flex-direction:column;gap:14px;width:100%;max-width:780px;margin:0 auto}
+  #chat .ld .ui-skel:nth-child(odd){width:62%;height:54px;border-radius:14px}
+  #chat .ld .ui-skel:nth-child(even){width:78%;height:78px;border-radius:14px;align-self:flex-end}
+  #sideScrim{display:none}
+  #banner[hidden]{display:none}
+  @media (hover:none){.item .acts{display:flex}}
+  @media(max-width:680px){
+    #side{box-shadow:0 0 40px rgba(0,0,0,.4)}
+    #side.hide{visibility:hidden}
+    body.side-open #sideScrim{display:block;position:fixed;inset:0;z-index:7;background:rgba(0,0,0,.45)}
+    header{padding:8px 10px;gap:8px}
+    .hbtn{width:40px;height:40px}
+    #memBtn,#grafoBtn,#gear,#sysPill{display:none}
+    header .pill{max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #chat{padding:16px 10px}
+    #bar{padding:8px 10px 10px}
+    #cfg{width:100%;max-width:100%;padding-bottom:calc(var(--ui-nav-h) + 24px)}
+    #banner{margin:8px 10px 0;flex-wrap:wrap}
+  }
 </style>
 </head>
 <body>
@@ -160,7 +186,7 @@
       <div class="brand"><span class="logo">◆</span><span id="brandTxt">Agente Local</span></div>
     </div>
     <button class="novo" id="novoChat">＋ <span id="novoTxt">Novo chat</span></button>
-    <div class="lista" id="lista"></div>
+    <div class="lista" id="lista" aria-label="Conversas"><span class="ui-skel pill"></span><span class="ui-skel pill"></span><span class="ui-skel pill"></span></div>
     <div class="sbfoot" id="sbfoot"></div>
   </aside>
 
@@ -176,8 +202,8 @@
       <a class="hbtn" id="grafoBtn" href="/grafo" title="Grafo">🕸️</a>
       <button class="hbtn" id="gear" title="config">⚙</button>
     </header>
-    <div id="banner"><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button></div>
-    <div id="chat"></div>
+    <div id="banner" role="status"><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button></div>
+    <div id="chat" aria-live="polite"><div class="ld"><span class="ui-skel"></span><span class="ui-skel"></span><span class="ui-skel"></span></div></div>
     <div id="chatActions" style="display:none"><button id="regenBtn"><span>↻</span><span id="regenTxt"></span></button></div>
     <div id="bar">
       <div id="anexosBar"></div>
@@ -191,7 +217,7 @@
   </main>
 </div>
 
-<div id="cofreModal" style="position:fixed;inset:0;z-index:30;background:var(--bg);align-items:center;justify-content:center;display:none">
+<div id="cofreModal" role="dialog" aria-modal="true" aria-label="Cofre" style="position:fixed;inset:0;z-index:30;background:var(--bg);align-items:center;justify-content:center;display:none">
   <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;width:min(340px,90%);text-align:center">
     <div style="font-size:38px;margin-bottom:6px">🔒</div>
     <div id="cofreTitle" style="font-size:15px;margin-bottom:14px;color:var(--dim)"></div>
@@ -202,8 +228,9 @@
 </div>
 
 <div id="scrim"></div>
-<div id="cfg">
-  <button class="close" id="cfgClose">✕</button>
+<div id="sideScrim"></div>
+<div id="cfg" role="dialog" aria-modal="true" aria-label="Configurações">
+  <button class="close" id="cfgClose" aria-label="Fechar">✕</button>
   <h2 id="h-lang">Idioma</h2><div class="seg" id="langSeg"></div>
   <h2 id="h-theme">Tema</h2><div class="seg" id="themeSeg"></div>
   <h2 id="h-name">Seu nome</h2><div class="field"><input type="text" id="nome"></div>
@@ -221,6 +248,7 @@
   <div class="foot" id="foot"></div>
 </div>
 
+<script src="/static/ui.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 let estado=null, ocupado=false, LANG='pt', TEMA='escuro', chatAtual=null, ctrl=null, ultimaPergunta=null, anexos=[];
@@ -271,7 +299,9 @@ const I18N={
    folderHdr:"Arquivos",openFolder:"📂 Abrir pasta do agente",
    btnGrafo:"Grafo de conhecimento",btnMem:"Memórias e projetos",foot:"Tudo roda local. Nada sai da sua máquina.",
    errOllama:"O Ollama não está rodando.",errModel:"Baixe o modelo {m} primeiro (⚙ → Baixar).",
-   confDel:"Excluir esta conversa?"},
+   confDel:"Excluir esta conversa?",
+    cancel:"Cancelar",confirmT:"Confirmar",delBtn:"Excluir",ren:"Renomear",restoreBtn:"Restaurar",uninstBtn:"Desinstalar",rotateBtn:"Gerar novo token",
+    connErr:"Sem conexão com o Atlas. Tentando novamente…",errStream:"(não foi possível concluir a resposta)",menu:"menu"},
  en:{title:"Local Agent",novo:"New chat",enviar:"Send",stop:"stop",regen:"Regenerate",ph:"Talk to the agent…",
    emptyT:"Start a conversation",emptyD:"Your assistant runs 100% on your machine.",
    lang:"Language",theme:"Theme",dark:"Dark",light:"Light",name:"Your name",namePh:"what the agent calls you",
@@ -317,7 +347,9 @@ const I18N={
    folderHdr:"Files",openFolder:"📂 Open agent folder",
    btnGrafo:"Knowledge graph",btnMem:"Memories and projects",foot:"Everything runs locally. Nothing leaves your machine.",
    errOllama:"Ollama isn't running.",errModel:"Download the model {m} first (⚙ → Download).",
-   confDel:"Delete this conversation?"},
+   confDel:"Delete this conversation?",
+    cancel:"Cancel",confirmT:"Confirm",delBtn:"Delete",ren:"Rename",restoreBtn:"Restore",uninstBtn:"Uninstall",rotateBtn:"Generate new token",
+    connErr:"Can't reach Atlas. Retrying…",errStream:"(the reply could not be completed)",menu:"menu"},
  es:{title:"Agente Local",novo:"Nuevo chat",enviar:"Enviar",stop:"detener",regen:"Regenerar",ph:"Habla con el agente…",
    emptyT:"Empieza una conversación",emptyD:"Tu asistente corre 100% en tu máquina.",
    lang:"Idioma",theme:"Tema",dark:"Oscuro",light:"Claro",name:"Tu nombre",namePh:"cómo te llama el agente",
@@ -363,7 +395,9 @@ const I18N={
    folderHdr:"Archivos",openFolder:"📂 Abrir carpeta del agente",
    btnGrafo:"Grafo de conocimiento",btnMem:"Memorias y proyectos",foot:"Todo corre local. Nada sale de tu máquina.",
    errOllama:"Ollama no está corriendo.",errModel:"Descarga el modelo {m} primero (⚙ → Descargar).",
-   confDel:"¿Eliminar esta conversación?"},
+   confDel:"¿Eliminar esta conversación?",
+    cancel:"Cancelar",confirmT:"Confirmar",delBtn:"Eliminar",ren:"Renombrar",restoreBtn:"Restaurar",uninstBtn:"Desinstalar",rotateBtn:"Generar nuevo token",
+    connErr:"Sin conexión con Atlas. Reintentando…",errStream:"(no se pudo completar la respuesta)",menu:"menú"},
 };
 const t=(k,v)=>{let s=(I18N[LANG]&&I18N[LANG][k])||I18N.pt[k]||k; if(v)for(const x in v)s=s.replace('{'+x+'}',v[x]); return s;};
 const mdesc=n=>((I18N[LANG]||{}).mdesc||{})[n]||(I18N.pt.mdesc||{})[n]||'';
@@ -372,10 +406,19 @@ const SKILLS={memoria:true,tela:true,grafo:true,iniciativa:true,wikipedia:true,d
 function aplicarTema(){ document.documentElement.setAttribute('data-tema',TEMA);
   $('#themeBtn').textContent = TEMA==='escuro'?'☀️':'🌙'; }
 
+// confirmação padrão (modal do Atlas) no lugar do confirm() do navegador
+const conf=(msg,o)=>AtlasUI.confirm({title:(o&&o.title)||t('confirmT'),message:msg,okText:(o&&o.ok)||t('confirmT'),cancelText:t('cancel'),danger:!!(o&&o.danger)});
+function semConexao(){
+  const b=$('#banner');b.style.display='flex';$('#bannerBtn').style.display='none';$('#bannerTxt').textContent=t('connErr');
+}
 async function carregarEstado(){
-  estado=await(await fetch('/api/estado')).json();
+  try{
+    const r=await fetch('/api/estado');if(!r.ok)throw new Error('HTTP '+r.status);
+    estado=await r.json();
+  }catch(e){semConexao();return false;}
   LANG=estado.config.idioma||'pt'; TEMA=estado.config.tema||'escuro';
   aplicarTema(); render();
+  return true;
 }
 
 function fixos(){
@@ -390,7 +433,9 @@ function fixos(){
   $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
   $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr'); $('#h-api').textContent=t('apiHdr');
   $('#regenTxt').textContent=t('regen'); $('#attachBtn').title=t('attach');
+  if(_navLang!==LANG){_navLang=LANG;AtlasUI.labels({ok:t('confirmT'),cancel:t('cancel')});AtlasUI.nav('chat',{idioma:LANG,onConfig:abrirCfg});}
 }
+let _navLang=null;
 
 // ── markdown leve (seguro): escapa HTML e formata código, negrito, listas, links ──
 function _esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -428,7 +473,7 @@ function render(){
   lb.style.display=co.ligada?'inline-flex':'none';
   lb.textContent=co.desbloqueado?'🔓':'🔒';
   lb.title=co.desbloqueado?t('lockNow'):t('unlock');
-  if(co.ligada&&!co.desbloqueado){abrirCofreModal();}else{$('#cofreModal').style.display='none';}
+  if(co.ligada&&!co.desbloqueado){if($('#cofreModal').style.display!=='flex')abrirCofreModal();}else{$('#cofreModal').style.display='none';}
   // banner
   const b=$('#banner'),bt=$('#bannerTxt'),bb=$('#bannerBtn'),mA=estado.catalogo.find(m=>m.ativo);
   b.style.display='none';bb.style.display='none';
@@ -454,6 +499,8 @@ function render(){
       dl.style.borderColor='var(--danger)';dl.style.color='var(--danger)';dl.textContent='🗑 '+t('delModel');
       dl.onclick=e=>{e.stopPropagation();excluirModelo(m.nome);};div.appendChild(dl);}
     div.onclick=()=>{ if(m.instalado) salvarConfig({modelo:m.nome}); };
+    if(m.instalado){div.tabIndex=0;div.setAttribute('role','button');div.setAttribute('aria-pressed',String(!!m.ativo));
+      div.onkeydown=e=>{if(e.target===div&&(e.key==='Enter'||e.key===' ')){e.preventDefault();div.click();}};}
     $('#modelos').appendChild(div);
   }
   // skills
@@ -513,7 +560,17 @@ function render(){
   const ir=document.createElement('div');ir.className='skill';ir.style.borderBottom='none';
   ir.innerHTML=`<div class="info"><div class="nm">${t('autostart')}</div><div class="d">${t('autostart_d')}</div></div><div class="sw ${aon?'on':''}"></div>`;
   ir.querySelector('.sw').onclick=()=>salvarConfig({iniciar_com_windows:!aon});$('#initBox').appendChild(ir);
-  renderSeguranca(); renderApi(); renderLembretes();
+  renderSeguranca(); renderApi(); renderLembretes(); acessivel();
+}
+
+// teclado/leitor de tela: interruptores viram role=switch e botões de ícone ganham nome
+function acessivel(){
+  document.querySelectorAll('.sw').forEach(sw=>{
+    if(sw.dataset.a11y)return;sw.dataset.a11y='1';sw.tabIndex=0;sw.setAttribute('role','switch');
+    sw.setAttribute('aria-checked',String(sw.classList.contains('on')));
+    const nm=sw.parentElement&&sw.parentElement.querySelector('.nm');if(nm)sw.setAttribute('aria-label',nm.textContent);
+    sw.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sw.click();}};});
+  document.querySelectorAll('.hbtn').forEach(b=>b.setAttribute('aria-label',b.title||b.textContent.trim()));
 }
 
 // ── segurança (criptografia em repouso) ──
@@ -565,7 +622,7 @@ async function renderApi(){
   const on=!!info.ativa;
   const r=document.createElement('div');r.className='skill';r.style.borderBottom='none';
   r.innerHTML=`<div class="info"><div class="nm">${t('apiName')}</div><div class="d">${t('apiD')}</div></div><div class="sw ${on?'on':''}"></div>`;
-  r.querySelector('.sw').onclick=()=>salvarConfig({api_ativa:!on});box.appendChild(r);
+  r.querySelector('.sw').onclick=()=>salvarConfig({api_ativa:!on});box.appendChild(r);acessivel();
   if(!on)return;
   const campo='width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px;font-family:ui-monospace,monospace;font-size:12px';
   const copiar=(txt,btn)=>{navigator.clipboard.writeText(txt).then(()=>{const o=btn.textContent;btn.textContent=t('apiCopied');setTimeout(()=>btn.textContent=o,1400);});};
@@ -576,7 +633,7 @@ async function renderApi(){
   const cp=document.createElement('button');cp.className='baixar';cp.textContent=t('apiCopy');cp.onclick=()=>copiar(info.token,cp);
   linha.appendChild(tk);linha.appendChild(ver);linha.appendChild(cp);box.appendChild(linha);
   const gi=document.createElement('button');gi.className='baixar';gi.style.width='100%';gi.style.marginBottom='10px';gi.textContent=t('apiRotate');
-  gi.onclick=async()=>{if(!confirm(t('apiRotateConfirm')))return;await fetch('/api/memapi/girar',{method:'POST'});renderApi();};box.appendChild(gi);
+  gi.onclick=async()=>{if(!await conf(t('apiRotateConfirm'),{ok:t('rotateBtn')}))return;await fetch('/api/memapi/girar',{method:'POST'});renderApi();};box.appendChild(gi);
   const mcp=JSON.stringify({mcpServers:{atlas:{command:"python",args:[info.mcp.replace(/\\/g,'/')]}}},null,2);
   const ml=document.createElement('div');ml.style.cssText='font-size:12px;color:var(--dim);margin-bottom:6px';ml.textContent=t('apiMcp');box.appendChild(ml);
   const ta=document.createElement('textarea');ta.readOnly=true;ta.rows=7;ta.value=mcp;ta.style.cssText=campo+';resize:vertical';box.appendChild(ta);
@@ -607,7 +664,11 @@ function seg(sel,vals,cur,lab,cb){const e=$(sel);e.innerHTML='';for(const v of v
   b.textContent=lab(v);if(v===cur)b.className='on';b.onclick=()=>cb(v);e.appendChild(b);}}
 
 async function salvarConfig(patch){
-  estado=await(await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)})).json();
+  try{
+    const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    estado=await r.json();
+  }catch(e){AtlasUI.toast(t('connErr'),{kind:'err'});return;}
   LANG=estado.config.idioma||'pt';TEMA=estado.config.tema||'escuro';aplicarTema();render();
 }
 let nomeT;document.addEventListener('input',e=>{if(e.target.id==='nome'){clearTimeout(nomeT);nomeT=setTimeout(()=>salvarConfig({nome:e.target.value||'você'}),500);}});
@@ -634,7 +695,7 @@ async function baixarWiki(btn,pr){
   }catch(e){btn.textContent='erro';btn.disabled=false;}
 }
 async function excluirModelo(nome){
-  if(!confirm(t('confDelModel',{m:nome})))return;
+  if(!await conf(t('confDelModel',{m:nome}),{ok:t('delBtn'),danger:true}))return;
   await fetch('/api/ollama/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:nome})});
   await carregarEstado();
 }
@@ -655,7 +716,7 @@ async function reindexDocs(btn){btn.disabled=true;const o=btn.textContent;btn.te
 // ── backup (exportar / restaurar) ──
 function exportarBackup(){window.location.href='/api/backup/exportar';}
 async function importarBackup(file){
-  if(!file)return;if(!confirm(t('bkConfirm')))return;
+  if(!file)return;if(!await conf(t('bkConfirm'),{ok:t('restoreBtn'),danger:true}))return;
   const b=$('#btnImport');b.disabled=true;b.textContent=t('bkImporting');
   try{const fd=new FormData();fd.append('arquivo',file);
     const r=await(await fetch('/api/backup/importar',{method:'POST',body:fd})).json();
@@ -674,12 +735,17 @@ async function baixar(nome,btn,pr){btn.disabled=true;btn.textContent=t('download
 
 // ── chats ──
 async function carregarChats(){
-  const d=await(await fetch('/api/chats')).json();chatAtual=d.atual;
+  let d;
+  try{const r=await fetch('/api/chats');if(!r.ok)throw new Error('HTTP '+r.status);d=await r.json();}
+  catch(e){$('#lista').innerHTML='';$('#chat').innerHTML='';vazio();semConexao();return;}
+  chatAtual=d.atual;
   const L=$('#lista');L.innerHTML='';
   for(const c of d.chats){
     const it=document.createElement('div');it.className='item'+(c.id===chatAtual?' sel':'');
     it.innerHTML=`<span class="tit"></span><span class="acts">
-      <button class="ic ren" title="renomear">✎</button><button class="ic del" title="excluir">🗑</button></span>`;
+      <button class="ic ren" title="${t('ren')}" aria-label="${t('ren')}">✎</button><button class="ic del" title="${t('delBtn')}" aria-label="${t('delBtn')}">🗑</button></span>`;
+    it.tabIndex=0;it.setAttribute('role','button');
+    it.onkeydown=e=>{if(e.target===it&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrirChat(c.id);}};
     it.querySelector('.tit').textContent=c.titulo;
     it.querySelector('.tit').onclick=it.onclick=e=>{if(e.target.closest('.acts'))return;abrirChat(c.id);};
     it.querySelector('.ren').onclick=e=>{e.stopPropagation();renomearChat(it,c);};
@@ -688,7 +754,7 @@ async function carregarChats(){
   }
   await abrirMensagens(chatAtual);
 }
-async function abrirChat(id){chatAtual=id;await fetch('/api/chats/'+id+'/atual',{method:'POST'});await carregarChats();}
+async function abrirChat(id){fecharSideMobile();chatAtual=id;await fetch('/api/chats/'+id+'/atual',{method:'POST'});await carregarChats();}
 async function abrirMensagens(id){
   $('#chat').innerHTML='';$('#chatActions').style.display='none';if(!id){vazio();return;}
   let c;try{c=await(await fetch('/api/chats/'+id)).json();}catch(e){vazio();return;}
@@ -697,9 +763,11 @@ async function abrirMensagens(id){
   ultimaPergunta=c.mensagens[c.mensagens.length-1].u;
   if(!ocupado)$('#chatActions').style.display='block';
 }
+const ehMobile=()=>matchMedia('(max-width:680px)').matches;
+function fecharSideMobile(){if(ehMobile()){$('#side').classList.add('hide');document.body.classList.remove('side-open');}}
 function vazio(){$('#chat').innerHTML=`<div class="empty"><div class="big">◆</div><div style="font-weight:600;font-size:16px;color:var(--txt)">${t('emptyT')}</div><div>${t('emptyD')}</div></div>`;}
 async function novoChat(){const r=await(await fetch('/api/chats/novo',{method:'POST'})).json();await carregarChats();}
-async function excluirChat(id){if(!confirm(t('confDel')))return;await fetch('/api/chats/'+id,{method:'DELETE'});await carregarChats();}
+async function excluirChat(id){if(!await conf(t('confDel'),{ok:t('delBtn'),danger:true}))return;await fetch('/api/chats/'+id,{method:'DELETE'});await carregarChats();}
 function renomearChat(it,c){
   const tit=it.querySelector('.tit');const inp=document.createElement('input');inp.value=c.titulo;
   tit.replaceWith(inp);inp.focus();inp.select();
@@ -746,7 +814,7 @@ async function enviarTexto(texto,envs){
   try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:ctrl.signal});
     const rd=r.body.getReader(),dc=new TextDecoder();
     while(true){const{done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});bub.textContent=acc;$('#chat').scrollTop=$('#chat').scrollHeight;}
-  }catch(e){if(e.name!=='AbortError')acc+='\n(erro)';}
+  }catch(e){if(e.name!=='AbortError')acc+='\n'+t('errStream');}
   bub.classList.add('md');bub.innerHTML=md(acc);
   ocupado=false;ctrl=null;modoStop(false);$('#input').focus();$('#chatActions').style.display='block';
   fetch('/api/chats').then(r=>r.json()).then(d=>{const L=$('#lista');
@@ -776,7 +844,7 @@ function renderAnexos(){
     bar.appendChild(c);});
 }
 function addArquivo(file){
-  if(!file)return; if(file.size>16*1024*1024){alert(t('tooBig'));return;}
+  if(!file)return; if(file.size>16*1024*1024){AtlasUI.toast(t('tooBig'),{kind:'err'});return;}
   const tipo=file.type&&file.type.startsWith('image/')?'img':'arq';
   const fr=new FileReader();
   fr.onload=()=>{anexos.push({tipo,nome:file.name||('imagem.'+((file.type||'image/png').split('/')[1]||'png')),dataURL:fr.result});renderAnexos();};
@@ -799,13 +867,15 @@ async function instalarOCR(btn){btn.disabled=true;btn.textContent=t('ocrInstalli
     await carregarEstado();
   }catch(e){btn.textContent='erro';btn.disabled=false;}
 }
-async function desinstalarOCR(btn){if(!confirm(t('ocrConfirm')))return;btn.disabled=true;btn.textContent=t('ocrInstalling');
+async function desinstalarOCR(btn){if(!await conf(t('ocrConfirm'),{ok:t('uninstBtn'),danger:true}))return;btn.disabled=true;btn.textContent=t('ocrInstalling');
   try{await fetch('/api/tesseract/uninstall',{method:'POST'});}catch(e){}await carregarEstado();
 }
 $('#input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}});
 $('#input').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';});
 $('#novoChat').onclick=novoChat;
-$('#toggleSide').onclick=()=>$('#side').classList.toggle('hide');
+$('#toggleSide').onclick=()=>{const h=$('#side').classList.toggle('hide');document.body.classList.toggle('side-open',!h&&ehMobile());};
+$('#sideScrim').onclick=fecharSideMobile;
+if(ehMobile())$('#side').classList.add('hide');
 $('#themeBtn').onclick=()=>{TEMA=TEMA==='escuro'?'claro':'escuro';aplicarTema();salvarConfig({tema:TEMA});};
 $('#powerBtn').onclick=()=>{const a=estado.config.ativo!==false;salvarConfig({ativo:!a});};
 $('#lockBtn').onclick=()=>{const co=estado.cofre||{};if(co.desbloqueado)bloquearCofre();else abrirCofreModal();};
@@ -815,8 +885,11 @@ $('#abrirPasta').onclick=()=>fetch('/api/abrir_pasta',{method:'POST'});
 $('#btnExport').onclick=exportarBackup;
 $('#btnImport').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=e=>{importarBackup(e.target.files[0]);e.target.value='';};
-$('#gear').onclick=()=>{$('#cfg').classList.add('open');$('#scrim').style.display='block';};
-function fechar(){$('#cfg').classList.remove('open');$('#scrim').style.display='none';}
+let _focoAntes=null;
+function abrirCfg(){_focoAntes=document.activeElement;$('#cfg').classList.add('open');$('#scrim').style.display='block';setTimeout(()=>$('#cfgClose').focus(),30);}
+$('#gear').onclick=abrirCfg;
+function fechar(){$('#cfg').classList.remove('open');$('#scrim').style.display='none';if(_focoAntes&&_focoAntes.focus)_focoAntes.focus();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#cfg').classList.contains('open')&&!document.querySelector('.ui-back'))fechar();});
 $('#cfgClose').onclick=fechar;$('#scrim').onclick=fechar;
 
 try{const es=new EventSource('/eventos');es.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}
@@ -831,7 +904,8 @@ async function atualizarSistema(){
   }catch(e){$('#sysPill').textContent='';}
 }
 (async()=>{await carregarEstado();await carregarChats();})();
-setInterval(()=>{if(!ocupado)carregarEstado();},10000);
+// não recarrega o estado com o painel de ajustes aberto (isso apagava a senha digitada)
+setInterval(()=>{if(!ocupado&&!$('#cfg').classList.contains('open'))carregarEstado();},10000);
 atualizarSistema();setInterval(atualizarSistema,3000);
 </script>
 </body>
