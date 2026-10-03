@@ -24,7 +24,19 @@ so you do not clone a huge folder.
 - Light and dark theme, and three interface languages (PT, EN, ES)
 - Every skill can be toggled on or off at any time
 - Master switch to pause all background activity (no screenshots, no learning)
-- Model picker: install, switch and delete models from the interface
+- Model catalog (Ollama, local): general, code, reasoning, vision, embeddings and
+  light models for low-end PCs, with download size, approximate RAM, context
+  window and installed status. Install with progress and clear errors, switch,
+  delete, and set a per-model profile (context window, temperature...)
+- Smarter context: memories are chosen by relevance + importance + recency,
+  deduplicated, fitted to a budget derived from the model's context window, and
+  shown (collapsible) under each answer. Pin or exclude memories per chat or per
+  project. Durable facts are proposed for confirmation and never include
+  passwords, tokens or cards
+- Settings in sections (Model, Memory and context, Personality and instructions
+  with editable presets and per-project text, Generation: temperature, top_p,
+  max tokens, seed, Privacy and security, Language and theme, Backup), with
+  validated values, short descriptions in PT/EN/ES and restore defaults per section
 - Built in system monitor (VRAM, CPU, RAM)
 - Memory API for any AI: Claude, ChatGPT, local LLMs and scripts can create
   projects, store and search memories and edit the knowledge graph, through an
@@ -72,6 +84,15 @@ ships an MCP server (`mcp_atlas.py`) for Claude Desktop, Claude Code, Cursor and
 other MCP clients. Open Settings, Memory API to copy the token and the MCP
 configuration. The 🗂️ button opens the Memories page, where you can review and
 edit everything the AIs saved. Full guide: [API.md](API.md).
+
+## Models, context and settings
+
+The catalog lives in `core.py` (`CATALOGO_MODELOS`); sizes and RAM are rough
+estimates. Providers are structured in `core.PROVEDORES` (only local Ollama is
+implemented; no API key is ever stored or invented). Context selection is in
+`contexto.py`, validated settings and section defaults in `ajustes.py`. All new
+config fields are optional: an old `config.json` keeps working and is filled
+with defaults on load. Details of the local UI endpoints: [API.md](API.md).
 
 ## Privacy
 

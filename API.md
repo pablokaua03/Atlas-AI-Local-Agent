@@ -213,6 +213,37 @@ ctx = requests.post(f"{API}/context", headers=H, json={"query": "answer style"})
 print(ctx["text"])
 ```
 
+## Local UI endpoints (not part of `/v1`)
+
+The `/v1` contract above did not change. The web interface also uses a few local
+endpoints (same machine only, no token). They are listed here because the config
+file and the chat gained optional fields.
+
+| Method and path | Purpose |
+|---|---|
+| `POST /api/config` | Partial update. New keys are validated and clamped; the response carries `avisos` (list of strings) for anything rejected. |
+| `POST /api/config/restaurar` `{"secao": "modelo\|memoria\|personalidade\|geracao\|privacidade\|geral"}` | Restores one settings section to its defaults. Never touches `api_token` or the vault. |
+| `GET /api/projetos` | Light project list (`id`, `name`, `parent`, `depth`) for selectors. `[]` while the vault is locked. |
+| `GET /api/chats/<id>/ctx` | Active project and pinned/excluded memories of a chat and of its project (with text). |
+| `POST /api/chats/<id>/ctx` | `{"projeto"?, "acao": "fixar\|excluir\|limpar", "id": "<memory id>", "escopo": "conversa\|projeto"}`. |
+| `POST /api/fatos/confirmar` `{"texto"}` | Saves a durable fact the user confirmed. Rejects sensitive text (passwords, tokens, cards, IDs), too short or too long (6 to 160 chars). |
+| `POST /chat` | Response header `X-Atlas-Contexto` (URL-encoded JSON) lists the memories used: `mems[{id,t,p,f}]`, `projeto`, `orcamento`, `usado`, `ctx`. |
+
+New optional `config.json` fields (all have defaults and limits):
+
+- `provedor` (`"ollama"`), `embed`, `num_ctx` (1024 to 32768, capped by the model).
+- `geracao`: `temperatura` (0 to 2), `top_p` (0.05 to 1), `max_tokens` (16 to 8192), `seed` (0 to 2147483647). `null` means the model default.
+- `perfis_modelo`: per model `num_ctx`, `temperatura`, `top_p`, `max_tokens`, `seed`; wins over `geracao`.
+- `contexto`: `ctx_pct` (10 to 70, share of the window used by retrieved context), `max_memorias` (0 to 20), `recencia_dias` (1 to 365, half-life), `hist_msgs` (0 to 20), `incluir_conversas`, `fatos_modo` (`perguntar`, `automatico`, `desligado`).
+- `instrucoes`: `preset`, `extra` (up to 2000 chars), `personalizados` (up to 12 editable presets); `instrucoes_projeto` (`{project_id: text}`).
+- `ctx_projeto`: `{project_id: {"fixas": [memory ids], "excluidas": [memory ids]}}`.
+
+Optional chat fields in `conversas.json`: `projeto`, `ctx_fixas`, `ctx_excluidas` per chat and `ctx` per message (memories used).
+
+Context ranking: `score = 0.60 * relevance + 0.25 * importance/5 + 0.15 * recency`, where
+recency halves every `recencia_dias`. Pinned memories always come first; excluded ones
+never enter. A decision made for the chat wins over one made for the project.
+
 ## Tests
 
 ```bash
