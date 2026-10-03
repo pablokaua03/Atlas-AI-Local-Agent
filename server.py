@@ -189,7 +189,7 @@ def api_config():
         docs.reindexar_async(forcar=False)
     if "nome" in d:                      # nome definido → atualiza grafo + memória
         skills.definir_nome(cfg["nome"])
-    out = core.estado()
+    out = {**core.estado(), "cofre": cofre.estado()}
     if avisos:
         out["avisos"] = avisos
     return jsonify(out)
@@ -205,7 +205,7 @@ def api_config_restaurar():
     core.salvar_config(cfg)
     if secao == "privacidade" and cfg.get("ativo", True) is False:
         threading.Thread(target=core.descarregar_modelos, daemon=True).start()
-    return jsonify({"ok": True, **core.estado()})
+    return jsonify({"ok": True, **core.estado(), "cofre": cofre.estado()})
 
 
 @app.route("/api/memoria")
