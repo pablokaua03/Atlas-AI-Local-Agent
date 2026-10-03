@@ -24,26 +24,76 @@ WIKI_DIR = os.path.join(BASE_DIR, "wiki")          # coloque um .zim aqui pra at
 PRINTS_DIR = os.path.join(BASE_DIR, "prints")      # screenshots salvos da observação de tela
 OLLAMA = "http://127.0.0.1:11434"
 
-# Configuração padrão (criada no primeiro uso)
+# ── CATÁLOGO DE MODELOS ───────────────────────────────────────────────────────
+# Cada item: nome (tag do Ollama), rotulo, usos (geral|codigo|raciocinio|visao|leve|embed),
+# gb (download aprox.), ram (RAM aprox. em GB para rodar), vram (texto legado), ctx (janela
+# padrão sugerida), ctx_max (máximo do modelo), temp (temperatura padrão), tipo (chat|embed),
+# visao (aceita imagens) e think=False (desliga o "pensar" explícito, ex. Qwen3).
+# Tamanhos e RAM são aproximações para ajudar na escolha, não garantias.
+def _m(nome, rotulo, usos, gb, ram, ctx_max, temp=0.7, **extra):
+    d = {"nome": nome, "rotulo": rotulo, "usos": usos, "gb": gb, "ram": ram,
+         "vram": f"~{gb:.1f} GB", "ctx": min(4096, ctx_max), "ctx_max": ctx_max, "temp": temp,
+         "tipo": "chat", "provedor": "ollama"}
+    d.update(extra)
+    return d
+
+
 CATALOGO_MODELOS = [
-    {"nome": "qwen2.5:1.5b", "rotulo": "Qwen2.5 1.5B", "vram": "~1.0 GB"},
-    {"nome": "llama3.2:3b",  "rotulo": "Llama 3.2 3B",  "vram": "~2.0 GB"},
-    {"nome": "qwen2.5:3b",   "rotulo": "Qwen2.5 3B",    "vram": "~2.0 GB"},
-    {"nome": "qwen3:4b",     "rotulo": "Qwen3 4B",      "vram": "~2.5 GB"},
-    {"nome": "qwen3:8b",     "rotulo": "Qwen3 8B",      "vram": "~5.2 GB"},
-    {"nome": "llama3.1:8b",  "rotulo": "Llama 3.1 8B",  "vram": "~4.9 GB"},
-    {"nome": "moondream",    "rotulo": "Moondream (visão)", "vram": "~1.7 GB", "visao": True},
-    {"nome": "llava:7b",     "rotulo": "LLaVA 7B (visão)",  "vram": "~4.7 GB", "visao": True},
+    _m("qwen2.5:0.5b", "Qwen2.5 0.5B", ["leve", "geral"], 0.4, 2, 32768),
+    _m("qwen2.5:1.5b", "Qwen2.5 1.5B", ["geral", "leve"], 1.0, 3, 32768),
+    _m("llama3.2:1b", "Llama 3.2 1B", ["leve", "geral"], 1.3, 3, 131072),
+    _m("gemma3:1b", "Gemma 3 1B", ["leve", "geral"], 0.8, 3, 32768),
+    _m("qwen3:1.7b", "Qwen3 1.7B", ["leve", "raciocinio"], 1.4, 4, 40960, 0.6, think=False),
+    _m("llama3.2:3b", "Llama 3.2 3B", ["geral", "leve"], 2.0, 4, 131072),
+    _m("qwen2.5:3b", "Qwen2.5 3B", ["geral"], 1.9, 4, 32768),
+    _m("phi4-mini", "Phi-4 mini", ["raciocinio", "geral"], 2.5, 5, 131072),
+    _m("qwen3:4b", "Qwen3 4B", ["geral", "raciocinio"], 2.5, 5, 40960, 0.6, think=False),
+    _m("gemma3:4b", "Gemma 3 4B", ["geral", "visao"], 3.3, 6, 131072, visao=True),
+    _m("mistral:7b", "Mistral 7B", ["geral"], 4.4, 8, 32768),
+    _m("llama3.1:8b", "Llama 3.1 8B", ["geral"], 4.9, 8, 131072),
+    _m("qwen3:8b", "Qwen3 8B", ["geral", "raciocinio"], 5.2, 9, 40960, 0.6, think=False),
+    _m("gemma3:12b", "Gemma 3 12B", ["geral", "visao"], 8.1, 12, 131072, visao=True),
+    _m("qwen3:14b", "Qwen3 14B", ["geral", "raciocinio"], 9.3, 14, 40960, 0.6, think=False),
+    _m("deepseek-r1:1.5b", "DeepSeek-R1 1.5B", ["raciocinio", "leve"], 1.1, 3, 131072, 0.6),
+    _m("deepseek-r1:7b", "DeepSeek-R1 7B", ["raciocinio"], 4.7, 8, 131072, 0.6),
+    _m("deepseek-r1:8b", "DeepSeek-R1 8B", ["raciocinio"], 5.2, 9, 131072, 0.6),
+    _m("qwen2.5-coder:1.5b", "Qwen2.5 Coder 1.5B", ["codigo", "leve"], 1.0, 3, 32768, 0.2),
+    _m("qwen2.5-coder:7b", "Qwen2.5 Coder 7B", ["codigo"], 4.7, 8, 32768, 0.2),
+    _m("moondream", "Moondream (visão)", ["visao", "leve"], 1.7, 4, 2048, visao=True, ctx=2048),
+    _m("llava:7b", "LLaVA 7B (visão)", ["visao"], 4.7, 8, 32768, visao=True),
+    _m("llama3.2-vision:11b", "Llama 3.2 Vision 11B", ["visao"], 7.8, 12, 131072, visao=True),
+    _m("nomic-embed-text", "Nomic Embed Text", ["embed"], 0.27, 1, 8192, 0.0, tipo="embed", ctx=2048),
+    _m("mxbai-embed-large", "mxbai Embed Large", ["embed"], 0.67, 2, 512, 0.0, tipo="embed", ctx=512),
+    _m("bge-m3", "BGE-M3", ["embed"], 1.2, 3, 8192, 0.0, tipo="embed", ctx=2048),
 ]
+
+# Provedores de modelo. Hoje só o Ollama local é suportado. Para adicionar outro (nuvem, LM Studio...):
+# 1) registre aqui, 2) marque os itens do catálogo com "provedor", 3) implemente o cliente de chat
+# no server.py. Chaves de API NUNCA vão no catálogo: ficam no cofre/config do usuário.
+PROVEDORES = {"ollama": {"nome": "Ollama (local)", "local": True, "url": "http://127.0.0.1:11434"}}
+
+
+def modelos_chat() -> list:
+    return [m for m in CATALOGO_MODELOS if m.get("tipo", "chat") == "chat"]
+
+
+def modelos_embed() -> list:
+    return [m for m in CATALOGO_MODELOS if m.get("tipo") == "embed"]
+
+
+def info_modelo(nome: str) -> dict:
+    return next((m for m in CATALOGO_MODELOS if m["nome"] == nome), {})
+
 
 CONFIG_PADRAO = {
     "nome": "você",
     "idioma": "pt",                        # "pt" | "en" | "es"
     "tema": "escuro",                      # "escuro" | "claro"
     "ativo": True,                         # interruptor mestre — desligado pausa tudo (prints, etc.)
-    "modelo": "qwen2.5:1.5b",              # modelo ativo (um do catálogo)
+    "provedor": "ollama",                  # só "ollama" por enquanto (ver PROVEDORES)
+    "modelo": "qwen2.5:1.5b",              # modelo ativo (um do catálogo, tipo chat)
     "embed": "nomic-embed-text",
-    "num_ctx": 4096,
+    "num_ctx": 4096,                       # janela de contexto padrão (tokens)
     "obs_intervalo": 60,                   # segundos entre prints/leituras de tela
     "iniciativa_modo": "dinamico",         # "dinamico" (a IA decide) | "intervalo" (a cada X min)
     "iniciativa_intervalo": 10,            # minutos, quando modo = intervalo
@@ -57,7 +107,25 @@ CONFIG_PADRAO = {
         "wikipedia":  False,   # consulta a Wikipédia offline (precisa de um .zim em /wiki)
         "documentos": False,   # responde com base nos seus arquivos em /docs (RAG local)
     },
+    # ── geração: None = usar o perfil/padrão do modelo ──
+    "geracao": {"temperatura": None, "top_p": None, "max_tokens": None, "seed": None},
+    "perfis_modelo": {},                   # {"qwen3:8b": {"num_ctx": 8192, "temperatura": 0.5}}
+    # ── memória e contexto ──
+    "contexto": {
+        "ctx_pct": 35,                     # % da janela reservada ao contexto recuperado
+        "max_memorias": 6,                 # máximo de memórias injetadas por resposta
+        "recencia_dias": 30,               # meia-vida da recência no ranking
+        "incluir_conversas": True,         # recall de conversas anteriores
+        "hist_msgs": 6,                    # pares pergunta/resposta recentes enviados
+        "fatos_modo": "perguntar",         # "perguntar" | "automatico" | "desligado"
+    },
+    # ── personalidade ──
+    "instrucoes": {"preset": "padrao", "extra": "", "personalizados": []},
+    "instrucoes_projeto": {},              # {"id-do-projeto": "texto"}
+    "ctx_projeto": {},                     # {"id-do-projeto": {"fixas": [ids], "excluidas": [ids]}}
 }
+
+_ANINHADOS = ("geracao", "contexto", "instrucoes")
 
 _lock = threading.Lock()
 
@@ -105,7 +173,12 @@ def carregar_config() -> dict:
     mesclado.update({k: v for k, v in cfg.items() if k not in legado})
     if isinstance(cfg.get("habilidades"), dict):
         mesclado["habilidades"].update(cfg["habilidades"])
-    if mesclado.get("modelo") not in [m["nome"] for m in CATALOGO_MODELOS]:
+    for k in _ANINHADOS:                                   # blocos novos: mescla com o padrão
+        if isinstance(cfg.get(k), dict):
+            mesclado[k].update(cfg[k])
+    for k in ("perfis_modelo", "instrucoes_projeto", "ctx_projeto"):
+        mesclado[k] = cfg[k] if isinstance(cfg.get(k), dict) else {}
+    if mesclado.get("modelo") not in [m["nome"] for m in modelos_chat()]:
         mesclado["modelo"] = CONFIG_PADRAO["modelo"]
     return mesclado
 
@@ -212,7 +285,7 @@ def achar_tesseract() -> str:
 def primeiro_visao_instalado() -> str:
     """Nome do primeiro modelo de visão instalado (pra analisar imagens). '' se nenhum."""
     inst = listar_modelos()
-    for m in CATALOGO_MODELOS:
+    for m in modelos_chat():
         if m.get("visao") and (m["nome"] in inst or (m["nome"] + ":latest") in inst):
             return m["nome"]
     return ""
@@ -267,6 +340,7 @@ def modelo_instalado(nome: str) -> bool:
 
 def estado() -> dict:
     """Resumo pra interface saber o que está pronto."""
+    import ajustes                        # import tardio (ajustes importa o core)
     cfg = carregar_config()
     online = ollama_online()
     instalados = listar_modelos() if online else []
@@ -274,7 +348,8 @@ def estado() -> dict:
     def inst(n):
         return online and (n in instalados or (n + ":latest") in instalados)
 
-    catalogo = [{**m, "instalado": inst(m["nome"]), "ativo": m["nome"] == cfg.get("modelo")}
+    catalogo = [{**m, "instalado": inst(m["nome"]),
+                 "ativo": m["nome"] == (cfg.get("embed") if m.get("tipo") == "embed" else cfg.get("modelo"))}
                 for m in CATALOGO_MODELOS]
     try:
         wiki_pronto = any(f.lower().endswith(".zim") for f in os.listdir(WIKI_DIR))
@@ -289,4 +364,6 @@ def estado() -> dict:
         "catalogo": catalogo,
         "modelo_atual": modelo_atual(cfg),
         "instalados": instalados,
+        "provedores": PROVEDORES,
+        "ajustes": ajustes.meta(),
     }
