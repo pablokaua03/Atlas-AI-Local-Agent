@@ -465,6 +465,16 @@ class TestMCP(Base):
 class TestRobustez(Base):
     """Correções da revisão de bugs: segredos fora da UI, gravação atômica e validação de entrada."""
 
+    def setUp(self):
+        super().setUp()
+        self._ol = (core.ollama_online, core.achar_ollama)
+        core.ollama_online = lambda: False          # sem sondar o Ollama (lento no Windows)
+        core.achar_ollama = lambda: ""
+
+    def tearDown(self):
+        core.ollama_online, core.achar_ollama = self._ol
+        super().tearDown()
+
     def test_estado_nao_vaza_token_nem_material_do_cofre(self):
         memapi.token()                                   # garante um api_token no config
         d = self.c.get("/api/estado").get_json()
