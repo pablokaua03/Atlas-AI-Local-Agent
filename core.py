@@ -62,27 +62,51 @@ CONFIG_PADRAO = {
 _lock = threading.Lock()
 
 
+# Campos que nunca devem sair pela interface /api/estado (segredos do cofre e da API)
+_CAMPOS_SECRETOS = ("api_token", "cripto_salt", "cripto_verif")
+
+
 def carregar_config() -> dict:
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             cfg = json.load(f)
+        if not isinstance(cfg, dict):
+            cfg = {}
     except Exception:
         cfg = {}
     # mescla com o padrão pra nunca faltar chave (ignora chaves legadas)
     legado = {"habilidades", "modelos", "modelo_modo"}
     mesclado = json.loads(json.dumps(CONFIG_PADRAO))
     mesclado.update({k: v for k, v in cfg.items() if k not in legado})
-    if "habilidades" in cfg:
+    if isinstance(cfg.get("habilidades"), dict):
         mesclado["habilidades"].update(cfg["habilidades"])
     if mesclado.get("modelo") not in [m["nome"] for m in CATALOGO_MODELOS]:
         mesclado["modelo"] = CONFIG_PADRAO["modelo"]
     return mesclado
 
 
+def config_publica(cfg: dict) -> dict:
+    """Cópia da config sem token da API nem material do cofre (segura para a interface)."""
+    return {k: v for k, v in cfg.items() if k not in _CAMPOS_SECRETOS}
+
+
 def salvar_config(cfg: dict) -> dict:
+    """Grava a config de forma atômica (arquivo temporário + os.replace), para que
+    uma leitura concorrente nunca veja o arquivo pela metade (o que perderia o token)."""
     with _lock:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        tmp = f"{CONFIG_FILE}.{os.getpid()}.{threading.get_ident()}.tmp"
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, CONFIG_FILE)
+        finally:
+            if os.path.exists(tmp):
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
     return cfg
 
 
@@ -236,7 +260,7 @@ def estado() -> dict:
         "ollama_instalado": online or bool(achar_ollama()),
         "tesseract_instalado": bool(achar_tesseract()),
         "wiki_pronto": wiki_pronto,
-        "config": cfg,
+        "config": config_publica(cfg),
         "catalogo": catalogo,
         "modelo_atual": modelo_atual(cfg),
         "instalados": instalados,

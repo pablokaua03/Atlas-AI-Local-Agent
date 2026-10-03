@@ -139,10 +139,20 @@ def salvar_json(caminho, obj, indent=2):
     data = json.dumps(obj, ensure_ascii=False, indent=indent).encode("utf-8")
     if ligada():
         data = cifrar(data, _sessao["chave"])
-    tmp = caminho + ".tmp"
-    with open(tmp, "wb") as f:
-        f.write(data)
-    os.replace(tmp, caminho)
+    # tmp único por thread: duas gravações simultâneas não pisam no mesmo .tmp
+    tmp = f"{caminho}.{os.getpid()}.{threading.get_ident()}.tmp"
+    try:
+        with open(tmp, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, caminho)
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
     return True
 
 
