@@ -284,6 +284,8 @@ def main():
             continue
         lote = msg if isinstance(msg, list) else [msg]
         for m in lote:
+            if not isinstance(m, dict):
+                continue
             try:
                 res = _tratar(m)
                 if res is not None:

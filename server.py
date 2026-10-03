@@ -47,6 +47,28 @@ INSTR_IDIOMA = {
 }
 
 
+def _corpo_json() -> dict:
+    """Corpo JSON como dict (qualquer outra coisa — lista, texto, vazio — vira {})."""
+    d = request.get_json(force=True, silent=True)
+    return d if isinstance(d, dict) else {}
+
+
+def _inteiro(v, minimo, maximo):
+    """int limitado a [minimo, maximo]; None se não for um número finito."""
+    try:
+        if isinstance(v, bool) or v != v or v in (float("inf"), float("-inf")):
+            return None
+        return max(minimo, min(maximo, int(v)))
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _baixar_ok(r):
+    """Falha cedo se o download não veio com HTTP 2xx (evita gravar uma página de erro como arquivo)."""
+    r.raise_for_status()
+    return r
+
+
 # ── PÁGINAS ───────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
@@ -128,16 +150,16 @@ def api_estado():
 
 @app.route("/api/config", methods=["POST"])
 def api_config():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     cfg = core.carregar_config()
     if d.get("modelo") in [m["nome"] for m in core.CATALOGO_MODELOS]:
         cfg["modelo"] = d["modelo"]
-    if isinstance(d.get("obs_intervalo"), (int, float)):
-        cfg["obs_intervalo"] = max(15, min(900, int(d["obs_intervalo"])))
+    if _inteiro(d.get("obs_intervalo"), 15, 900) is not None:
+        cfg["obs_intervalo"] = _inteiro(d["obs_intervalo"], 15, 900)
     if d.get("iniciativa_modo") in ("dinamico", "intervalo"):
         cfg["iniciativa_modo"] = d["iniciativa_modo"]
-    if isinstance(d.get("iniciativa_intervalo"), (int, float)):
-        cfg["iniciativa_intervalo"] = max(1, min(180, int(d["iniciativa_intervalo"])))
+    if _inteiro(d.get("iniciativa_intervalo"), 1, 180) is not None:
+        cfg["iniciativa_intervalo"] = _inteiro(d["iniciativa_intervalo"], 1, 180)
     if "nome" in d:
         cfg["nome"] = (str(d["nome"]).strip()[:40] or "você")
     if d.get("idioma") in ("pt", "en", "es"):
@@ -256,6 +278,8 @@ def api_backup_importar():
                 continue                               # cifrado pelo cofre: conferido abaixo
             obj = json.loads(dados.decode("utf-8"))
             if nome == "config.json":
+                if not isinstance(obj, dict):
+                    raise ValueError("config.json deve ser um objeto JSON")
                 cfg_nova = obj
     except Exception as e:
         return jsonify({"ok": False, "erro": f"arquivo inválido: {e}"}), 400
@@ -309,21 +333,21 @@ def api_cofre_estado():
 
 @app.route("/api/cofre/ativar", methods=["POST"])
 def api_cofre_ativar():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     ok = cofre.ativar(d.get("senha", ""))
     return jsonify({"ok": ok, **cofre.estado()})
 
 
 @app.route("/api/cofre/desativar", methods=["POST"])
 def api_cofre_desativar():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     ok = cofre.desativar(d.get("senha", ""))
     return jsonify({"ok": ok, **cofre.estado()})
 
 
 @app.route("/api/cofre/desbloquear", methods=["POST"])
 def api_cofre_desbloquear():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     ok = cofre.desbloquear(d.get("senha", ""))
     return jsonify({"ok": ok, **cofre.estado()})
 
@@ -371,7 +395,7 @@ def api_chat_atual(cid):
 
 @app.route("/api/chats/<cid>/renomear", methods=["POST"])
 def api_chat_renomear(cid):
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     return jsonify({"ok": chats.renomear(cid, d.get("titulo", ""))})
 
 
@@ -392,7 +416,7 @@ def api_grafo():
 
 @app.route("/api/grafo/traduzir", methods=["POST"])
 def api_grafo_traduzir():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     lang = d.get("lang", "")
     if lang in ("en", "es"):
         threading.Thread(target=skills.grafo_traduzir, args=(lang,), daemon=True).start()
@@ -401,7 +425,7 @@ def api_grafo_traduzir():
 
 @app.route("/api/grafo/editar", methods=["POST"])
 def api_grafo_editar():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     a = d.get("acao")
     if a == "criar_no":
         skills.grafo_criar_no(d.get("label", ""), d.get("tipo", "tema"))
@@ -431,7 +455,11 @@ def eventos():
         try:
             yield "data: " + json.dumps({"tipo": "status", "payload": "conectado"}) + "\n\n"
             while True:
-                tipo, payload = q.get()
+                try:
+                    tipo, payload = q.get(timeout=20)
+                except queue.Empty:
+                    yield ": keep-alive\n\n"       # detecta cliente que saiu (senão a thread fica presa)
+                    continue
                 yield "data: " + json.dumps({"tipo": tipo, "payload": payload}, ensure_ascii=False) + "\n\n"
         except GeneratorExit:
             pass
@@ -451,7 +479,7 @@ def ollama_start():
 
 @app.route("/api/ollama/delete", methods=["POST"])
 def ollama_delete():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     nome = (d.get("modelo") or "").strip()
     if not nome:
         return jsonify({"ok": False}), 400
@@ -484,7 +512,7 @@ def ollama_install():
         url = "https://ollama.com/download/OllamaSetup.exe"
         dest = os.path.join(tempfile.gettempdir(), "OllamaSetup.exe")
         try:
-            with requests.get(url, stream=True, timeout=60) as r:
+            with _baixar_ok(requests.get(url, stream=True, timeout=60)) as r:
                 total = int(r.headers.get("content-length", 0))
                 feito = 0
                 with open(dest, "wb") as f:
@@ -572,7 +600,7 @@ def api_wiki_baixar():
         os.makedirs(core.WIKI_DIR, exist_ok=True)
         base = "https://download.kiwix.org/zim/wikipedia/"
         try:
-            idx = requests.get(base, timeout=30).text
+            idx = _baixar_ok(requests.get(base, timeout=30)).text
         except Exception as e:
             yield (json.dumps({"error": f"sem acesso ao Kiwix: {e}"}) + "\n")
             return
@@ -590,7 +618,7 @@ def api_wiki_baixar():
         dest = os.path.join(core.WIKI_DIR, arq)
         yield (json.dumps({"status": f"baixando {arq}"}) + "\n")
         try:
-            with requests.get(base + arq, stream=True, timeout=60) as r:
+            with _baixar_ok(requests.get(base + arq, stream=True, timeout=60)) as r:
                 total = int(r.headers.get("content-length", 0))
                 feito = 0
                 with open(dest, "wb") as f:
@@ -611,7 +639,7 @@ def api_wiki_baixar():
 
 @app.route("/api/pull", methods=["POST"])
 def api_pull():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
     nome = (d.get("modelo") or "").strip()
     if not nome:
         return jsonify({"ok": False}), 400
@@ -632,10 +660,13 @@ def api_pull():
 # ── CHAT ──────────────────────────────────────────────────────────────────────
 @app.route("/chat", methods=["POST"])
 def chat():
-    d = request.get_json(force=True, silent=True) or {}
+    d = _corpo_json()
+    if not isinstance(d.get("texto") or "", str):
+        return jsonify({"ok": False, "erro": "texto inválido"}), 400
     texto = (d.get("texto") or "").strip()
-    imagens = d.get("imagens") or []          # imagens coladas/anexadas (base64)
-    anexos = d.get("anexos") or []            # arquivos anexados [{nome, b64}]
+    imagens = d.get("imagens") if isinstance(d.get("imagens"), list) else []     # imagens (base64)
+    # arquivos anexados [{nome, b64}] — descarta itens que não sejam objetos
+    anexos = [a for a in (d.get("anexos") if isinstance(d.get("anexos"), list) else []) if isinstance(a, dict)]
     if not texto and not imagens and not anexos:
         return jsonify({"ok": False}), 400
 
@@ -649,7 +680,7 @@ def chat():
 
     modelo = core.modelo_atual(cfg)
     nome = cfg.get("nome", "você")
-    cid = d.get("chat_id") or chats.listar()["atual"]
+    cid = d.get("chat_id") if isinstance(d.get("chat_id"), str) and d.get("chat_id") else chats.listar()["atual"]
 
     if texto and not imagens and not anexos:
         conf = lembretes.detectar(texto, idioma)      # "me lembra disso amanhã"
@@ -749,7 +780,10 @@ def chat():
                     data = json.loads(line)
                 except Exception:
                     continue
-                tok = data.get("message", {}).get("content", "")
+                if data.get("error"):                     # ex.: modelo não encontrado no Ollama
+                    yield f"\n(erro do modelo: {data['error']})"
+                    break
+                tok = (data.get("message") or {}).get("content", "")
                 if tok:
                     full += tok
                     yield tok
