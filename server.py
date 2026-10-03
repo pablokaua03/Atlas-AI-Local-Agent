@@ -25,6 +25,9 @@ import lembretes
 import bandeja
 import memstore
 import memapi
+import ajustes
+import contexto
+import urllib.parse
 
 WEB_DIR = os.path.join(core.BASE_DIR, "web")
 HOST, PORT = "127.0.0.1", 5005
@@ -152,8 +155,7 @@ def api_estado():
 def api_config():
     d = _corpo_json()
     cfg = core.carregar_config()
-    if d.get("modelo") in [m["nome"] for m in core.CATALOGO_MODELOS]:
-        cfg["modelo"] = d["modelo"]
+    cfg, avisos = ajustes.aplicar(cfg, d)      # modelo, embed, geração, contexto, instruções... (validado/limitado)
     if _inteiro(d.get("obs_intervalo"), 15, 900) is not None:
         cfg["obs_intervalo"] = _inteiro(d["obs_intervalo"], 15, 900)
     if d.get("iniciativa_modo") in ("dinamico", "intervalo"):
@@ -187,7 +189,23 @@ def api_config():
         docs.reindexar_async(forcar=False)
     if "nome" in d:                      # nome definido → atualiza grafo + memória
         skills.definir_nome(cfg["nome"])
-    return jsonify(core.estado())
+    out = core.estado()
+    if avisos:
+        out["avisos"] = avisos
+    return jsonify(out)
+
+
+@app.route("/api/config/restaurar", methods=["POST"])
+def api_config_restaurar():
+    """Devolve UMA seção das configurações ao padrão (nunca toca no token da API nem no cofre)."""
+    secao = _corpo_json().get("secao")
+    cfg = core.carregar_config()
+    if ajustes.restaurar_secao(cfg, secao) is None:
+        return jsonify({"ok": False, "erro": "seção desconhecida", "secoes": list(ajustes.SECOES)}), 400
+    core.salvar_config(cfg)
+    if secao == "privacidade" and cfg.get("ativo", True) is False:
+        threading.Thread(target=core.descarregar_modelos, daemon=True).start()
+    return jsonify({"ok": True, **core.estado()})
 
 
 @app.route("/api/memoria")
@@ -404,6 +422,83 @@ def api_chat_excluir(cid):
     return jsonify({"atual": chats.excluir(cid)})
 
 
+def _resolver_mems(ids):
+    """ids -> [{id, t, p}] (texto curto + projeto); ids que não existem mais ficam sem texto."""
+    out = []
+    for mid in ids:
+        try:
+            m = memstore.memoria_obter(mid)
+            out.append({"id": mid, "t": m["content"][:160], "p": m.get("project")})
+        except Exception:
+            out.append({"id": mid, "t": "", "p": None})
+    return out
+
+
+@app.route("/api/projetos")
+def api_projetos():
+    """Lista leve de projetos para os seletores da interface ([] se o cofre estiver travado)."""
+    try:
+        return jsonify([{"id": p.get("id"), "name": p.get("name"), "parent": p.get("parent"), "depth": p.get("depth", 0)}
+                        for p in memstore.projetos_listar()])
+    except Exception:
+        return jsonify([])
+
+
+@app.route("/api/chats/<cid>/ctx", methods=["GET", "POST"])
+def api_chat_ctx(cid):
+    """Projeto ativo e memórias fixadas/excluídas do contexto, por conversa ou por projeto.
+    POST {projeto?, acao: fixar|excluir|limpar, id, escopo: conversa|projeto}"""
+    c = chats.get(cid)
+    if c is None:
+        return jsonify({"ok": False}), 404
+    cfg = core.carregar_config()
+    if request.method == "POST":
+        d = _corpo_json()
+        if "projeto" in d:
+            chats.definir_ctx(cid, projeto=d.get("projeto") or None)
+            c = chats.get(cid)
+        acao, mid = d.get("acao"), d.get("id")
+        if acao in ("fixar", "excluir", "limpar") and isinstance(mid, str) and mid:
+            if d.get("escopo") == "projeto":
+                pid = c.get("projeto")
+                if not pid:
+                    return jsonify({"ok": False, "erro": "sem projeto ativo"}), 400
+                cur = (cfg.get("ctx_projeto") or {}).get(pid, {})
+                fx = [i for i in cur.get("fixas", []) if i != mid]
+                ex = [i for i in cur.get("excluidas", []) if i != mid]
+                if acao == "fixar":
+                    fx.append(mid)
+                elif acao == "excluir":
+                    ex.append(mid)
+                cfg, _av = ajustes.aplicar(cfg, {"ctx_projeto": {pid: {"fixas": fx, "excluidas": ex}}})
+                core.salvar_config(cfg)
+            else:
+                fx = [i for i in c.get("ctx_fixas", []) if i != mid]
+                ex = [i for i in c.get("ctx_excluidas", []) if i != mid]
+                if acao == "fixar":
+                    fx.append(mid)
+                elif acao == "excluir":
+                    ex.append(mid)
+                chats.definir_ctx(cid, fixas=fx, excluidas=ex)
+            c = chats.get(cid)
+    pid = c.get("projeto")
+    proj = (cfg.get("ctx_projeto") or {}).get(pid or "", {}) or {}
+    return jsonify({
+        "ok": True, "projeto": pid,
+        "conversa": {"fixas": _resolver_mems(c.get("ctx_fixas", [])), "excluidas": _resolver_mems(c.get("ctx_excluidas", []))},
+        "projeto_regras": {"fixas": _resolver_mems(proj.get("fixas", [])), "excluidas": _resolver_mems(proj.get("excluidas", []))},
+    })
+
+
+@app.route("/api/fatos/confirmar", methods=["POST"])
+def api_fatos_confirmar():
+    """Grava um fato durável que o usuário confirmou. Recusa texto sensível (senha, token, cartão...)."""
+    texto = _corpo_json().get("texto")
+    if not isinstance(texto, str) or not skills.fato_valido(texto):
+        return jsonify({"ok": False, "erro": "fato inválido ou com dado sensível"}), 400
+    return jsonify({"ok": True, "novo": skills.salvar_fato(texto)})
+
+
 @app.route("/api/chats/<cid>/regenerar", methods=["POST"])
 def api_chat_regenerar(cid):
     return jsonify({"texto": chats.remover_ultima(cid)})
@@ -496,7 +591,7 @@ def ollama_delete():
     cfg = core.carregar_config()
     if cfg.get("modelo") == nome:
         instalados = core.listar_modelos()
-        prox = next((m["nome"] for m in core.CATALOGO_MODELOS if m["nome"] in instalados), None)
+        prox = next((m["nome"] for m in core.modelos_chat() if m["nome"] in instalados), None)
         cfg["modelo"] = prox or core.CONFIG_PADRAO["modelo"]
         core.salvar_config(cfg)
     return jsonify({"ok": True})
@@ -712,30 +807,51 @@ def chat():
         if txt.strip():
             anexos_txt += f"\n\n[ARQUIVO: {a.get('nome', 'arquivo')}]\n{txt[:6000]}"
 
+    chat_atual = chats.get(cid)
+    projeto = (chat_atual or {}).get("projeto") or None
+    perfil = ajustes.perfil_efetivo(cfg, modelo)
+    cc = cfg.get("contexto") or {}
+    orc = contexto.orcamento_chars(cfg, perfil)
+
     system = SYSTEM_BASE.format(nome=nome, idioma=INSTR_IDIOMA.get(cfg.get("idioma", "pt"), ""))
+    system += contexto.instrucoes_texto(cfg, idioma, projeto)
+
+    # contexto recuperado, em ordem de prioridade, dentro do orçamento da janela do modelo
+    secoes, usadas, vistos = [], [], []
     if core.habilidade("memoria", cfg):
-        fatos = skills.carregar_mem().get("fatos", [])
+        fatos = [f for f in skills.carregar_mem().get("fatos", [])[-25:] if not contexto.sensivel(f)]
+        fatos = contexto.deduplicar(fatos)
         if fatos:
-            system += "\n\nFatos que você sabe:\n" + "\n".join("- " + f for f in fatos[-25:])
-        mems = memstore.contexto_chat(texto)          # memórias gravadas por qualquer IA (API /v1)
-        if mems:
-            system += "\n\nMemórias relacionadas (use se for relevante):\n" + mems
-        rec = chats.recall(texto, excluir_id=cid)      # acesso a TODAS as conversas
-        if rec:
-            system += "\n\nDe conversas anteriores (use só se for relevante):\n" + rec
+            secoes.append(("fatos", "Fatos que você sabe:", "\n".join("- " + f for f in fatos)))
+        usadas = contexto.selecionar_memorias(texto, projeto, cfg, chat_atual, orc)
+        usadas = [u for u in usadas if not contexto.sensivel(u["content"])]
+        # memórias que repetem um fato já listado não entram duas vezes
+        usadas = [u for u in usadas if not any(contexto.parecido(u["content"], f) for f in fatos)]
+        if usadas:
+            secoes.append(("memorias", "Memórias relacionadas (use se for relevante):", contexto.linhas_memorias(usadas)))
+        if cc.get("incluir_conversas", True):
+            rec = chats.recall(texto, excluir_id=cid)      # acesso a TODAS as conversas
+            if rec:
+                secoes.append(("conversas", "De conversas anteriores (use só se for relevante):", rec))
     if core.habilidade("grafo", cfg):
         mapa = skills.resumo_grafo(texto)
         if mapa:
-            system += "\n\nDo seu grafo de conhecimento (use se ajudar):\n" + mapa
-    if core.habilidade("wikipedia", cfg):
-        wiki = skills.consultar_wiki(texto)
-        if wiki:
-            system += "\n\nCONHECIMENTO DA WIKIPÉDIA (explique com suas palavras, não copie cru):\n" + wiki
+            secoes.append(("grafo", "Do seu grafo de conhecimento (use se ajudar):", mapa))
     if core.habilidade("documentos", cfg):
         docctx = docs.consultar(texto)
         if docctx:
-            system += ("\n\nDOS DOCUMENTOS DO USUÁRIO (responda com base nisto; cite o arquivo "
-                       "entre colchetes quando útil; se não houver resposta aqui, diga que não achou):\n" + docctx)
+            secoes.append(("docs", "DOS DOCUMENTOS DO USUÁRIO (responda com base nisto; cite o arquivo "
+                           "entre colchetes quando útil; se não houver resposta aqui, diga que não achou):", docctx))
+    if core.habilidade("wikipedia", cfg):
+        wiki = skills.consultar_wiki(texto)
+        if wiki:
+            secoes.append(("wiki", "CONHECIMENTO DA WIKIPÉDIA (explique com suas palavras, não copie cru):", wiki))
+    corpo, uso = contexto.ajustar_secoes(secoes, orc)
+    if corpo:
+        system += "\n\n" + corpo
+        # só cita como "usada" a memória que realmente coube no prompt
+        if "memorias" not in uso:
+            usadas = []
     if core.habilidade("tela", cfg) and skills.precisa_tela(texto):
         skills.garantir_ocr_lang(cfg.get("idioma", "pt"))
         titulo, ocr = skills.ler_tela()
@@ -746,9 +862,14 @@ def chat():
     if anexos_txt:
         system += "\n\nARQUIVOS ANEXADOS PELO USUÁRIO (responda com base neles):" + anexos_txt
 
-    chat_atual = chats.get(cid)
+    ctx_msg = [{"id": u["id"], "t": u["content"][:160], "p": u.get("project"), "f": bool(u.get("pinned"))}
+               for u in usadas][:8]
+    info_ctx = {"mems": ctx_msg, "projeto": projeto, "orcamento": orc, "usado": sum(uso.values()),
+                "ctx": perfil["num_ctx"]}
+
     msgs = [{"role": "system", "content": system}]
-    for m in (chat_atual.get("mensagens", [])[-6:] if chat_atual else []):
+    hist_n = int(cc.get("hist_msgs", 6))
+    for m in (chat_atual.get("mensagens", [])[-hist_n:] if (chat_atual and hist_n > 0) else []):
         msgs.append({"role": "user", "content": m["u"]})
         msgs.append({"role": "assistant", "content": m["a"]})
 
@@ -767,10 +888,17 @@ def chat():
     def stream():
         full = ""
         ka = -1 if cfg.get("ativo", True) else 0     # pausado: descarrega após responder
-        body = {"model": modelo, "messages": msgs, "stream": True, "keep_alive": ka,
-                "options": {"num_ctx": cfg.get("num_ctx", 4096), "num_gpu": 99}}
-        if "qwen3" in modelo:
+        opts = {"num_ctx": perfil["num_ctx"], "num_gpu": 99, "temperature": perfil["temperatura"]}
+        if perfil.get("top_p") is not None:
+            opts["top_p"] = perfil["top_p"]
+        if perfil.get("max_tokens"):
+            opts["num_predict"] = perfil["max_tokens"]
+        if perfil.get("seed") is not None:
+            opts["seed"] = perfil["seed"]
+        body = {"model": modelo, "messages": msgs, "stream": True, "keep_alive": ka, "options": opts}
+        if core.info_modelo(modelo).get("think") is False or "qwen3" in modelo:
             body["think"] = False
+        filtro = contexto.FiltroPensamento()
         try:
             r = requests.post(f"{core.OLLAMA}/api/chat", json=body, stream=True, timeout=300)
             for line in r.iter_lines():
@@ -785,17 +913,23 @@ def chat():
                     break
                 tok = (data.get("message") or {}).get("content", "")
                 if tok:
-                    full += tok
-                    yield tok
+                    tok = filtro.push(tok)               # tira <think>...</think> dos modelos de raciocínio
+                    if tok:
+                        full += tok
+                        yield tok
                 if data.get("done"):
                     break
         except Exception as e:
             yield f"\n(erro ao falar com o modelo: {e})"
         finally:
             skills.conversando.clear()
+        resto = filtro.fim()
+        if resto:
+            full += resto
+            yield resto
         full = full.strip()
         if full:
-            chats.adicionar(cid, texto_salvar, full)
+            chats.adicionar(cid, texto_salvar, full, ctx=ctx_msg)
             def _pos():
                 if not core.carregar_config().get("ativo", True):     # sistema pausado: não aprende
                     return
@@ -808,7 +942,11 @@ def chat():
                     skills.tecer(f"{quem}: {texto}")
             threading.Thread(target=_pos, daemon=True).start()
 
-    return Response(stream(), mimetype="text/plain; charset=utf-8")
+    resp = Response(stream(), mimetype="text/plain; charset=utf-8")
+    # quais memórias entraram no prompt (a interface mostra, colapsado, sob a resposta)
+    resp.headers["X-Atlas-Contexto"] = urllib.parse.quote(json.dumps(info_ctx, ensure_ascii=False, separators=(",", ":")))
+    resp.headers["Access-Control-Expose-Headers"] = "X-Atlas-Contexto"
+    return resp
 
 
 def iniciar():
