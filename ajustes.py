@@ -16,6 +16,8 @@ import core
 LIM_NUM_CTX = (1024, 32768, 4096)
 LIM_GERACAO = {"temperatura": (0.0, 2.0), "top_p": (0.05, 1.0), "max_tokens": (16, 8192), "seed": (0, 2147483647)}
 LIM_CONTEXTO = {"ctx_pct": (10, 70), "max_memorias": (0, 20), "recencia_dias": (1, 365), "hist_msgs": (0, 20)}
+LIM_RODADAS = (1, 8)
+LIM_HW = {"vram_gb": (0.0, 1024.0), "ram_gb": (0.0, 4096.0)}
 FATOS_MODOS = ("perguntar", "automatico", "desligado")
 MAX_EXTRA = 2000
 MAX_NOME_PRESET = 40
@@ -24,8 +26,8 @@ MAX_IDS = 200
 
 # Seções do painel -> chaves da config que "restaurar padrão" devolve ao valor de fábrica
 SECOES = {
-    "modelo": ["modelo", "embed", "num_ctx", "perfis_modelo"],
-    "memoria": ["contexto", "ctx_projeto"],
+    "modelo": ["modelo", "embed", "num_ctx", "perfis_modelo", "hardware_manual"],
+    "memoria": ["contexto", "ctx_projeto", "ferramentas"],
     "personalidade": ["instrucoes", "instrucoes_projeto"],
     "geracao": ["geracao"],
     "privacidade": ["api_ativa", "ativo"],
@@ -60,6 +62,7 @@ def meta() -> dict:
     return {
         "num_ctx": list(LIM_NUM_CTX), "geracao": {k: list(v) for k, v in LIM_GERACAO.items()},
         "contexto": {k: list(v) for k, v in LIM_CONTEXTO.items()}, "fatos_modos": list(FATOS_MODOS),
+        "max_rodadas": list(LIM_RODADAS), "hardware": {k: list(v) for k, v in LIM_HW.items()},
         "max_extra": MAX_EXTRA, "max_presets": MAX_PRESETS, "secoes": SECOES, "presets": PRESETS,
     }
 
@@ -110,6 +113,8 @@ def _perfil(d, nome):
         v = _num(d.get(k), lo, hi, k in ("max_tokens", "seed"))
         if v is not None:
             out[k] = v
+    if isinstance(d.get("ferramentas"), bool):              # força ligar/desligar as ferramentas neste modelo
+        out["ferramentas"] = d["ferramentas"]
     return out
 
 
@@ -241,6 +246,42 @@ def aplicar(cfg: dict, d: dict, instalados=None):
         if ins.get("preset") not in set(PRESETS) | {p["id"] for p in ins.get("personalizados", [])}:
             ins["preset"] = "padrao"            # preset apagado -> volta ao padrão
         cfg["instrucoes"] = ins
+
+    if isinstance(d.get("ferramentas"), dict):
+        f = dict(cfg.get("ferramentas") or {})
+        df = d["ferramentas"]
+        for k in ("ativo", "escrita"):
+            if k in df:
+                f[k] = bool(df[k])
+        if "max_rodadas" in df:
+            v = _num(df["max_rodadas"], *LIM_RODADAS, inteiro=True)
+            if v is None:
+                avisos.append("ferramentas.max_rodadas inválido")
+            else:
+                f["max_rodadas"] = v
+        cfg["ferramentas"] = f
+
+    if isinstance(d.get("hardware_manual"), dict):
+        hm = dict(cfg.get("hardware_manual") or {})
+        dh = d["hardware_manual"]
+        if "ativo" in dh:
+            hm["ativo"] = bool(dh["ativo"])
+        for k, (lo, hi) in LIM_HW.items():
+            if k in dh:
+                if dh[k] in (None, ""):
+                    hm[k] = None
+                else:
+                    v = _num(dh[k], lo, hi)
+                    if v is None:
+                        avisos.append(f"hardware_manual.{k} inválido")
+                    else:
+                        hm[k] = round(v, 1)
+        if "gpu" in dh:
+            t = _texto(dh["gpu"], 60) if dh["gpu"] is not None else ""
+            hm["gpu"] = t or ""
+        if "unificada" in dh:
+            hm["unificada"] = bool(dh["unificada"])
+        cfg["hardware_manual"] = hm
 
     if isinstance(d.get("instrucoes_projeto"), dict):
         ip = dict(cfg.get("instrucoes_projeto") or {})

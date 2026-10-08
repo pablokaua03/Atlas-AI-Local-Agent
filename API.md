@@ -235,8 +235,11 @@ file and the chat gained optional fields.
 | `GET /api/chats/<id>/ctx` | Active project and pinned/excluded memories of a chat and of its project (with text). |
 | `POST /api/chats/<id>/ctx` | `{"projeto"?, "modelo"?, "acao": "fixar\|excluir\|limpar", "id": "<memory id>", "escopo": "conversa\|projeto"}`. `modelo` sets a per-chat model (a chat model name, 400 for invalid or embedding models; if it is not installed when you chat, the default is used; `""` or `null` goes back to the default). |
 | `POST /api/fatos/confirmar` `{"texto"}` | Saves a durable fact the user confirmed. Rejects sensitive text (passwords, tokens, cards, IDs), too short or too long (6 to 160 chars). |
-| `POST /chat` | Response header `X-Atlas-Contexto` (URL-encoded JSON) lists the memories used: `mems[{id,t,p,f,w}]` (`f` pinned, `w` why: `fixada`, `relevante` or `projeto`), `projeto`, `orcamento`, `usado`, `ctx`, `modelo`. If the client stops the stream, generation in Ollama is stopped and the partial answer is saved with `parcial: true`. |
-| `GET /api/estado` | Also returns `instalados_info[]` (`nome`, `gb`, `parametros`, `quant`, `tipo`, `catalogo`, `rotulo`, `cabe`, `ativo`), `hardware` (`gpu`, `vram_gb`, `ram_gb`) and `catalogo[].cabe`. `cabe` is `vram` (fits in VRAM), `parcial` (will also use RAM), `grande` (too big) or `null` (unknown). |
+| `POST /chat` | Response header `X-Atlas-Contexto` (URL-encoded JSON) lists the memories used: `mems[{id,t,p,f,w}]` (`f` pinned, `w` why: `fixada`, `relevante` or `projeto`), `projeto`, `orcamento`, `usado`, `ctx`, `modelo`, `ferramentas` (tool names offered). When the model calls tools, each call is sent inside the text stream as `\x1e{json}\x1e` (`tool`, `args`, `ok`, `resumo`, `erro`, `acao`); the UI strips these markers, and they are saved per message as `ferramentas`. If the client stops the stream, generation in Ollama is stopped and the partial answer is saved with `parcial: true`. |
+| `GET /api/estado` | Also returns `instalados_info[]` (`nome`, `gb`, `parametros`, `quant`, `tipo`, `catalogo`, `rotulo`, `cabe`, `ativo`, `ferramentas`), `hardware` (effective, see `/api/hardware`), `hardware_detectado`, `recomendacoes`, `niveis` and `catalogo[]` with `nivel`, `cabe`, `ferramentas`, `variantes[{tag, quant, gb, cabe}]`, `sugerida`, `recomendado` (roles) and `medido` (benchmark numbers, only for measured models). `cabe` is `vram` (fits in VRAM), `parcial` (will also use RAM), `grande` (too big) or `null` (unknown). |
+| `GET /api/hardware` | `{detectado, efetivo, manual, recomendacoes}`. `detectado`/`efetivo` (after the manual override): `cpu`, `nucleos`, `threads`, `gpu`, `vram_gb`, `ram_gb`, `gpus[{nome, vendor, vram_gb, integrada}]`, `n_gpus`, `tipo` (`nvidia`, `amd`, `intel`, `apple`, `cpu`...), `unificada`, `so`, `fonte`. `recomendacoes`: `{rapido, equilibrado, inteligente, visao, codigo, embed}`, each `{nome, tag, quant, gb, cabe}` or `null`. |
+| `GET /api/ferramentas?chat=&limite=` | `{config, disponiveis, modelo, modelo_suporta, acoes}`. `acoes` is the log of tool writes (newest first), optionally only for one chat. |
+| `POST /api/ferramentas/desfazer` `{"id", "forcar"?}` | Undoes one logged tool write (restores the memory and the graph nodes/edges it touched). `409` with `erro: "conflito"` if the memory was edited after the tool call (send `forcar: true` to undo anyway) or `"ja_desfeita"`; `404` if not found; `423` while the vault is locked. |
 | `GET /api/ollama/status` | `{online, instalado, modelos}`. |
 | `POST /api/ollama/start` | `{ok, online, erro}` with `erro` = `nao_instalado`, `falhou`, `timeout` or `null`. |
 | `POST /api/ollama/delete` `{"modelo"}` | Deletes an installed model; if it was the default, another installed chat model becomes the default (`{ok, modelo}`). |
@@ -249,9 +252,12 @@ New optional `config.json` fields (all have defaults and limits):
 - `perfis_modelo`: per model `num_ctx`, `temperatura`, `top_p`, `max_tokens`, `seed`; wins over `geracao`.
 - `contexto`: `ctx_pct` (10 to 70, share of the window used by retrieved context), `max_memorias` (0 to 20), `recencia_dias` (1 to 365, half-life), `hist_msgs` (0 to 20), `incluir_conversas`, `fatos_modo` (`perguntar`, `automatico`, `desligado`), `busca_semantica` (default `false`: also use embeddings when choosing memories for the chat, if the embedding model is installed).
 - `instrucoes`: `preset`, `extra` (up to 2000 chars), `personalizados` (up to 12 editable presets); `instrucoes_projeto` (`{project_id: text}`).
+- `ferramentas`: `ativo` (default `true`), `escrita` (default `true`; `false` offers read-only tools), `max_rodadas` (1 to 8, default 4; the last round always answers without tools).
+- `hardware_manual`: `ativo`, `vram_gb` (0 to 1024 or `null`), `ram_gb` (0 to 4096 or `null`), `gpu` (up to 60 chars), `unificada`. When `ativo`, these values replace the detected ones for fit badges and recommendations.
+- `perfis_modelo.<model>.ferramentas`: `true`/`false` forces tool calling on or off for that model (default: catalog and Ollama capabilities).
 - `ctx_projeto`: `{project_id: {"fixas": [memory ids], "excluidas": [memory ids]}}`.
 
-Optional chat fields in `conversas.json`: `projeto`, `ctx_fixas`, `ctx_excluidas`, `modelo` per chat and `ctx`, `parcial` per message (memories used; answer was stopped).
+Optional chat fields in `conversas.json`: `projeto`, `ctx_fixas`, `ctx_excluidas`, `modelo` per chat and `ctx`, `parcial`, `ferramentas` per message (memories used; answer was stopped; tool calls made).
 
 Context ranking: `score = 0.60 * relevance + 0.25 * importance/5 + 0.15 * recency`, where
 recency halves every `recencia_dias`. Pinned memories always come first (chat/project
@@ -259,6 +265,19 @@ pins, then memories with `pinned: true`, up to 8); excluded ones never enter. A 
 made for the chat wins over one made for the project. Weak matches (below 30% of the best
 match) are dropped instead of filling the budget, and rare words weigh more than common
 ones in keyword search.
+
+### Chat tools
+
+Tools offered to models with tool calling (names follow the OpenAI/Ollama format):
+`search_memories`, `save_memory`, `update_memory`, `pin_memory`, `graph_search`,
+`add_concept`, `link_concepts`, `list_projects`, `recall_conversation`, and with the
+Documents skill `list_documents`, `read_document` (inside `docs/` only, 5000 chars per
+call). Memory tools need the Memory skill; graph tools need Memory or Graph. Deleting
+memories and creating/deleting projects are intentionally not offered to the chat
+model (use the Memories page, the `/v1` API or MCP). Sensitive text (passwords,
+tokens, cards, IDs) is refused. Writes use `source: "atlas-chat:<model>"`, never create
+projects, and are logged in `acoes_ia.json` (up to 500 entries) with the previous
+values so they can be undone.
 
 ## Tests
 

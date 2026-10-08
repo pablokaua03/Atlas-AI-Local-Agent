@@ -5,7 +5,7 @@
    AjustesUI.setLang(l) · AjustesUI.titulos() · AjustesUI.render() · AjustesUI.chat.* */
 (function(){
 'use strict';
-var LANG='pt',H=null,PROJ=[],FILTRO='todos',TUDO=false;
+var LANG='pt',H=null,PROJ=[],FILTRO='recomendados',TUDO=false;
 
 var D={
 pt:{
@@ -271,7 +271,8 @@ function fmtGB(n){return (n>=10?Math.round(n):Math.round(n*10)/10)+' GB';}
 function fmtCtx(n){return n>=1024?(Math.round(n/102.4)/10)+'k':String(n);}
 function semLatest(n){return String(n||'').replace(/:latest$/,'');}
 function filtrar(lista){
-  if(FILTRO==='todos')return lista;
+  if(window.AtlasModelos)return AtlasModelos.filtrar(lista,FILTRO);   // filtros por nível/ferramentas (modelos.js)
+  if(FILTRO==='todos'||FILTRO==='recomendados')return lista;
   return lista.filter(function(m){return (m.usos||[]).indexOf(FILTRO)>=0;});
 }
 // selo "cabe na VRAM / usa RAM / grande demais" (estimativa do servidor)
@@ -290,6 +291,7 @@ function renderModelo(){
   var e=est(),c=cfg();
   var info=$('#mInfo');info.textContent='';
   info.append(linhaHardware());
+  if(window.AtlasModelos)AtlasModelos.hardware(info,e,H);              // GPUs, CPU e ajuste manual (modelos.js)
   if(!e.ollama_online){
     var av=h('div',{class:'mwarn'},[ico('alert-triangle',16),h('span',{text:t('ollamaOff')})]);
     if(e.ollama_instalado&&H.iniciarOllama)av.append(ibtn(t('startOllama'),'power','baixar pri',function(){H.iniciarOllama();}));
@@ -322,11 +324,13 @@ function renderModelo(){
   // 3) catálogo: só o que ainda não está instalado
   box.append(h('h3',{class:'sub',text:t('catHdr')}));
   var fb=h('div',{class:'seg',id:'mFilter2',role:'group'});
-  ['todos','geral','codigo','raciocinio','visao','leve','embed'].forEach(function(f){
-    var b=h('button',{type:'button',class:FILTRO===f?'on':'',text:t('f_'+f),'aria-pressed':String(FILTRO===f)});
+  (window.AtlasModelos?AtlasModelos.FILTROS:['todos','geral','codigo','raciocinio','visao','leve','embed']).forEach(function(f){
+    var b=h('button',{type:'button',class:FILTRO===f?'on':'',text:window.AtlasModelos?AtlasModelos.rotuloFiltro(f):t('f_'+f),'aria-pressed':String(FILTRO===f)});
     b.onclick=function(){FILTRO=f;renderModelo();};fb.append(b);
   });
   box.append(fb);
+  if(FILTRO==='recomendados'&&window.AtlasModelos){AtlasModelos.recomendados(box,e,cartao,cartaoInstalado);}
+  else{
   var resto=filtrar((e.catalogo||[]).filter(function(m){return !m.instalado;}));
   var ordem={vram:0,parcial:1,grande:2};
   resto.sort(function(a,b){return ((a.tipo==='embed')-(b.tipo==='embed'))||((ordem[a.cabe]||0)-(ordem[b.cabe]||0))||(b.gb-a.gb);});
@@ -334,6 +338,7 @@ function renderModelo(){
   var limite=CAT_MAIS||FILTRO!=='todos'?resto.length:6;
   resto.slice(0,limite).forEach(function(m){box.append(cartao(m,e,c));});
   if(resto.length>6&&FILTRO==='todos')box.append(ibtn(CAT_MAIS?t('catLess'):t('catMore',{n:resto.length-6}),CAT_MAIS?'chevron-down':'plus','baixar wide',function(){CAT_MAIS=!CAT_MAIS;renderModelo();}));
+  }
   // provedores (estrutura)
   var pv=$('#mProv');pv.textContent='';
   var pr2=e.provedores||{};
@@ -358,6 +363,7 @@ function cartaoInstalado(m,e,c){
   div.append(tags);
   if(meta)div.append(h('div',{class:'meta',text:meta}));
   var s=selo(m.cabe,embed);if(s)div.append(s);
+  if(window.AtlasModelos)AtlasModelos.extras(div,cat||{tipo:m.tipo},e,m);   // nível, ferramentas, medido (modelos.js)
   var acoes=h('div',{class:'acts2'});
   if(!m.ativo)acoes.append(ibtn(embed?t('useEmbed'):t('setDefault'),'check','baixar',function(ev){ev.stopPropagation();usar({nome:m.nome,tipo:m.tipo});}));
   if(!embed)acoes.append(ibtn(t('profile'),'sliders','baixar',function(ev){ev.stopPropagation();
@@ -380,10 +386,11 @@ function cartao(m,e,c){
   var s=selo(m.cabe,embed);
   if(s)div.append(s);
   else if(ramPC()&&m.ram>ramPC()*0.85)div.append(h('div',{class:'d warn'},[ico('alert-triangle',14),h('span',{text:t('heavy',{ram:Math.round(ramPC())})})]));
+  if(window.AtlasModelos)AtlasModelos.extras(div,m,e,null);              // nível, ferramentas, variantes (modelos.js)
   if(e.ollama_online){
     var acoes=h('div',{class:'acts2'});
     var bd=ibtn(t('dl'),'download','baixar pri');var pr=h('div',{class:'prog'},[h('div')]);
-    bd.onclick=function(ev){ev.stopPropagation();H.baixar(m.nome,bd,pr);};
+    bd.onclick=function(ev){ev.stopPropagation();H.baixar(window.AtlasModelos?AtlasModelos.tag(m):m.nome,bd,pr);};
     acoes.append(bd);div.append(acoes);div.append(pr);
   }
   return div;
@@ -401,8 +408,10 @@ async function perfil(m){
     fields:[{name:'num_ctx',type:'number',label:t('profCtx'),min:1024,max:teto,step:512,value:p.num_ctx,hint:t('profCtxHint',{max:teto})},
             {name:'temperatura',type:'number',label:t('profTemp'),min:0,max:2,step:0.05,value:p.temperatura,hint:t('range',{min:0,max:2})+' · '+m.temp},
             {name:'top_p',type:'number',label:t('profTopP'),min:0.05,max:1,step:0.05,value:p.top_p,hint:t('range',{min:0.05,max:1})},
-            {name:'max_tokens',type:'number',label:t('profMax'),min:16,max:8192,step:16,value:p.max_tokens,hint:t('range',{min:16,max:8192})}]});
+            {name:'max_tokens',type:'number',label:t('profMax'),min:16,max:8192,step:16,value:p.max_tokens,hint:t('range',{min:16,max:8192})}]
+            .concat(window.AtlasModelos?[AtlasModelos.campoPerfil(p)]:[])});
   if(!r)return;
+  if(window.AtlasModelos)r.ferramentas=AtlasModelos.valorPerfil(r.ferramentas);
   var obj={};Object.keys(r).forEach(function(k){if(r[k]!=null)obj[k]=r[k];});
   await H.salvar({perfis_modelo:(function(){var o={};o[m.nome]=Object.keys(obj).length?obj:null;return o;})()});
   toast(Object.keys(obj).length?t('profSaved'):t('profReset'),'ok');
@@ -421,6 +430,7 @@ function renderContexto(){
   var fm=h('div',{class:'seg',id:'fatosSeg'});
   box.append(h('div',{class:'skill col'},[h('div',{class:'info'},[h('div',{class:'nm',text:t('c_fatos')}),h('div',{class:'d',text:t('c_fatos_d')})]),fm]));
   H.seg('#fatosSeg',(lim().fatos_modos||['perguntar','automatico','desligado']),k.fatos_modo||'perguntar',function(v){return t('fm_'+v);},function(v){H.salvar({contexto:{fatos_modo:v}});});
+  if(window.AtlasModelos)AtlasModelos.secaoFerramentas(box,H,c,{linha:linha,interruptor:interruptor,numero:numero});
   // orçamento estimado para o modelo ativo
   var ctx=efetivoCtx();var saida=Math.min(1024,Math.floor(ctx/4));
   var tok=Math.max(0,Math.round((ctx-saida-300)*(k.ctx_pct||35)/100));

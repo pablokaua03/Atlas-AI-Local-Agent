@@ -127,9 +127,10 @@ def excluir(cid):
         return d["atual"]
 
 
-def adicionar(cid, u, a, ctx=None, parcial=False):
+def adicionar(cid, u, a, ctx=None, parcial=False, ferramentas=None):
     """ctx (opcional): memórias usadas na resposta, [{id,t,p}], para a interface citar a fonte.
-    parcial=True marca uma resposta interrompida pelo usuário."""
+    parcial=True marca uma resposta interrompida pelo usuário.
+    ferramentas (opcional): ferramentas que o modelo usou [{tool, args, ok, resumo, acao?}]."""
     with _lock:
         d = _load()
         for c in d["chats"]:
@@ -139,6 +140,8 @@ def adicionar(cid, u, a, ctx=None, parcial=False):
                     msg["ctx"] = ctx
                 if parcial:
                     msg["parcial"] = True
+                if ferramentas:
+                    msg["ferramentas"] = ferramentas[:20]
                 c["mensagens"].append(msg)
                 c["atualizado"] = time.time()
                 if c["titulo"] in _NOVOS:           # primeiro título = começo da pergunta
