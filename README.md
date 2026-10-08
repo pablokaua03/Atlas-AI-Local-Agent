@@ -9,7 +9,14 @@ so you do not clone a huge folder.
 
 ## Features
 
-- Chat with saved conversation history (create, rename, delete)
+- Chat with saved conversation history (create, rename, delete), a search box
+  over titles and messages, and chats grouped by date
+- Safe Markdown answers (headings, lists, tables, links, code blocks with a
+  copy button; raw HTML is always escaped), smooth streaming that stops
+  auto-scrolling when you scroll up, and a Stop button that keeps the partial
+  answer
+- Clear Ollama status with one-click start (progress and error messages), and a
+  per-chat model picker
 - Local memory of facts, plus access to all past conversations
 - Screen awareness via OCR, an editable knowledge graph, proactive messages
   and offline Wikipedia
@@ -28,11 +35,21 @@ so you do not clone a huge folder.
   light models for low-end PCs, with download size, approximate RAM, context
   window and installed status. Install with progress and clear errors, switch,
   delete, and set a per-model profile (context window, temperature...)
+- Installed models list (including models pulled outside the catalog), pull any
+  model by name, and a fit badge for your GPU: fits in VRAM, will also use RAM
+  (slower) or too big
 - Smarter context: memories are chosen by relevance + importance + recency,
   deduplicated, fitted to a budget derived from the model's context window, and
-  shown (collapsible) under each answer. Pin or exclude memories per chat or per
-  project. Durable facts are proposed for confirmation and never include
+  shown (collapsible) under each answer with why each one was used. Pin or
+  exclude memories per chat or per project, or pin a memory itself so it always
+  goes into its project's chats. Weak matches are dropped instead of filling the
+  budget. Durable facts are proposed for confirmation and never include
   passwords, tokens or cards
+- Memories page: search with highlighting, pin/unpin and a pinned filter, edit
+  content, type, project, importance and tags
+- Graph page: memories as nodes, node size by number of links, search with a
+  results list that focuses the node, touch and pinch zoom, zoom buttons and
+  description editing. Fast with hundreds of nodes, no external libraries
 - Settings in sections (Model, Memory and context, Personality and instructions
   with editable presets and per-project text, Generation: temperature, top_p,
   max tokens, seed, Privacy and security, Language and theme, Backup), with
@@ -62,6 +79,8 @@ pip install -r requirements.txt
 - Windows: double click `launcher.pyw` (or create a shortcut). It has Start,
   Stop and Open buttons and manages Ollama for you.
 - Any OS: run `python server.py` and open http://127.0.0.1:5005
+- Another port: set `ATLAS_PORT` (1024 to 65535), e.g. `ATLAS_PORT=5077 python server.py`.
+  The MCP server then needs `ATLAS_URL=http://127.0.0.1:5077`.
 
 ## First time
 

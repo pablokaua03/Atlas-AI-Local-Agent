@@ -22,8 +22,10 @@ on 127.0.0.1.
 - **Memory**: one durable, self-contained statement with:
   `content`, `project`, `type` (`fact`, `preference`, `decision`, `task`, `note`,
   `event` or anything you like), `tags`, `importance` (1 to 5), `source` (which AI
-  wrote it), `entities` (graph nodes it is about), `meta` (free JSON) and an
-  optional `expires_at`.
+  wrote it), `entities` (graph nodes it is about), `meta` (free JSON), an
+  optional `expires_at` and `pinned` (optional, default `false`). A pinned memory
+  always goes into the context of Atlas chats in its project and subprojects (up
+  to 8); pinned memories of `geral` go into every chat.
 - **Graph**: the same graph you see in the Atlas graph view. Nodes created through
   the API are *pinned*: the automatic graph builder never prunes them. Nodes can
   belong to one or more projects.
@@ -72,17 +74,22 @@ returns the whole tree with memory counts.
 ### In the interface
 
 - 🗂️ **Memories** page: the project tree in the sidebar (➕ creates a subproject),
-  search, add, edit, re-rate and delete memories (including the ones other AIs
-  wrote). With a project open, "include inherited" shows what it inherits.
+  search (matches are highlighted), add, edit (content, type, project, importance,
+  tags), pin/unpin, filter by pinned, and delete memories (including the ones other
+  AIs wrote). With a project open, "include inherited" shows what it inherits.
 - 🕸️ **Graph** page, with three views:
   - **Network**: 2D force graph with glow, neighborhood highlight and flowing links;
   - **3D Orbit**: the same graph in 3D, auto-rotating (drag to rotate, wheel to zoom);
   - **Hierarchy**: radial tree, general memory at the center, then projects,
     subprojects and their memories (double-click a project to open it in the
     network view).
-  All views have search, a project filter (with or without subprojects), a
-  clickable type legend and a details panel with the related memories. Everything
-  is drawn locally, with no external libraries.
+  All views have search with a results list (↑/↓ and Enter focus a node), a
+  project filter (with or without subprojects), a clickable type legend, zoom
+  buttons, touch/pinch support and a details panel with the related memories and
+  an editable description. Node size follows the number of links. In Network and
+  3D Orbit, the "memories" toggle adds memories as small diamonds linked to the
+  entities they mention. Everything is drawn locally (canvas, no external
+  libraries) and the page stops redrawing while nothing moves.
 
 ## Authentication and safety
 
@@ -157,11 +164,11 @@ Errors always look like `{"error": {"code": "...", "message": "..."}}`.
 | GET | `/v1/projects/tree` | The whole hierarchy, nested under the general memory |
 | POST | `/v1/projects` | Create `{name, description?, parent?, tags?, meta?}` |
 | GET / PATCH / DELETE | `/v1/projects/{id}` | Read, update (also `parent` to move it), delete (`?cascade=true` also deletes its memories; subprojects move up) |
-| GET | `/v1/memories` | List (`project`, `scope`, `tag`, `type`, `source`, `sort=recent\|importance`, `limit`, `offset`) or search with `q` |
+| GET | `/v1/memories` | List (`project`, `scope`, `tag`, `type`, `source`, `pinned=true\|false`, `sort=recent\|importance`, `limit`, `offset`) or search with `q` |
 | POST | `/v1/memories` | Create a memory (exact duplicates in the same project return the existing one) |
 | POST | `/v1/memories/batch` | Create up to 200 at once `{items: [...]}` |
 | POST | `/v1/memories/search` | `{query, project?, scope?, tags?, type?, limit?, semantic?}` |
-| GET / PATCH / DELETE | `/v1/memories/{id}` | Read, update (also `add_tags`), delete |
+| GET / PATCH / DELETE | `/v1/memories/{id}` | Read, update (also `add_tags` and `pinned`), delete |
 | GET | `/v1/graph` | Whole graph, or `?project=` subgraph (`&scope=tree` includes subprojects) |
 | GET | `/v1/graph/nodes` | Find nodes (`q`, `project`, `type`, `limit`) |
 | POST | `/v1/graph/nodes` | Create `{label, type?, project?, description?}` (reuses a matching node) |
@@ -224,30 +231,39 @@ file and the chat gained optional fields.
 | `POST /api/config` | Partial update. New keys are validated and clamped; the response carries `avisos` (list of strings) for anything rejected. |
 | `POST /api/config/restaurar` `{"secao": "modelo\|memoria\|personalidade\|geracao\|privacidade\|geral"}` | Restores one settings section to its defaults. Never touches `api_token` or the vault. |
 | `GET /api/projetos` | Light project list (`id`, `name`, `parent`, `depth`) for selectors. `[]` while the vault is locked. |
+| `GET /api/chats?q=` | Chat list; with `q`, searches titles and messages and each item carries a `trecho` (snippet). Items also carry the chat's `modelo` when set. |
 | `GET /api/chats/<id>/ctx` | Active project and pinned/excluded memories of a chat and of its project (with text). |
-| `POST /api/chats/<id>/ctx` | `{"projeto"?, "acao": "fixar\|excluir\|limpar", "id": "<memory id>", "escopo": "conversa\|projeto"}`. |
+| `POST /api/chats/<id>/ctx` | `{"projeto"?, "modelo"?, "acao": "fixar\|excluir\|limpar", "id": "<memory id>", "escopo": "conversa\|projeto"}`. `modelo` sets a per-chat model (a chat model name, 400 for invalid or embedding models; if it is not installed when you chat, the default is used; `""` or `null` goes back to the default). |
 | `POST /api/fatos/confirmar` `{"texto"}` | Saves a durable fact the user confirmed. Rejects sensitive text (passwords, tokens, cards, IDs), too short or too long (6 to 160 chars). |
-| `POST /chat` | Response header `X-Atlas-Contexto` (URL-encoded JSON) lists the memories used: `mems[{id,t,p,f}]`, `projeto`, `orcamento`, `usado`, `ctx`. |
+| `POST /chat` | Response header `X-Atlas-Contexto` (URL-encoded JSON) lists the memories used: `mems[{id,t,p,f,w}]` (`f` pinned, `w` why: `fixada`, `relevante` or `projeto`), `projeto`, `orcamento`, `usado`, `ctx`, `modelo`. If the client stops the stream, generation in Ollama is stopped and the partial answer is saved with `parcial: true`. |
+| `GET /api/estado` | Also returns `instalados_info[]` (`nome`, `gb`, `parametros`, `quant`, `tipo`, `catalogo`, `rotulo`, `cabe`, `ativo`), `hardware` (`gpu`, `vram_gb`, `ram_gb`) and `catalogo[].cabe`. `cabe` is `vram` (fits in VRAM), `parcial` (will also use RAM), `grande` (too big) or `null` (unknown). |
+| `GET /api/ollama/status` | `{online, instalado, modelos}`. |
+| `POST /api/ollama/start` | `{ok, online, erro}` with `erro` = `nao_instalado`, `falhou`, `timeout` or `null`. |
+| `POST /api/ollama/delete` `{"modelo"}` | Deletes an installed model; if it was the default, another installed chat model becomes the default (`{ok, modelo}`). |
+| `POST /api/pull` `{"modelo"}` | Streams Ollama pull progress (NDJSON). Invalid names return 400; with Ollama off the stream yields `{"error": "ollama_offline"}`. |
 
 New optional `config.json` fields (all have defaults and limits):
 
 - `provedor` (`"ollama"`), `embed`, `num_ctx` (1024 to 32768, capped by the model).
 - `geracao`: `temperatura` (0 to 2), `top_p` (0.05 to 1), `max_tokens` (16 to 8192), `seed` (0 to 2147483647). `null` means the model default.
 - `perfis_modelo`: per model `num_ctx`, `temperatura`, `top_p`, `max_tokens`, `seed`; wins over `geracao`.
-- `contexto`: `ctx_pct` (10 to 70, share of the window used by retrieved context), `max_memorias` (0 to 20), `recencia_dias` (1 to 365, half-life), `hist_msgs` (0 to 20), `incluir_conversas`, `fatos_modo` (`perguntar`, `automatico`, `desligado`).
+- `contexto`: `ctx_pct` (10 to 70, share of the window used by retrieved context), `max_memorias` (0 to 20), `recencia_dias` (1 to 365, half-life), `hist_msgs` (0 to 20), `incluir_conversas`, `fatos_modo` (`perguntar`, `automatico`, `desligado`), `busca_semantica` (default `false`: also use embeddings when choosing memories for the chat, if the embedding model is installed).
 - `instrucoes`: `preset`, `extra` (up to 2000 chars), `personalizados` (up to 12 editable presets); `instrucoes_projeto` (`{project_id: text}`).
 - `ctx_projeto`: `{project_id: {"fixas": [memory ids], "excluidas": [memory ids]}}`.
 
-Optional chat fields in `conversas.json`: `projeto`, `ctx_fixas`, `ctx_excluidas` per chat and `ctx` per message (memories used).
+Optional chat fields in `conversas.json`: `projeto`, `ctx_fixas`, `ctx_excluidas`, `modelo` per chat and `ctx`, `parcial` per message (memories used; answer was stopped).
 
 Context ranking: `score = 0.60 * relevance + 0.25 * importance/5 + 0.15 * recency`, where
-recency halves every `recencia_dias`. Pinned memories always come first; excluded ones
-never enter. A decision made for the chat wins over one made for the project.
+recency halves every `recencia_dias`. Pinned memories always come first (chat/project
+pins, then memories with `pinned: true`, up to 8); excluded ones never enter. A decision
+made for the chat wins over one made for the project. Weak matches (below 30% of the best
+match) are dropped instead of filling the budget, and rare words weigh more than common
+ones in keyword search.
 
 ## Tests
 
 ```bash
-python -m unittest discover -s tests
+python -m pytest -q        # or: python -m unittest discover -s tests
 ```
 
 The tests run in a temporary folder (your data is never touched) and do not need
