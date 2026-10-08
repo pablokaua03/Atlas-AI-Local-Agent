@@ -456,6 +456,8 @@
 <script src="/static/ui.js"></script>
 <script src="/static/md.js"></script>
 <script src="/static/ajustes.js"></script>
+<script src="/static/ferramentas.js"></script>
+<script src="/static/modelos.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 let estado=null, ocupado=false, LANG='pt', TEMA='escuro', chatAtual=null, ctrl=null, ultimaPergunta=null, anexos=[];
@@ -1089,6 +1091,7 @@ async function abrirMensagens(id){
   let c;try{c=await(await fetch('/api/chats/'+id)).json();}catch(e){vazio();return;}
   if(!c.mensagens||!c.mensagens.length){vazio();return;}
   for(const m of c.mensagens){addMsg('user',m.u);const r=addMsg('a',m.a,true);
+    if(m.ferramentas&&m.ferramentas.length)AtlasTools.bloco(r,m.ferramentas);
     if(m.ctx&&m.ctx.length)AjustesUI.chat.usadas(r.body,m.ctx,null);
     acoesResposta(r,m.a,!!m.parcial);}
   ultimaPergunta=c.mensagens[c.mensagens.length-1].u;
@@ -1193,7 +1196,7 @@ async function enviarTexto(texto,envs){
   body.innerHTML='<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>';
   let acc='',infoCtx=null,abortado=false,pend=false;ctrl=new AbortController();
   // markdown durante o streaming, no máximo uma vez por quadro
-  const pintar=()=>{pend=false;body.innerHTML=md(acc);rolarFim();};
+  const pintar=()=>{pend=false;AtlasTools.pintar(r,acc,md);rolarFim();};
   try{const resp=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:ctrl.signal});
     infoCtx=AjustesUI.chat.parseHeader(resp.headers.get('X-Atlas-Contexto'));
     const rd=resp.body.getReader(),dc=new TextDecoder();
@@ -1202,7 +1205,7 @@ async function enviarTexto(texto,envs){
       if(!pend){pend=true;requestAnimationFrame(pintar);}}
   }catch(e){if(e.name==='AbortError')abortado=true;else acc+='\n\n'+t('errStream');}
   r.bubble.classList.remove('streaming');
-  body.innerHTML=md(acc);
+  acc=AtlasTools.pintar(r,acc,md);   // tira os eventos de ferramenta do texto e mostra o bloco
   if(infoCtx&&infoCtx.mems&&infoCtx.mems.length)AjustesUI.chat.usadas(body,infoCtx.mems,infoCtx);
   acoesResposta(r,acc,abortado&&!!acc.trim());
   rolarFim();
