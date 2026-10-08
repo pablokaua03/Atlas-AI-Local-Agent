@@ -76,6 +76,10 @@ function el(tag,attrs,kids){var e=document.createElement(tag);
     if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k.slice(0,2)==='on')e[k]=v;else if(k==='value'||k==='selected')e[k]=v;else e.setAttribute(k,v);});
   (kids||[]).forEach(function(c){if(c!=null)e.append(c);});return e;}
 function gb(n){return (n>=10?Math.round(n):Math.round(n*10)/10)+' GB';}
+function ico(n,sz){return (window.AtlasIcons&&AtlasIcons.el(n,sz||13))||null;}
+function chip(cls,n,txt,title){var s=el('span',{class:cls,title:title||null});var i=ico(n,12);if(i)s.append(i);s.append(el('span',{text:txt}));return s;}
+function ibtn(txt,n,cls){var b=el('button',{type:'button',class:cls||'baixar',text:txt});if(window.AtlasIcons)AtlasIcons.label(b,n,txt,15);return b;}
+var PAPEL_ICO={rapido:'zap',equilibrado:'check-circle',inteligente:'brain',visao:'eye',codigo:'code',embed:'search'};
 
 var FILTROS=['recomendados','todos','leve','moderado','pesado','grande','enorme','ferramentas','visao','codigo','embed'];
 var ESCOLHA={};                                      // modelo -> tag de quantização escolhida no cartão
@@ -91,21 +95,23 @@ function tag(m){return ESCOLHA[m.nome]||m.sugerida||m.nome;}
 // selo de encaixe para uma variante (reaproveita as classes .fit do painel)
 function selo(cabe,vram){
   if(!cabe)return null;
-  var txt=cabe==='vram'?'✓ '+t('fitVram',{v:Math.round((vram||0)*10)/10}):cabe==='parcial'?(vram?'≈ '+t('fitParcial'):'≈ '+t('fitCpu')):'✕ '+t('fitGrande');
-  return el('span',{class:'fit '+cabe,text:txt,title:t('fitNote')});
+  var txt=cabe==='vram'?t('fitVram',{v:Math.round((vram||0)*10)/10}):cabe==='parcial'?(vram?t('fitParcial'):t('fitCpu')):t('fitGrande');
+  return el('span',{class:'fit var '+cabe,text:txt,title:t('fitNote')});
 }
 
 // extras de um cartão de modelo (catálogo ou instalado)
 function extras(div,m,e,instalado){
   if(!m)return;
   var tags=div.querySelector('.tags')||div.appendChild(el('div',{class:'tags'}));
-  if(m.nivel)tags.append(el('span',{class:'tag',text:t('n_'+m.nivel)}));
+  if(m.nivel){var nv=t('n_'+m.nivel);                    // evita "Leve" duplicado (uso + nível)
+    [].slice.call(tags.querySelectorAll('.tag')).forEach(function(x){if(x.textContent===nv)x.remove();});
+    tags.append(chip('tag lvl lvl-'+m.nivel,'gauge',nv));}
   if(m.tipo!=='embed'){
     var tl=instalado&&instalado.ferramentas!=null?instalado.ferramentas:m.ferramentas;
-    tags.append(el('span',{class:'tag'+(tl?' pin':''),text:tl?t('toolsYes'):t('toolsNo'),title:tl?t('toolsHint'):''}));
+    tags.append(chip('tag'+(tl?' pin':' off'),tl?'wrench':'ban',tl?t('toolsYes'):t('toolsNo'),tl?t('toolsHint'):''));
   }
-  if(m.ativos)tags.append(el('span',{class:'tag',text:t('moe',{a:m.ativos})}));
-  if(m.recomendado&&m.recomendado.length)tags.append(el('span',{class:'tag pin',text:t('recTag')+': '+m.recomendado.map(function(p){return t('p_'+p);}).join(', ')}));
+  if(m.ativos)tags.append(chip('tag','layers',t('moe',{a:m.ativos})));
+  if(m.recomendado&&m.recomendado.length)tags.append(chip('tag why','star',t('recTag')+': '+m.recomendado.map(function(p){return t('p_'+p);}).join(', ')));
   var L=(e&&e.config&&e.config.idioma)||'pt';
   if(m.fortes&&(m.fortes[L]||m.fortes.pt)){
     var d=div.querySelector('.desc');var txt=m.fortes[L]||m.fortes.pt;
@@ -113,7 +119,7 @@ function extras(div,m,e,instalado){
   }
   if(m.tipo!=='embed'&&m.nivel){
     var md=m.medido;
-    div.append(el('div',{class:'d',text:md?t('measured',{s:md.tok_s,g:md.gpu_pct,f:md.ferramentas||'—'}):t('researched')}));
+    div.append(el('div',{class:'d mmed'+(md?' ok':'')},[ico(md?'gauge':'info',13),el('span',{text:md?t('measured',{s:md.tok_s,g:md.gpu_pct,f:md.ferramentas||'—'}):t('researched')})]));
   }
   // variantes de quantização (só no catálogo, antes de baixar)
   if(!instalado&&m.variantes&&m.variantes.length>1){
@@ -124,7 +130,7 @@ function extras(div,m,e,instalado){
       sel.append(el('option',{value:v.tag,text:(v.quant||'padrão')+' · '+gb(v.gb)+' '+marca+' — '+v.tag}));
     });
     sel.value=tag(m);
-    var slot=el('span');
+    var slot=el('div',{class:'fitslot'});
     function atualizar(){ESCOLHA[m.nome]=sel.value;var v=m.variantes.find(function(x){return x.tag===sel.value;});
       slot.textContent='';var s=v&&selo(v.cabe,hw.vram_gb);if(s)slot.append(s);
       var velho=div.querySelector('.fit:not(.var)');if(velho)velho.style.display='none';}
@@ -138,14 +144,15 @@ function extras(div,m,e,instalado){
 function recomendados(box,e,cartao,cartaoInstalado){
   var recs=e.recomendacoes||{};
   var papeis=['rapido','equilibrado','inteligente','visao','codigo','embed'].filter(function(p){return recs[p];});
-  box.append(el('h3',{class:'sub',text:t('recHdr')}));
+  box.append(el('h3',{class:'sub rec'},[ico('star',13),el('span',{text:t('recHdr')})]));
   if(!papeis.length){box.append(el('div',{class:'ui-empty',text:t('recNone')}));return;}
   var vistos={};
   papeis.forEach(function(p){
     var r=recs[p];
     var m=(e.catalogo||[]).find(function(x){return x.nome===r.nome;});if(!m)return;
-    box.append(el('div',{class:'d',text:t('p_'+p)+' — '+t('pd_'+p)}));
-    if(vistos[r.nome]){box.append(el('div',{class:'d',text:'↑ '+m.rotulo}));return;}
+    box.append(el('div',{class:'recrole'},[el('span',{class:'ri'},[ico(PAPEL_ICO[p]||'star',15)]),
+      el('div',{class:'rt'},[el('div',{class:'nm',text:t('p_'+p)}),el('div',{class:'d',text:t('pd_'+p)})])]));
+    if(vistos[r.nome]){box.append(el('div',{class:'d recsame'},[ico('arrow-up',13),el('span',{text:m.rotulo})]));return;}
     vistos[r.nome]=1;ESCOLHA[m.nome]=ESCOLHA[m.nome]||r.tag;
     var inst=(e.instalados_info||[]).find(function(i){return i.nome===r.tag||i.nome===r.nome||i.nome===r.nome+':latest'||i.catalogo===r.nome;});
     box.append(inst?cartaoInstalado(inst,e,e.config):cartao(m,e,e.config));
@@ -163,7 +170,7 @@ function hardware(container,e,H){
   if(hw.cpu)linhas.push(t('hwCpu',{c:hw.cpu,n:hw.nucleos||hw.threads||'?'}));
   linhas.push(hw.fonte==='manual'?t('hwManual'):t('hwAuto'));
   var d=el('div',{class:'d',text:linhas.join(' · ')});
-  var b=el('button',{type:'button',class:'baixar',text:t('hwEdit')});
+  var b=ibtn(t('hwEdit'),'sliders','baixar');
   b.onclick=async function(){
     var man=(e.config&&e.config.hardware_manual)||{};var det=e.hardware_detectado||hw;
     var r=await AtlasUI.form({title:t('hwT'),message:t('hwM'),okText:t('p_projSave'),
@@ -176,18 +183,18 @@ function hardware(container,e,H){
     await H.salvar({hardware_manual:{ativo:!!r.ativo,vram_gb:r.vram_gb==null?null:r.vram_gb,ram_gb:r.ram_gb==null?null:r.ram_gb,gpu:r.gpu||'',unificada:!!r.unificada}});
     AtlasUI.toast(t('hwSaved'),{kind:'ok'});
   };
-  container.append(el('div',{class:'hw'},[d,b]));
+  container.append(el('div',{class:'hw hw2'},[d,b]));
 }
 
 // seção de ferramentas (dentro de "Memória e contexto")
 function secaoFerramentas(box,H,c,A){
   var f=(c&&c.ferramentas)||{};
-  box.append(el('h3',{class:'sub',text:t('ferrT')}));
+  box.append(el('h3',{class:'sub rec'},[ico('wrench',13),el('span',{text:t('ferrT')})]));
   box.append(A.linha(t('ferrOn'),t('ferrOnD'),A.interruptor(f.ativo!==false,function(v){H.salvar({ferramentas:{ativo:v}});},t('ferrOn'))));
   box.append(A.linha(t('ferrW'),t('ferrWD'),A.interruptor(f.escrita!==false,function(v){H.salvar({ferramentas:{escrita:v}});},t('ferrW'))));
   box.append(A.linha(t('ferrRod'),t('ferrRodD'),A.numero({label:t('ferrRod'),min:1,max:8,int:true,step:1,value:f.max_rodadas||4,
     salvar:function(v){H.salvar({ferramentas:{max_rodadas:v}});}})));
-  var b=el('button',{type:'button',class:'baixar',text:t('ferrLog')});b.onclick=function(){if(window.AtlasTools)AtlasTools.registro();};
+  var b=ibtn(t('ferrLog'),'file-text','baixar');b.onclick=function(){if(window.AtlasTools)AtlasTools.registro();};
   box.append(el('div',{class:'sfoot'},[b]));
 }
 

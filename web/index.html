@@ -350,6 +350,21 @@
   .modelo>.fit,.modelo>.d{margin-top:8px}
   .modelo .tag .ico,.ctxitem .tag .ico,details.usadas .tag .ico{opacity:.9}
   #cfg .ui-empty{padding:16px 8px;font-size:var(--fs-sm)}
+  /* modelos: recomendados para a máquina, filtros por nível, selos de encaixe (modelos.js) */
+  .sub.rec{display:flex;align-items:center;gap:6px} .sub.rec .ico{color:var(--accent)}
+  .recrole{display:flex;align-items:center;gap:10px;margin:14px 0 6px}
+  .recrole .ri{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--accent-soft);color:var(--accent)}
+  .recrole .rt{min-width:0} .recrole .nm{font-size:var(--fs-sm);font-weight:var(--fw-semi)} .recrole .d{margin-top:0;font-size:var(--fs-xs)}
+  .recsame{display:flex;align-items:center;gap:6px;margin:0 0 8px 38px;font-size:var(--fs-xs);color:var(--faint)}
+  .hw.hw2{align-items:center;flex-wrap:wrap;margin-top:6px} .hw.hw2>.d{flex:1;min-width:180px;margin:0;font-size:var(--fs-xs)}
+  .hw.hw2 .baixar{height:28px;font-size:var(--fs-xs)}
+  .modelo .mmed{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--faint)} .modelo .mmed.ok{color:var(--dim)} .modelo .mmed.ok .ico{color:var(--good)}
+  .modelo .pullrow.var{margin-top:10px} .modelo .pullrow.var label{flex-shrink:0;margin:0} .modelo .pullrow.var .sel{height:32px;font-size:var(--fs-sm)}
+  .modelo .fitslot:not(:empty){margin-top:8px}
+  .tag.off{color:var(--faint)} .tag.lvl .ico{color:var(--faint)}
+  .tag.lvl-leve .ico{color:var(--good)} .tag.lvl-moderado .ico{color:var(--accent)} .tag.lvl-pesado .ico{color:var(--warn)}
+  .tag.lvl-grande .ico,.tag.lvl-enorme .ico{color:var(--danger)}
+  .tag.why .ico{color:var(--good)}
   .sfoot .rest .ico{opacity:.8}
   .baixar.danger{background:color-mix(in srgb,var(--danger) 8%,transparent);border-color:color-mix(in srgb,var(--danger) 25%,transparent);color:var(--danger)}
   .baixar.danger:hover{background:color-mix(in srgb,var(--danger) 15%,transparent)}

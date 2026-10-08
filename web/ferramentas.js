@@ -37,18 +37,42 @@ function el(tag,attrs,kids){var e=document.createElement(tag);
     if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k.slice(0,2)==='on')e[k]=v;else e.setAttribute(k,v);});
   (kids||[]).forEach(function(c){if(c!=null)e.append(c);});return e;}
 
-// estilo mínimo e isolado (usa as variáveis de tema da página)
+// estilo isolado, nos tokens de ui.css (mesmo visual do bloco "Memórias usadas")
 var css=el('style',{text:
-  '.ferr{margin:0 0 8px;font-size:12.5px;color:var(--dim)}'+
-  '.ferr>summary{cursor:pointer;user-select:none;list-style:none}.ferr>summary::-webkit-details-marker{display:none}'+
-  '.ferr>summary::before{content:"\\203A";display:inline-block;width:12px;transition:transform .15s}.ferr[open]>summary::before{transform:rotate(90deg)}'+
-  '.ferr>summary:hover{color:var(--txt)}.ferr ul{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-direction:column;gap:5px}'+
-  '.ferr li{display:flex;gap:8px;align-items:center;padding:5px 8px;background:var(--bg);border-radius:8px}'+
-  '.ferr .fn{font-weight:600;color:var(--txt);white-space:nowrap}.ferr .fr{flex:1;word-break:break-word}'+
-  '.ferr .ferr-x{color:#e5484d}.ferr li.desfeita .fr{text-decoration:line-through}'+
-  '.ferr button{font:inherit;font-size:11.5px;border:1px solid var(--line);background:transparent;color:var(--dim);border-radius:7px;padding:2px 8px;cursor:pointer}'+
-  '.ferr button:hover{color:var(--txt);border-color:var(--accent)}.ferr .run{font-style:italic}'});
+  '.ferr{margin:0 0 10px;font-size:var(--fs-sm);color:var(--dim)}'+
+  '.ferr>summary{cursor:pointer;user-select:none;list-style:none;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 8px 0 6px;margin-left:-6px;'+
+    'border-radius:var(--r-sm);transition:background var(--dur),color var(--dur)}'+
+  '.ferr>summary::-webkit-details-marker{display:none}'+
+  '.ferr>summary:hover{color:var(--txt);background:var(--hover)}'+
+  '.ferr>summary .fchev{display:inline-flex;color:var(--faint);transition:transform var(--dur) var(--ease)}.ferr[open]>summary .fchev{transform:rotate(90deg)}'+
+  '.ferr>summary .fnw{color:var(--faint);font-variant-numeric:tabular-nums}'+
+  '.ferr ul{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-direction:column;gap:6px}'+
+  '.ferr li{display:flex;gap:10px;align-items:center;padding:7px 6px 7px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px}'+
+  '.ferr .fi{width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--accent-soft);color:var(--accent)}'+
+  '.ferr li.w .fi{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}'+
+  '.ferr li.x .fi{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--danger)}'+
+  '.ferr .ft{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}'+
+  '.ferr .fn{font-weight:var(--fw-medium);color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ferr .fr{word-break:break-word;font-size:var(--fs-xs);line-height:1.45}'+
+  '.ferr .ferr-x{color:var(--danger)}.ferr li.desfeita{opacity:.6}.ferr li.desfeita .fr{text-decoration:line-through}'+
+  '.ferr .fu{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;height:28px;padding:0 10px;font:inherit;font-size:var(--fs-xs);font-weight:var(--fw-medium);'+
+    'border:1px solid var(--line2);background:var(--panel2);color:var(--txt);border-radius:var(--r-sm);cursor:pointer;transition:background var(--dur)}'+
+  '.ferr .fu:hover{background:var(--panel3)}.ferr .fu:disabled{opacity:.5;cursor:default}'+
+  '.ferr .fdone{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:11px;color:var(--faint);padding-right:4px}'+
+  '.ferr .run{font-style:italic}'+
+  '.ferr.log ul{margin:0}.ferr.log .fr{color:var(--dim)}'});
 document.head.appendChild(css);
+function ico(n,sz){return (window.AtlasIcons&&AtlasIcons.el(n,sz||14))||null;}
+var ICO={search_memories:'search',save_memory:'brain',update_memory:'pencil',pin_memory:'pin',graph_search:'graph',add_concept:'plus',
+  link_concepts:'link',list_projects:'folder',recall_conversation:'message',list_documents:'file-text',read_document:'file'};
+function botaoDesfazer(){var b=el('button',{type:'button',class:'fu'});if(window.AtlasIcons)AtlasIcons.label(b,'rotate-ccw',t('tlUndo'),13);else b.textContent=t('tlUndo');return b;}
+function feito(){return el('span',{class:'fdone'},[ico('check',12),el('span',{text:t('tlUndone')})]);}
+// linha de uma ação: ícone da ferramenta, nome e resumo
+function linhaAcao(tool,resumo,ok,escrita,titulo){
+  var li=el('li',{class:(escrita?'w':'')+(ok?'':' x')});
+  li.append(el('span',{class:'fi'},[ico(ok?(ICO[tool]||'wrench'):'alert-circle',14)]));
+  li.append(el('span',{class:'ft'},[el('span',{class:'fn',text:nomeF(tool)}),resumo?el('span',{class:'fr'+(ok?'':' ferr-x'),text:resumo,title:titulo||null}):null]));
+  return li;
+}
 
 // separa o texto da resposta dos eventos de ferramenta
 function separar(acc){
@@ -77,7 +101,7 @@ async function desfazer(ev,li,btn){
       if(await AtlasUI.form({title:t('tlUndoT'),message:t('tlConf'),okText:t('tlUndo'),danger:true}))d=await pedir(true);
       else{btn.disabled=false;return;}
     }
-    if(d.ok||d.erro==='ja_desfeita'){li.classList.add('desfeita');btn.replaceWith(el('span',{text:t('tlUndone')}));
+    if(d.ok||d.erro==='ja_desfeita'){li.classList.add('desfeita');btn.replaceWith(feito());
       if(d.ok)AtlasUI.toast(t('tlOk'),{kind:'ok'});}
     else{btn.disabled=false;AtlasUI.toast(t('tlErr'),{kind:'err'});}
   }catch(e){btn.disabled=false;AtlasUI.toast(t('tlErr'),{kind:'err'});}
@@ -90,14 +114,12 @@ function bloco(r,eventos,rodando){
   if(!eventos||!eventos.length){if(d)d.remove();return;}
   var aberto=d?d.open:false;
   var novo=el('details',{class:'ferr'});novo.open=aberto;
-  novo.append(el('summary',{text:t('tlN',{n:eventos.length})}));
+  novo.append(el('summary',{},[el('span',{class:'fchev'},[ico('chevron-right',14)]),ico('wrench',14),el('span',{text:t('tlN',{n:eventos.length})})]));
   var ul=el('ul');
   eventos.forEach(function(ev){
-    var li=el('li');
-    li.append(el('span',{class:'fn',text:nomeF(ev.tool)}));
     var txt=ev.ok?(ev.resumo||''):(t('tlFail')+(ev.erro?': '+ev.erro:''));
-    li.append(el('span',{class:'fr'+(ev.ok?'':' ferr-x'),text:txt,title:JSON.stringify(ev.args||{})}));
-    if(ev.ok&&ev.acao){var b=el('button',{type:'button',text:t('tlUndo')});b.onclick=function(){desfazer(ev,li,b);};li.append(b);}
+    var li=linhaAcao(ev.tool,txt,ev.ok,!!ev.acao,JSON.stringify(ev.args||{}));
+    if(ev.ok&&ev.acao){var b=botaoDesfazer();b.onclick=function(){desfazer(ev,li,b);};li.append(b);}
     ul.append(li);
   });
   novo.append(ul);
@@ -116,16 +138,16 @@ function pintar(r,acc,md){
 async function registro(){
   var d={acoes:[]};try{d=await(await fetch('/api/ferramentas?limite=100')).json();}catch(e){}
   AtlasUI.modal({title:t('tlLogT'),wide:true,build:function(box,fechar){
-    var ul=el('ul',{class:'ferr'});ul.style.listStyle='none';ul.style.padding='0';
+    var ul=el('ul');
     if(!d.acoes.length)box.append(el('div',{class:'ui-empty',text:t('tlLogEmpty')}));
     d.acoes.forEach(function(a){
-      var li=el('li',{class:a.desfeita?'desfeita':''});
-      li.append(el('span',{class:'fn',text:nomeF(a.tool)}),el('span',{class:'fr',text:(a.resumo||'')+' · '+(a.ts||'').replace('T',' ')+' · '+(a.modelo||'')}));
-      if(!a.desfeita){var b=el('button',{type:'button',text:t('tlUndo')});b.onclick=function(){desfazer({acao:a.id,resumo:a.resumo},li,b);};li.append(b);}
-      else li.append(el('span',{text:t('tlUndone')}));
+      var li=linhaAcao(a.tool,[a.resumo||'',(a.ts||'').replace('T',' ').slice(0,16),a.modelo||''].filter(Boolean).join(' · '),true,true);
+      if(a.desfeita)li.classList.add('desfeita');
+      if(!a.desfeita){var b=botaoDesfazer();b.onclick=function(){desfazer({acao:a.id,resumo:a.resumo},li,b);};li.append(b);}
+      else li.append(feito());
       ul.append(li);
     });
-    var w=el('div',{class:'ferr'});w.append(ul);box.append(w);
+    var w=el('div',{class:'ferr log'});w.append(ul);box.append(w);
     box.append(el('div',{class:'ui-actions'},[el('button',{class:'ui-btn',type:'button',text:'OK',onclick:function(){fechar(null);}})]));
   }});
 }

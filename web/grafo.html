@@ -22,12 +22,12 @@
   .seg button:hover{color:var(--txt)}
   .seg button.on{background:var(--panel3);color:var(--txt);box-shadow:var(--shadow-1)} .seg button.on .ico{color:var(--accent)}
   .tbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
-    border-radius:var(--r-sm);padding:0 10px;cursor:pointer;white-space:nowrap;text-decoration:none;font-weight:var(--fw-medium);transition:background var(--dur),border-color var(--dur),color var(--dur)}
+    border-radius:var(--r-sm);padding:0 10px;cursor:pointer;white-space:nowrap;text-decoration:none;font-size:13px;font-weight:var(--fw-medium);transition:background var(--dur),border-color var(--dur),color var(--dur)}
   .tbtn:hover{border-color:var(--line2);background:var(--panel3)} .tbtn.on{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
   .tbtn.ico-only{padding:0;width:34px} .tbtn.danger{color:var(--danger)} .tbtn.danger:hover{background:color-mix(in srgb,var(--danger) 12%,transparent)}
   .sp{flex:1}
   #buscaW{position:relative}
-  #buscaW>.ico{position:absolute;left:10px;top:9px;color:var(--faint);pointer-events:none}
+  #buscaW>[data-icon]{position:absolute;left:10px;top:9px;color:var(--faint);pointer-events:none;z-index:1}
   #busca{height:34px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:0 12px 0 32px;width:200px;outline:none;transition:border-color var(--dur),box-shadow var(--dur)}
   #busca:focus{border-color:color-mix(in srgb,var(--accent) 60%,var(--line2));box-shadow:var(--ring)}
   #res{position:fixed;width:300px;max-height:min(360px,60vh);overflow:auto;background:rgba(14,18,26,.97);border:1px solid var(--line);
