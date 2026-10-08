@@ -130,10 +130,12 @@
   function nav(ativo,o){
     o=o||{};var old=document.querySelector('.ui-bnav');if(old)old.remove();
     var tx=NAV[o.idioma]||NAV.pt,n=el('nav',{class:'ui-bnav'});n.setAttribute('aria-label','Principal');
-    [['chat','/','💬'],['mem','/memorias','🗂️'],['graph','/grafo','🕸️']].forEach(function(x){
-      var a=el('a',{href:x[1],class:ativo===x[0]?'on':''},[el('span',{class:'ic',text:x[2]}),el('span',{text:tx[x[0]]})]);
+    function ic(nome){var s=el('span',{class:'ic'});s.setAttribute('aria-hidden','true');
+      if(window.AtlasIcons)s.innerHTML=AtlasIcons.svg(nome,20);return s;}
+    [['chat','/','message'],['mem','/memorias','folder'],['graph','/grafo','graph']].forEach(function(x){
+      var a=el('a',{href:x[1],class:ativo===x[0]?'on':''},[ic(x[2]),el('span',{text:tx[x[0]]})]);
       if(ativo===x[0])a.setAttribute('aria-current','page');n.append(a);});
-    if(o.onConfig){var b=el('button',{type:'button'},[el('span',{class:'ic',text:'⚙'}),el('span',{text:tx.cfg})]);b.onclick=o.onConfig;n.append(b);}
+    if(o.onConfig){var b=el('button',{type:'button'},[ic('settings'),el('span',{text:tx.cfg})]);b.onclick=o.onConfig;n.append(b);}
     document.body.append(n);document.body.classList.add('ui-has-nav');
   }
 

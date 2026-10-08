@@ -7,16 +7,7 @@
 <link rel="icon" href="/static/favicon.png">
 <link rel="stylesheet" href="/static/ui.css">
 <style>
-  :root{
-    --bg:#0d0f13; --bg2:#0b0d11; --panel:#161a21; --panel2:#1b2029; --line:#222834;
-    --txt:#e6e9ef; --dim:#8b94a3; --accent:#7c9bff; --good:#5ad1c2; --warn:#ffd166; --danger:#ff6b6b;
-  }
-  :root[data-tema="claro"]{
-    --bg:#f6f7fb; --bg2:#eef0f6; --panel:#ffffff; --panel2:#f0f2f8; --line:#e2e6ef;
-    --txt:#1b2130; --dim:#67708a; --accent:#4f6bf6; --good:#1aa896; --warn:#b8860b; --danger:#e5484d;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:ui-sans-serif,system-ui,"Segoe UI",Arial,sans-serif}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt)}
   button,input,select,textarea{font-family:inherit;font-size:13px}
   #top{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--bg2)}
   #top h1{font-size:15px;margin:0} #top .s{font-size:13px;color:var(--dim)}
@@ -134,6 +125,7 @@
     </div>
   </div>
 </div>
+<script src="/static/icons.js"></script>
 <script src="/static/ui.js"></script>
 <script>
 const $=s=>document.querySelector(s);

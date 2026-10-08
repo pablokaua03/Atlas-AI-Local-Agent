@@ -7,9 +7,9 @@
 <link rel="icon" href="/static/favicon.png">
 <link rel="stylesheet" href="/static/ui.css">
 <style>
-  :root{color-scheme:dark;--bg:#07090d;--panel:rgba(18,22,30,.86);--panel2:#141925;--line:#232a38;--txt:#e6e9ef;--dim:#8b94a3;--accent:#7c9bff;--danger:#ff6b6b}
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:ui-sans-serif,system-ui,"Segoe UI",Arial,sans-serif;overflow:hidden}
+  /* o grafo é sempre escuro (canvas); usa os tokens de ui.css com superfícies translúcidas */
+  :root{color-scheme:dark;--bg:#07090d;--panel:rgba(16,19,26,.82);--panel2:rgba(28,32,42,.9)}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);overflow:hidden}
   button,input,select,textarea{font-family:inherit;font-size:13px}
   canvas{position:fixed;inset:0;top:54px;display:block;touch-action:none}
   #top{position:fixed;top:0;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 14px;
@@ -119,6 +119,7 @@
 <div id="hint"></div>
 <div id="vazio"><div style="font-size:38px">🧠</div><div id="vazioTxt"></div></div>
 <div id="carregando" role="status"><span class="ui-skel"></span><span class="ui-skel" style="width:min(180px,50%)"></span><span data-i="carregando">Carregando o grafo…</span></div>
+<script src="/static/icons.js"></script>
 <script src="/static/ui.js"></script>
 <script>
 const $=s=>document.querySelector(s);
