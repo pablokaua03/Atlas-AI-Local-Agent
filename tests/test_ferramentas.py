@@ -281,6 +281,191 @@ class TestDesfazer(FakeOllama):
         self.assertIn("locked", r["resultado"]["error"])
 
 
+class TestBuscaNaMemoria(FakeOllama):
+    """Perguntas sobre o usuário: o servidor busca antes, com nomes/siglas exatos, em todos os projetos;
+    'vou procurar' sem ferramenta faz o servidor procurar; 'certeza?' amplia a busca."""
+
+    def acme(self):
+        memstore.projeto_criar("ACME", "ACME Corp - client. Umbrella for every ACME automation.")
+        memstore.projeto_criar("ACME Field Alerts", "The original ACME project: a PHP cron that watches jobs.", pai="acme")
+        memstore.projeto_criar("ACME Package Intake", "Form 12, the package intake form.", pai="acme")
+        memstore.memoria_criar({"content": "Form 12 is the first ACME system with real users.", "type": "note",
+                                "project": "acme-package-intake"})
+        memstore.memoria_criar({"content": "Lembrar de usar stash antes do rebase.", "type": "note"})   # 'usar' verbo
+        chats.definir_ctx(self.cid, projeto="geral")
+
+    def ctx(self, texto=""):
+        return {"chat_id": self.cid, "modelo": "qwen3.5:4b", "projeto": "geral", "cfg": core.carregar_config(),
+                "texto_usuario": texto}
+
+    def test_pergunta_sobre_o_usuario_busca_antes_em_todos_os_projetos(self):
+        self.acme()
+        self.roteiros = [texto("Foi o ACME Field Alerts.")]
+        limpo, eventos = self.conversar("Qual foi meu primeiro projeto na ACME?")
+        self.assertEqual(limpo, "Foi o ACME Field Alerts.")
+        self.assertEqual(len(self.enviado), 1)                       # a busca não gastou uma rodada do modelo
+        self.assertEqual((eventos[0]["tool"], eventos[0]["auto"]), ("search_memories", True))
+        msgs = self.enviado[0]["messages"]
+        self.assertEqual([m["role"] for m in msgs[-3:]], ["user", "assistant", "tool"])
+        self.assertIn("The original ACME project", msgs[-1]["content"])                 # descrição do projeto
+        self.assertIn("first ACME system", msgs[-1]["content"])                          # memória de outro projeto
+        self.assertNotIn("Memórias relacionadas", msgs[0]["content"])                   # sem repetir no prompt
+        # fixada continua sempre no prompt, mesmo com a busca automática
+        fix = memstore.memoria_criar({"content": "Responder sempre em tom direto.", "type": "preference", "pinned": True})
+        self.roteiros = [texto("Ok.")]
+        self.conversar("Qual foi meu último projeto na ACME?")
+        self.assertIn("tom direto", self.enviado[1]["messages"][0]["content"])
+        self.assertTrue(fix["pinned"])
+        self.assertEqual(chats.get(self.cid)["mensagens"][-1]["ferramentas"][0]["tool"], "search_memories")
+
+    def test_consulta_do_modelo_com_sigla_quebrada_ainda_acha(self):
+        self.acme()
+        self.assertEqual(ferramentas.consertar_siglas("primeiro projeto ACM E", "meu projeto na ACME?"),
+                         "primeiro projeto ACME")
+        r = ferramentas.executar("search_memories", {"query": "primeiro projeto ACM E", "project": "Geral"},
+                                 self.ctx("Qual foi meu primeiro projeto na ACME?"))["resultado"]
+        self.assertEqual(r["searched"]["projects"], "all")                               # 'Geral' = tudo
+        self.assertIn("first ACME system", json.dumps(r))
+        self.assertEqual(r["projects"][0]["id"], "acme-field-alerts")                  # 'primeiro' ~ 'original'
+
+    def test_promessa_sem_ferramenta_faz_o_servidor_buscar_uma_vez(self):
+        memstore.memoria_criar({"content": "O deploy da loja é às sextas.", "type": "fact"})
+        self.roteiros = [texto("Vou procurar nas memórias."), texto("Achei: às sextas.")]
+        limpo, eventos = self.conversar("e o deploy da loja?")
+        self.assertEqual(limpo, "Vou procurar nas memórias.\n\nAchei: às sextas.")
+        self.assertEqual(len(self.enviado), 2)
+        self.assertTrue(eventos[0]["auto"])
+        msgs = self.enviado[1]["messages"]
+        self.assertEqual(msgs[-2]["role"], "assistant")
+        self.assertEqual(msgs[-2]["content"], "Vou procurar nas memórias.")
+        self.assertEqual(msgs[-2]["tool_calls"][0]["function"]["name"], "search_memories")
+        self.assertIn("sextas", msgs[-1]["content"])
+        # se ele prometer de novo, não vira laço: no máximo um empurrão por resposta
+        self.enviado.clear()
+        self.roteiros = [texto("Vou verificar."), texto("Vou verificar de novo.")]
+        limpo, eventos = self.conversar("e o deploy da loja nova?")
+        self.assertEqual(len(self.enviado), 2)
+        self.assertEqual(len(eventos), 1)
+
+    def test_nao_tenho_a_informacao_sem_ter_buscado_tambem_busca(self):
+        memstore.memoria_criar({"content": "O deploy da loja é às sextas.", "type": "fact"})
+        self.roteiros = [texto("Não tenho essa informação registrada."), texto("É às sextas.")]
+        limpo, eventos = self.conversar("e o deploy da loja?")
+        self.assertTrue(limpo.endswith("É às sextas."))
+        self.assertEqual(len(eventos), 1)
+
+    def test_insistencia_faz_busca_ampla_em_outros_projetos(self):
+        memstore.projeto_criar("Aurora")
+        memstore.projeto_criar("Loja")
+        memstore.memoria_criar({"content": "No Aurora o banco escolhido foi MySQL 8.", "type": "decision", "project": "aurora"})
+        chats.definir_ctx(self.cid, projeto="loja")
+        chats.adicionar(self.cid, "Qual banco escolhemos no Aurora?", "Não sei.")
+        self.roteiros = [texto("Foi MySQL 8.")]
+        limpo, eventos = self.conversar("Certeza?")
+        self.assertEqual(limpo, "Foi MySQL 8.")
+        ev = eventos[0]
+        self.assertTrue(ev["auto"])
+        self.assertIn("Aurora", ev["args"]["query"])                                     # repete a pergunta anterior
+        self.assertEqual(ev["args"]["limit"], "10")
+        res = json.loads(self.enviado[0]["messages"][-1]["content"])
+        self.assertIn("MySQL 8", json.dumps(res, ensure_ascii=False))
+        self.assertEqual(res["searched"]["projects"], "all")
+        self.assertIn("doubts", res["note"])
+        # um segundo "certeza?" ainda volta à pergunta de verdade, não ao "certeza?" anterior
+        self.roteiros = [texto("Sim.")]
+        _, eventos = self.conversar("tem certeza mesmo?")
+        self.assertIn("Aurora", eventos[0]["args"]["query"])
+
+    def test_nada_encontrado_diz_o_que_verificou(self):
+        memstore.memoria_criar({"content": "Ana prefere respostas curtas.", "type": "preference"})
+        r = ferramentas.executar("search_memories", {"query": "receita de bolo"}, self.ctx("receita de bolo?"))
+        res = r["resultado"]
+        self.assertIs(res["found"], False)
+        self.assertEqual(res["checked"]["memories"], 1)
+        self.assertIn("what you checked", res["note"])
+
+    def test_conversa_simples_nao_busca(self):
+        self.acme()
+        for msg in ("oi, tudo bem?", "me explica o que é docker", "lembra disso: gosto de café", "Como usar o git?"):
+            self.assertIsNone(ferramentas.classificar(msg, "pergunta anterior"), msg)
+        self.roteiros = [texto("Tudo ótimo.")]
+        limpo, eventos = self.conversar("oi, tudo bem?")
+        self.assertEqual((limpo, eventos, len(self.enviado)), ("Tudo ótimo.", [], 1))
+        self.assertFalse(any(m["role"] == "tool" for m in self.enviado[0]["messages"]))
+        self.assertEqual(ferramentas.classificar("o que você lembra sobre o projeto ACME?"), "memoria")
+        self.assertEqual(ferramentas.classificar("Quem aprova o escopo na ACME?"), "memoria")   # nome conhecido
+
+    def test_busca_automatica_pode_ser_desligada(self):
+        self.acme()
+        cfg = core.carregar_config()
+        cfg["ferramentas"]["busca_auto"] = False
+        core.salvar_config(cfg)
+        self.roteiros = [texto("Não tenho essa informação.")]
+        _, eventos = self.conversar("Qual foi meu primeiro projeto na ACME?")
+        self.assertEqual(len(eventos), 1)                    # só o empurrão do "não sei", não a busca antes
+        self.assertEqual(len(self.enviado), 2)
+
+    def test_pensar_auto_so_na_rodada_que_responde_da_busca(self):
+        self.acme()
+        core._caps_cache["qwen3.5:4b"] = (9e18, ["completion", "tools", "thinking"])
+        try:
+            cfg = core.carregar_config()
+            cfg["ferramentas"]["pensar"] = "auto"
+            core.salvar_config(cfg)
+            self.roteiros = [texto("Foi o Field Alerts.")]
+            self.conversar("Qual foi meu primeiro projeto na ACME?")
+            self.assertIs(self.enviado[0]["think"], True)
+            self.roteiros = [texto("Oi!")]
+            self.conversar("oi")
+            self.assertIs(self.enviado[1]["think"], False)
+        finally:
+            core._caps_cache.pop("qwen3.5:4b", None)
+
+    def test_resultado_encolhe_para_caber_na_janela(self):
+        res = {"count": 12, "searched": {"queries": ["x"], "projects": "all"},
+               "projects": [{"id": "acme", "name": "ACME", "description": "d" * 400, "memories": 3}],
+               "memories": [{"id": f"mem_{i}", "content": "c" * 400, "project_name": "ACME"} for i in range(12)],
+               "concepts": [{"label": "ACME", "relations": ["a b c"] * 6}], "past_conversations": "p" * 800}
+        t = ferramentas.resultado_texto(res, 2500)
+        self.assertLessEqual(len(t), 2500)
+        d = json.loads(t)                                                                  # continua JSON válido
+        self.assertEqual(d["projects"][0]["id"], "acme")
+        self.assertNotIn("past_conversations", d)
+        self.assertEqual(d["count"], len(d["memories"]))
+        self.assertGreater(len(d["memories"]), 0)
+
+    def test_janela_pequena_corta_historico_antigo(self):
+        cfg = core.carregar_config()
+        cfg["num_ctx"] = 2048
+        cfg["contexto"] = {**(cfg.get("contexto") or {}), "hist_msgs": 6}
+        core.salvar_config(cfg)
+        for i in range(6):
+            chats.adicionar(self.cid, f"pergunta {i} " + "x" * 900, "resposta " + "y" * 900)
+        self.roteiros = [texto("Ok.")]
+        self.conversar("oi")
+        n_hist = sum(1 for m in self.enviado[0]["messages"] if m["role"] == "user") - 1
+        self.assertLess(n_hist, 6)
+
+
+class TestBuscaPalavras(tm.Base):
+    def test_traducao_e_nome_do_projeto_contam_na_busca(self):
+        memstore.projeto_criar("ACME")
+        memstore.memoria_criar({"content": "Bia approves scope and budget.", "type": "person", "project": "acme"})
+        memstore.memoria_criar({"content": "Vou usar o cupom amanhã.", "type": "note"})
+        ids = [m["content"] for m in memstore.memorias_buscar("quem aprova o escopo na ACME?", limite=3,
+                                                              semantica=False)["items"]]
+        self.assertEqual(ids[0], "Bia approves scope and budget.")
+        self.assertEqual(memstore._tokens_busca("Certeza que não lembra?"), [])
+
+    def test_geral_enxerga_todos_os_projetos_no_contexto(self):
+        import contexto
+        memstore.projeto_criar("ACME")
+        m = memstore.memoria_criar({"content": "ACME n8n account is on the Starter plan.", "type": "fact", "project": "acme"})
+        cfg = core.carregar_config()
+        sel = contexto.selecionar_memorias("plano do n8n da ACME", "geral", cfg, {}, 5000)
+        self.assertIn(m["id"], [u["id"] for u in sel])
+
+
 class TestHardware(unittest.TestCase):
     def setUp(self):
         self._orig = (core._rodar, core.platform.system, core.platform.machine, core._ram_total_gb, core._gpus_windows,
@@ -397,7 +582,11 @@ class TestEstadoEAjustes(tu.BaseModelos):
                                         "perfis_modelo": {"qwen3:4b": {"ferramentas": False}}}, ["qwen3:4b"])
         self.assertEqual(cfg["hardware_manual"], {"ativo": True, "vram_gb": 24.0, "ram_gb": 0.0, "gpu": "RTX 4090",
                                                   "unificada": False})
-        self.assertEqual(cfg["ferramentas"], {"ativo": False, "escrita": True, "max_rodadas": 8})
+        self.assertEqual(cfg["ferramentas"], {"ativo": False, "escrita": True, "max_rodadas": 8, "busca_auto": True,
+                                              "pensar": "nunca"})
+        cfg, av = ajustes.aplicar(cfg, {"ferramentas": {"pensar": "talvez", "busca_auto": False}})
+        self.assertEqual((cfg["ferramentas"]["pensar"], cfg["ferramentas"]["busca_auto"]), ("nunca", False))
+        self.assertIn("ferramentas.pensar inválido", av)
         self.assertIs(cfg["perfis_modelo"]["qwen3:4b"]["ferramentas"], False)
         self.assertFalse(core.suporta_ferramentas("qwen3:4b", cfg))
         cfg, av = ajustes.aplicar(cfg, {"hardware_manual": {"vram_gb": "abc"}})

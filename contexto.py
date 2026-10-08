@@ -167,8 +167,11 @@ def selecionar_memorias(texto: str, projeto: str, cfg: dict, chat: dict, orcamen
         fixadas = lambda p: []
     cc = cfg.get("contexto") or {}
     semantica = bool(cc.get("busca_semantica"))
+    # a geral é a raiz: conversando nela, a busca olha todos os projetos (senão as memórias de
+    # 'ACME' nunca apareceriam numa conversa da Geral)
     buscar = buscar or (lambda q, p, n: cortar_fracas(memstore.memorias_buscar(
-        q, p, limite=n, semantica=semantica, min_score=0.05, escopo="inherit")["items"]))
+        q, None if p == memstore.PROJETO_PADRAO else p, limite=n, semantica=semantica, min_score=0.05,
+        escopo="inherit")["items"]))
     obter = obter or memstore.memoria_obter
     listar = listar or (lambda p, n: memstore.memorias_listar(p, limite=n, ordem="importance",
                                                               escopo="inherit")["items"])

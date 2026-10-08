@@ -893,6 +893,28 @@ def chat():
     cc = cfg.get("contexto") or {}
     orc = contexto.orcamento_chars(cfg, perfil)
 
+    # ferramentas: modelos que suportam tool calling podem consultar/gravar a memória durante a resposta
+    nomes_ferr = []
+    if not imgs_b64 and core.suporta_ferramentas(modelo, cfg):
+        nomes_ferr = ferramentas.disponiveis(cfg)
+    fc = ferramentas.config(cfg)
+    hist_ant = (chat_atual or {}).get("mensagens") or []
+    # a última pergunta "de verdade" (pulando os "certeza?" anteriores), para buscar de novo quando ele insiste
+    anterior = next((m.get("u", "") for m in reversed(hist_ant)
+                     if (m.get("u") or "").strip() and not ferramentas.insistencia(m.get("u"))), "")
+    ctx_ferr = {"chat_id": cid, "modelo": modelo, "projeto": projeto, "cfg": cfg, "permitidas": set(nomes_ferr),
+                "texto_usuario": texto, "anterior": anterior}
+    reserva = ferramentas.RESERVA_RESPOSTA + (ferramentas.RESERVA_PENSAR if fc["pensar"] != "nunca" else 0)
+    # pergunta sobre o usuário/projetos (ou "certeza?"): o servidor já busca em tudo antes de chamar o
+    # modelo (sem gastar uma rodada dele) e o resultado entra como se ele tivesse chamado a ferramenta.
+    # Aí as seções de memórias/conversas do prompt ficam de fora (seriam repetidas) e sobra contexto.
+    modo, busca_auto = None, None
+    if "search_memories" in nomes_ferr and fc["busca_auto"] and texto and not anexos_txt:
+        modo = ferramentas.classificar(texto, anterior)
+        if modo:
+            ctx_ferr["ampla"] = modo == "ampla"      # as buscas do próprio modelo nesta resposta também ficam amplas
+            busca_auto = ferramentas.busca_servidor(modo, texto, anterior, ctx_ferr)
+
     system = SYSTEM_BASE.format(nome=nome, idioma=INSTR_IDIOMA.get(cfg.get("idioma", "pt"), ""))
     system += contexto.instrucoes_texto(cfg, idioma, projeto)
 
@@ -903,13 +925,17 @@ def chat():
         fatos = contexto.deduplicar(fatos)
         if fatos:
             secoes.append(("fatos", "Fatos que você sabe:", "\n".join("- " + f for f in fatos)))
-        usadas = contexto.selecionar_memorias(texto, projeto, cfg, chat_atual, orc)
+        if busca_auto is None:
+            usadas = contexto.selecionar_memorias(texto, projeto, cfg, chat_atual, orc)
+        else:                                    # a busca já trouxe as relevantes: aqui só as fixadas
+            cfg_fix = {**cfg, "contexto": {**cc, "max_memorias": 0}}
+            usadas = contexto.selecionar_memorias(texto, projeto, cfg_fix, chat_atual, orc)
         usadas = [u for u in usadas if not contexto.sensivel(u["content"])]
         # memórias que repetem um fato já listado não entram duas vezes
         usadas = [u for u in usadas if not any(contexto.parecido(u["content"], f) for f in fatos)]
         if usadas:
             secoes.append(("memorias", "Memórias relacionadas (use se for relevante):", contexto.linhas_memorias(usadas)))
-        if cc.get("incluir_conversas", True):
+        if cc.get("incluir_conversas", True) and busca_auto is None:
             rec = chats.recall(texto, excluir_id=cid)      # acesso a TODAS as conversas
             if rec:
                 secoes.append(("conversas", "De conversas anteriores (use só se for relevante):", rec))
@@ -945,20 +971,28 @@ def chat():
     ctx_msg = [{"id": u["id"], "t": u["content"][:160], "p": u.get("project"), "f": bool(u.get("pinned")),
                 "w": u.get("why")}
                for u in usadas][:8]
+    if busca_auto is not None:                   # + as memórias que a busca automática achou
+        ja = {x["id"] for x in ctx_msg}
+        ctx_msg = (ctx_msg + [{"id": m["id"], "t": m["content"][:160], "p": m.get("project"), "f": False, "w": "busca"}
+                              for m in (busca_auto["resultado"].get("memories") or []) if m["id"] not in ja])[:8]
     info_ctx = {"mems": ctx_msg, "projeto": projeto, "orcamento": orc, "usado": sum(uso.values()),
                 "ctx": perfil["num_ctx"], "modelo": modelo}
 
-    # ferramentas: modelos que suportam tool calling podem consultar/gravar a memória durante a resposta
-    nomes_ferr = []
-    if not imgs_b64 and core.suporta_ferramentas(modelo, cfg):
-        nomes_ferr = ferramentas.disponiveis(cfg)
     if nomes_ferr:
         system += ferramentas.instrucoes(idioma, nomes_ferr)
     info_ctx["ferramentas"] = bool(nomes_ferr)
 
     msgs = [{"role": "system", "content": system}]
     hist_n = int(cc.get("hist_msgs", 6))
-    for m in (chat_atual.get("mensagens", [])[-hist_n:] if (chat_atual and hist_n > 0) else []):
+    hist = chat_atual.get("mensagens", [])[-hist_n:] if (chat_atual and hist_n > 0) else []
+    tools = ferramentas.esquemas(nomes_ferr)
+    # janela pequena (4k): o histórico antigo sai primeiro para sobrar espaço à busca e à resposta
+    janela = ferramentas.janela_chars(perfil["num_ctx"])
+    fixo = len(system) + len(texto) + len(json.dumps(tools, ensure_ascii=False)) + reserva
+    precisa = fixo + (ferramentas.MIN_RESULTADO if busca_auto is not None else 0)
+    while hist and precisa + sum(len(m["u"]) + len(m["a"]) for m in hist) > janela:
+        hist = hist[1:]
+    for m in hist:
         msgs.append({"role": "user", "content": m["u"]})
         msgs.append({"role": "assistant", "content": m["a"]})
 
@@ -986,24 +1020,43 @@ def chat():
         if perfil.get("seed") is not None:
             opts["seed"] = perfil["seed"]
         caps = core.capacidades(modelo)
-        desligar_think = core.info_modelo(modelo).get("think") is False or "qwen3" in modelo
+        # modelos cujo "pensar" o Atlas controla (Qwen3/3.5); fora as ferramentas, fica desligado (rápido)
+        pensa = core.info_modelo(modelo).get("think") is False or "qwen3" in modelo
         if caps is not None and "thinking" not in caps:
-            desligar_think = False                   # o Ollama recusa think=false em modelo que não pensa
-        fc = ferramentas.config(cfg)
-        tools = ferramentas.esquemas(nomes_ferr)
-        ctx_ferr = {"chat_id": cid, "modelo": modelo, "projeto": projeto, "cfg": cfg, "permitidas": set(nomes_ferr)}
+            pensa = False                            # o Ollama recusa think=... em modelo que não pensa
         filtro = contexto.FiltroPensamento()
         r = None
         interrompido = False
         rodada = 0
+        buscou = False                               # já consultou a memória nesta resposta?
+        empurroes = 0                                # buscas feitas pelo servidor depois de "vou procurar"
+
+        def cabe():
+            """Caracteres livres na janela para o próximo resultado de ferramenta."""
+            usado = sum(len(m.get("content") or "") + 40 for m in msgs) + len(json.dumps(tools, ensure_ascii=False))
+            return janela - usado - reserva
+
+        def registrar_busca(res, conteudo_assist=""):
+            """Põe a busca feita pelo servidor no histórico, como se o modelo tivesse chamado a ferramenta."""
+            msgs.append({"role": "assistant", "content": conteudo_assist,
+                         "tool_calls": [{"function": {"name": "search_memories", "arguments": res["args"]}}]})
+            msgs.append({"role": "tool", "tool_name": "search_memories",
+                         "content": ferramentas.resultado_texto(res["resultado"], cabe())})
+            eventos.append(res["evento"])
+            return ferramentas.marcador(res["evento"])
+
         try:
+            if busca_auto is not None:
+                buscou = True
+                yield registrar_busca(busca_auto)
             while True:
                 usar_tools = bool(tools) and rodada < fc["max_rodadas"]
                 body = {"model": modelo, "messages": msgs, "stream": True, "keep_alive": ka, "options": opts}
                 if usar_tools:
                     body["tools"] = tools
-                if desligar_think:
-                    body["think"] = False
+                if pensa:
+                    p_modo = fc["pensar"] if tools else "nunca"
+                    body["think"] = p_modo == "sempre" or (p_modo == "auto" and msgs[-1].get("role") == "tool")
                 chamadas, texto_rodada = [], ""
                 novo_paragrafo = rodada > 0
                 r = requests.post(f"{core.OLLAMA}/api/chat", json=body, stream=True, timeout=300)
@@ -1038,16 +1091,30 @@ def chat():
                     pass
                 r = None
                 if not (usar_tools and chamadas):
+                    # disse "vou procurar" (ou "não tenho essa informação") sem procurar: o servidor procura
+                    # e devolve ao modelo, que continua a resposta em um parágrafo novo
+                    if (usar_tools and "search_memories" in nomes_ferr and empurroes < 1 and texto
+                            and ((not buscou and ferramentas.promete_buscar(texto_rodada))
+                                 or (buscou and ferramentas.promete_buscar(texto_rodada, so_promessa=True)))):
+                        empurroes += 1
+                        res = ferramentas.busca_servidor("ampla" if (buscou or modo == "ampla") else "memoria",
+                                                         texto, anterior, ctx_ferr)
+                        buscou = True
+                        yield registrar_busca(res, texto_rodada)
+                        rodada += 1
+                        continue
                     break
                 # executa as ferramentas pedidas e devolve os resultados ao modelo
                 msgs.append({"role": "assistant", "content": texto_rodada, "tool_calls": chamadas})
                 for c in chamadas[:6]:
                     fn = c.get("function") or {}
                     nome_f = str(fn.get("name") or "")[:64]
+                    buscou = buscou or nome_f in ("search_memories", "graph_search", "read_document")
                     res = ferramentas.executar(nome_f, fn.get("arguments"), ctx_ferr)
                     eventos.append(res["evento"])
                     yield ferramentas.marcador(res["evento"])
-                    msgs.append({"role": "tool", "tool_name": nome_f, "content": ferramentas.resultado_texto(res["resultado"])})
+                    msgs.append({"role": "tool", "tool_name": nome_f,
+                                 "content": ferramentas.resultado_texto(res["resultado"], cabe())})
                 rodada += 1
         except GeneratorExit:
             # o usuário clicou em parar (ou fechou a aba): guarda o que já saiu e não aprende nada

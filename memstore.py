@@ -74,10 +74,95 @@ el la los las un una y del al es son lo le por con su sus que como
 """.split())
 
 
+# palavras de "conversa sobre a memória" que não ajudam a achar nada ("certeza que não lembra?")
+_META = set("""
+lembra lembrar lembro lembrou lembre lembrava certeza certo procura procure procurar procurou busca busque buscar
+verifica verifique verificar sabe saber sabia vc tenho tinha diga fale conte novo novamente denovo
+remember recall sure know knew tell again look search check
+""".split())
+
+
 def _tokens_busca(s):
     """Tokens da consulta sem palavras vazias (se sobrar nada, usa todos)."""
     t = list(dict.fromkeys(_tokens(s)))
-    return [x for x in t if x not in _VAZIAS] or t
+    uteis = [x for x in t if x not in _VAZIAS and x not in _META]
+    if uteis or any(x in _META for x in t):
+        return uteis                             # "certeza que não lembra?" não tem o que buscar
+    return t
+
+
+# Pergunta em português, memória em inglês (ou o contrário): cada termo da consulta também
+# casa com a tradução comum dele. Pequeno de propósito: só palavras que aparecem em perguntas
+# sobre a vida, o trabalho e os projetos do usuário.
+_SINONIMOS_BASE = [
+    ("primeiro primeira primeiros primeiras primero", "first original earliest initial"),
+    ("ultimo ultima ultimos ultimas", "last latest"),
+    ("projeto projetos proyecto proyectos", "project projects"),
+    ("empresa empresas companhia", "company business"),
+    ("cliente clientes", "client clients customer customers"),
+    ("trabalho trabalhos trabalhei trabalha trabalhar trabajo", "work job"),
+    ("decisao decisoes decidimos decidi decidiu", "decision decisions decided"),
+    ("preferencia preferencias prefiro prefere", "preference preferences prefer prefers"),
+    ("regra regras", "rule rules"),
+    ("erro erros falha falhas", "error errors bug bugs failure"),
+    ("problema problemas", "problem problems issue issues"),
+    ("pagamento pagamentos", "payment payments"),
+    ("cobranca", "billing charge"),
+    ("fatura faturas", "invoice invoices"),
+    ("usuario usuarios", "user users"),
+    ("equipe time", "team"),
+    ("reuniao reunioes", "meeting meetings"),
+    ("prazo prazos", "deadline deadlines"),
+    ("preco precos valor", "price prices cost"),
+    ("plano planos", "plan plans"),
+    ("conta contas", "account accounts"),
+    ("cartao cartoes", "card cards"),
+    ("dominio dominios", "domain domains"),
+    ("servidor servidores", "server servers"),
+    ("banco", "database bank"),
+    ("sistema sistemas", "system systems"),
+    ("ferramenta ferramentas", "tool tools"),
+    ("impressora impressoras", "printer printers"),
+    ("etiqueta etiquetas", "label labels"),
+    ("formulario formularios", "form forms"),
+    ("agenda calendario", "calendar schedule"),
+    ("alerta alertas aviso avisos", "alert alerts"),
+    ("tecnico tecnicos", "tech techs technician"),
+    ("pedido pedidos", "order orders request"),
+    ("entrega entregas", "delivery deliveries"),
+    ("recebimento", "receiving"),
+    ("estoque inventario", "inventory stock"),
+    ("migracao", "migration"),
+    ("risco riscos", "risk risks"),
+    ("licao licoes aprendizado", "lesson lessons"),
+    ("pessoa pessoas", "people person"),
+    ("chefe dono", "boss owner"),
+    ("aprova aprovar aprovou aprovado aprovacao", "approve approves approved approval"),
+    ("escopo", "scope"),
+    ("responsavel responsaveis", "responsible owner owns"),
+    ("construi construiu constroi constroem criei criou", "built builds build created"),
+    ("automacao automacoes", "automation automations"),
+    ("hospedagem hospedado", "hosting hosted"),
+    ("contrato contratos", "contract contracts"),
+    ("orcamento", "budget quote"),
+    ("custo custos", "cost costs"),
+    ("pago pagou", "paid"),
+    ("mudou mudanca mudancas", "moved change changes"),
+    ("antes", "before"),
+    ("depois", "after"),
+    ("antigo antiga", "old original"),
+    ("novo nova", "new"),
+]
+_SINONIMOS = {}
+for _a, _b in _SINONIMOS_BASE:
+    _ws = _a.split() + _b.split()
+    for _w in _ws:
+        _SINONIMOS.setdefault(_w, set()).update(x for x in _ws if x != _w)
+
+
+def _variantes(t):
+    """O termo e suas traduções (ver _SINONIMOS)."""
+    return (t, *sorted(_SINONIMOS.get(t, ())))
 
 
 def _slug(s):
@@ -569,12 +654,30 @@ def _toks_memoria(m):
         set(_tokens(" ".join(m.get("entities") or [])))
 
 
-def _acerto(t, m_toks):
+def _acerto_simples(t, m_toks):
     if t in m_toks:
         return 1.0
     if len(t) >= 4 and any(x.startswith(t) or t.startswith(x) for x in m_toks if len(x) >= 4):
         return 0.5
     return 0.0
+
+
+def _acerto(t, m_toks):
+    """1 = termo exato, 0.5 = prefixo; a tradução do termo vale um pouco menos que ele mesmo."""
+    melhor = _acerto_simples(t, m_toks)
+    if melhor >= 1.0:
+        return melhor
+    for v in _variantes(t)[1:]:
+        melhor = max(melhor, 0.9 * _acerto_simples(v, m_toks))
+    return melhor
+
+
+def _toks_projeto(s, pid):
+    """Tokens do id e do nome do projeto (a memória do projeto 'ACME' casa com 'ACME')."""
+    if not pid or pid == PROJETO_PADRAO:
+        return set()
+    p = s["projetos"].get(pid) or {}
+    return set(_tokens(pid.replace("-", " ") + " " + (p.get("name") or "")))
 
 
 def _score_palavras(q_toks, m, pesos=None, m_toks=None):
@@ -619,7 +722,12 @@ def memorias_buscar(query, projeto=None, tags=None, tipo=None, limite=10, semant
         if vetores and _embed_disponivel():
             qv = _embed(query)
     res = []
-    toks = [_toks_memoria(m) for m in mems] if q_toks else [None] * len(mems)
+    tp = {}
+    if q_toks and not projeto:                   # buscando em tudo: o nome do projeto também identifica a memória
+        for m in mems:
+            if m["project"] not in tp:
+                tp[m["project"]] = _toks_projeto(s, m["project"])
+    toks = [_toks_memoria(m) | tp.get(m["project"], set()) for m in mems] if q_toks else [None] * len(mems)
     pesos = _pesos_idf(q_toks, toks) if q_toks else None
     for m, mt in zip(mems, toks):
         kw = _score_palavras(q_toks, m, pesos, mt)
@@ -637,6 +745,32 @@ def memorias_buscar(query, projeto=None, tags=None, tipo=None, limite=10, semant
         res.sort(key=lambda m: m["score"], reverse=True)
     limite = max(1, min(100, int(limite or 10)))
     return {"query": query, "semantic": qv is not None, "items": res[:limite]}
+
+
+def projetos_buscar(query, limite=3, min_score=0.2):
+    """Projetos cujo nome/descrição casam com a consulta (a geral fica de fora).
+    Útil quando a resposta está na descrição do projeto, não numa memória."""
+    q_toks = _tokens_busca(_texto(query, "query", 2000))
+    if not q_toks:
+        return []
+    with _lock:
+        _checar_cofre()
+        s = _carregar()
+        itens = [(pid, p) for pid, p in s["projetos"].items() if pid != PROJETO_PADRAO]
+        cont = {}
+        for m in s["memorias"].values():
+            cont[m["project"]] = cont.get(m["project"], 0) + 1
+    toks = [set(_tokens(pid.replace("-", " ") + " " + (p.get("name") or "") + " " + (p.get("description") or "")))
+            for pid, p in itens]
+    pesos = _pesos_idf(q_toks, toks)
+    out = []
+    for (pid, p), t in zip(itens, toks):
+        sc = _score_palavras(q_toks, None, pesos, t)
+        if sc >= min_score:
+            out.append({"id": pid, "name": p.get("name") or pid, "description": p.get("description") or "",
+                        "parent": _pai(s, pid), "memories": cont.get(pid, 0), "score": round(sc, 4)})
+    out.sort(key=lambda x: x["score"], reverse=True)
+    return out[:max(1, int(limite or 3))]
 
 
 # ── grafo ─────────────────────────────────────────────────────────────────────

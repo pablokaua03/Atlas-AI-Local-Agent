@@ -28,6 +28,9 @@ var S={
       ferrT:'Ferramentas do modelo',ferrOn:'Deixar o modelo usar ferramentas',ferrOnD:'Modelos com suporte consultam memórias, grafo, projetos e conversas durante a resposta. Os outros continuam recebendo o contexto como antes.',
       ferrW:'Permitir gravar',ferrWD:'Salvar/editar/fixar memórias e criar conceitos e ligações no grafo. Tudo fica registrado e pode ser desfeito.',
       ferrRod:'Rodadas de ferramentas por resposta',ferrRodD:'Quantas vezes o modelo pode usar ferramentas antes de responder.',ferrLog:'Ver ações do modelo',
+      ferrAuto:'Buscar na memória antes de responder',ferrAutoD:'Em perguntas sobre você, seus projetos ou o passado (e quando você insiste: "certeza?"), o Atlas já procura em memórias, projetos, grafo e documentos antes de o modelo responder.',
+      ferrPensar:'Raciocínio com ferramentas',ferrPensarD:'Para modelos que pensam (Qwen3/3.5). "Ao usar a memória" pensa só ao responder a partir de uma busca: um pouco mais preciso, ~2x mais lento.',
+      pensarNunca:'desligado (mais rápido)',pensarAuto:'ao usar a memória',pensarSempre:'sempre',
       profTools:'Ferramentas neste modelo',profToolsAuto:'automático (o que o Ollama informa)',profToolsOn:'sempre ligar',profToolsOff:'desligar'},
   en:{f_recomendados:'Recommended',f_ferramentas:'Tools',n_leve:'Light',n_moderado:'Moderate',n_pesado:'Heavy',n_grande:'Large',n_enorme:'Huge',
       fn_leve:'Light (≤4B)',fn_moderado:'Moderate (7–9B)',fn_pesado:'Heavy (12–14B)',fn_grande:'Large (20–35B, MoE)',fn_enorme:'Huge (70B+)',
@@ -47,6 +50,9 @@ var S={
       ferrT:'Model tools',ferrOn:'Let the model use tools',ferrOnD:'Capable models look up memories, graph, projects and past chats while answering. Others keep receiving context as before.',
       ferrW:'Allow writing',ferrWD:'Save/edit/pin memories and create graph concepts and links. Everything is logged and can be undone.',
       ferrRod:'Tool rounds per answer',ferrRodD:'How many times the model may use tools before answering.',ferrLog:'View model actions',
+      ferrAuto:'Search memory before answering',ferrAutoD:'For questions about you, your projects or the past (and when you push back: "are you sure?"), Atlas searches memories, projects, graph and documents before the model answers.',
+      ferrPensar:'Reasoning with tools',ferrPensarD:'For thinking models (Qwen3/3.5). "When using memory" thinks only when answering from a search: a bit more accurate, ~2x slower.',
+      pensarNunca:'off (fastest)',pensarAuto:'when using memory',pensarSempre:'always',
       profTools:'Tools on this model',profToolsAuto:'automatic (as reported by Ollama)',profToolsOn:'always on',profToolsOff:'off'},
   es:{f_recomendados:'Recomendados',f_ferramentas:'Herramientas',n_leve:'Ligero',n_moderado:'Moderado',n_pesado:'Pesado',n_grande:'Grande',n_enorme:'Enorme',
       fn_leve:'Ligeros (≤4B)',fn_moderado:'Moderados (7–9B)',fn_pesado:'Pesados (12–14B)',fn_grande:'Grandes (20–35B, MoE)',fn_enorme:'Enormes (70B+)',
@@ -66,6 +72,9 @@ var S={
       ferrT:'Herramientas del modelo',ferrOn:'Dejar que el modelo use herramientas',ferrOnD:'Los modelos compatibles consultan memorias, grafo, proyectos y chats anteriores al responder. Los demás siguen recibiendo el contexto como antes.',
       ferrW:'Permitir escribir',ferrWD:'Guardar/editar/fijar memorias y crear conceptos y vínculos en el grafo. Todo queda registrado y se puede deshacer.',
       ferrRod:'Rondas de herramientas por respuesta',ferrRodD:'Cuántas veces puede usar herramientas antes de responder.',ferrLog:'Ver acciones del modelo',
+      ferrAuto:'Buscar en la memoria antes de responder',ferrAutoD:'En preguntas sobre ti, tus proyectos o el pasado (y cuando insistes: "¿seguro?"), Atlas busca en memorias, proyectos, grafo y documentos antes de que el modelo responda.',
+      ferrPensar:'Razonamiento con herramientas',ferrPensarD:'Para modelos que piensan (Qwen3/3.5). "Al usar la memoria" piensa solo al responder a partir de una búsqueda: algo más preciso, ~2x más lento.',
+      pensarNunca:'apagado (más rápido)',pensarAuto:'al usar la memoria',pensarSempre:'siempre',
       profTools:'Herramientas en este modelo',profToolsAuto:'automático (lo que informa Ollama)',profToolsOn:'siempre activar',profToolsOff:'desactivar'}
 };
 if(window.AjustesUI&&AjustesUI._D){Object.keys(S).forEach(function(l){AjustesUI._D[l]=AjustesUI._D[l]||{};
@@ -194,6 +203,12 @@ function secaoFerramentas(box,H,c,A){
   box.append(A.linha(t('ferrW'),t('ferrWD'),A.interruptor(f.escrita!==false,function(v){H.salvar({ferramentas:{escrita:v}});},t('ferrW'))));
   box.append(A.linha(t('ferrRod'),t('ferrRodD'),A.numero({label:t('ferrRod'),min:1,max:8,int:true,step:1,value:f.max_rodadas||4,
     salvar:function(v){H.salvar({ferramentas:{max_rodadas:v}});}})));
+  box.append(A.linha(t('ferrAuto'),t('ferrAutoD'),A.interruptor(f.busca_auto!==false,function(v){H.salvar({ferramentas:{busca_auto:v}});},t('ferrAuto'))));
+  var ps=el('select',{class:'sel','aria-label':t('ferrPensar')});
+  [['nunca','pensarNunca'],['auto','pensarAuto'],['sempre','pensarSempre']].forEach(function(o){
+    var op=el('option',{value:o[0],text:t(o[1])});if((f.pensar||'nunca')===o[0])op.selected=true;ps.append(op);});
+  ps.onchange=function(){H.salvar({ferramentas:{pensar:ps.value}});};
+  box.append(A.linha(t('ferrPensar'),t('ferrPensarD'),ps));
   var b=ibtn(t('ferrLog'),'file-text','baixar');b.onclick=function(){if(window.AtlasTools)AtlasTools.registro();};
   box.append(el('div',{class:'sfoot'},[b]));
 }

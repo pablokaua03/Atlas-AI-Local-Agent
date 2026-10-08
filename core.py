@@ -313,7 +313,7 @@ CONFIG_PADRAO = {
     "instrucoes_projeto": {},              # {"id-do-projeto": "texto"}
     "ctx_projeto": {},                     # {"id-do-projeto": {"fixas": [ids], "excluidas": [ids]}}
     # ── ferramentas: o modelo pode consultar/gravar memória, grafo, projetos e conversas no chat ──
-    "ferramentas": {"ativo": True, "escrita": True, "max_rodadas": 4},
+    "ferramentas": {"ativo": True, "escrita": True, "max_rodadas": 4, "busca_auto": True, "pensar": "nunca"},
     # ── hardware informado à mão (sobrescreve a detecção automática quando ativo) ──
     "hardware_manual": {"ativo": False, "vram_gb": None, "ram_gb": None, "gpu": "", "unificada": False},
 }

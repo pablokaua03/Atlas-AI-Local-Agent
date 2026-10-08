@@ -151,6 +151,27 @@ Memory, Tools. Settings, Memory, Tools lets you turn tools off, allow read-only
 tools, and set the maximum tool rounds per answer. Models without tool support
 keep working as before (memories are injected into the prompt).
 
+Memory questions are checked, not guessed:
+
+- For questions about you, your projects or your past, Atlas searches before the
+  model answers: memories in every project (from Geral it sees all of them),
+  project names and descriptions, graph concepts and, if enabled, documents. Your
+  exact words are always part of the query, so acronyms like `ACME` match even
+  if the model rewrites them, and common Portuguese words also match their English
+  translation (`primeiro`/`first`, `escopo`/`scope`...).
+- If the model says it will look something up (or that it has no record) without
+  calling a tool, Atlas runs the search itself and the model continues the answer.
+- When you push back ("certeza?", "procura de novo"), the search widens: the
+  previous question, more results, every project and past conversations.
+- When nothing matches, the model is told to say what it checked.
+- Tool results are shrunk to fit the model's context window, so answers no longer
+  stop mid-sentence on 4k-token windows.
+
+Settings, Memory, Tools also has "Search memory before answering" (on by default)
+and "Reasoning with tools" for thinking models like Qwen3.5: off (fastest,
+default), only when answering from a search (a bit more careful, about 2x slower),
+or always.
+
 ## Privacy
 
 Everything runs locally through Ollama on 127.0.0.1. No telemetry, no cloud,

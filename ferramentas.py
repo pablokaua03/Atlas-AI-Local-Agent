@@ -13,6 +13,7 @@ Regras:
 - Leitura de arquivos só dentro da pasta docs/ do Atlas, sem sair dela.
 """
 import os
+import re
 import copy
 import json
 import time
@@ -55,20 +56,19 @@ _TIPOS_MEM = ["fact", "preference", "decision", "task", "note", "person", "proje
 ESQUEMAS = {
     "search_memories": _fn(
         "search_memories",
-        "Search the user's long-term memories (facts, preferences, decisions, tasks, notes). Use it before "
-        "answering anything about the user, their projects, people or past decisions. Empty query lists the most important.",
-        {"query": _S("Keywords or a question."), "project": _S("Optional project id or name to focus on."),
+        "Search all the user's saved knowledge (memories, projects, graph, documents). Call it before answering "
+        "about the user, their past, work, projects, people or decisions. Keep names/acronyms exactly as written.",
+        {"query": _S("Keywords, with the user's exact names."), "project": _S("Optional project (omit = all)."),
          "pinned_only": _B("Only pinned memories."), "limit": _I("Max results (1-15).", minimum=1, maximum=15)}),
     "save_memory": _fn(
         "save_memory",
-        "Save ONE durable memory when the user states a lasting fact, preference or decision, or asks you to remember "
-        "something. Do not save small talk, temporary things or secrets.",
+        "Save ONE durable fact, preference or decision the user states (or asks you to remember). "
+        "No small talk, temporary things or secrets.",
         {"content": _S("One self-contained sentence, in the user's language."),
-         "type": _S("Kind of memory.", enum=_TIPOS_MEM), "project": _S("Optional project id or name."),
-         "tags": {"type": "array", "items": {"type": "string"}, "description": "Optional short tags."},
-         "importance": _I("1 (trivial) to 5 (critical).", minimum=1, maximum=5),
-         "entities": {"type": "array", "items": {"type": "string"},
-                      "description": "Optional names of people/things it mentions (become graph concepts)."}},
+         "type": _S("Kind.", enum=_TIPOS_MEM), "project": _S("Optional project."),
+         "tags": {"type": "array", "items": {"type": "string"}},
+         "importance": _I("1-5.", minimum=1, maximum=5),
+         "entities": {"type": "array", "items": {"type": "string"}, "description": "People/things it mentions."}},
         ["content"]),
     "update_memory": _fn(
         "update_memory",
@@ -119,11 +119,20 @@ GRUPOS = {
 }
 
 
+# "pensar" (raciocínio explícito dos modelos que pensam, ex. qwen3.5) quando há ferramentas:
+#   nunca  = desligado (mais rápido; padrão)
+#   auto   = só na rodada que responde a partir de uma busca na memória
+#   sempre = em todas as rodadas
+PENSAR = ("nunca", "auto", "sempre")
+
+
 def config(cfg=None) -> dict:
     cfg = cfg or core.carregar_config()
     f = cfg.get("ferramentas") or {}
+    pensar = f.get("pensar") if f.get("pensar") in PENSAR else "nunca"
     return {"ativo": f.get("ativo", True) is not False, "escrita": f.get("escrita", True) is not False,
-            "max_rodadas": int(f.get("max_rodadas") or 4)}
+            "max_rodadas": int(f.get("max_rodadas") or 4), "busca_auto": f.get("busca_auto", True) is not False,
+            "pensar": pensar}
 
 
 def disponiveis(cfg=None) -> list:
@@ -149,18 +158,30 @@ def esquemas(nomes) -> list:
 
 
 INSTRUCOES = {
-    "pt": ("\n\nVocê tem ferramentas para consultar e atualizar a memória do usuário (memórias, grafo, projetos, "
-           "conversas anteriores{docs}). Use-as quando ajudarem: procure antes de responder sobre o usuário ou seus "
-           "projetos; salve só fatos, preferências e decisões duráveis (ou quando ele pedir para lembrar). Nunca salve "
-           "senhas ou dados sensíveis. Depois de usar uma ferramenta, responda normalmente, sem descrever a ferramenta."),
-    "en": ("\n\nYou have tools to look up and update the user's memory (memories, graph, projects, past "
-           "conversations{docs}). Use them when they help: search before answering about the user or their projects; "
-           "only save durable facts, preferences and decisions (or when asked to remember). Never save passwords or "
-           "sensitive data. After using a tool, answer normally without describing the tool."),
-    "es": ("\n\nTienes herramientas para consultar y actualizar la memoria del usuario (memorias, grafo, proyectos, "
-           "conversaciones anteriores{docs}). Úsalas cuando ayuden: busca antes de responder sobre el usuario o sus "
-           "proyectos; guarda solo hechos, preferencias y decisiones duraderas (o cuando lo pida). Nunca guardes "
-           "contraseñas ni datos sensibles. Después de usar una herramienta, responde normalmente sin describirla."),
+    "pt": ("\n\nVocê tem ferramentas para consultar e atualizar a memória do usuário (memórias, projetos, grafo, "
+           "conversas anteriores{docs}). Regras: (1) pergunta sobre o usuário, o passado, o trabalho, projetos, pessoas "
+           "ou decisões dele: chame search_memories ANTES de responder, com os nomes e siglas exatamente como ele "
+           "escreveu; (2) nunca diga que vai procurar sem chamar a ferramenta na mesma resposta; (3) se ele duvidar "
+           "('certeza?', 'procura de novo'), procure de novo de forma mais ampla; (4) responda com base no que achou e "
+           "cite o projeto ou a memória de onde veio; se não achar nada, diga em uma frase onde procurou. Salve só "
+           "fatos, preferências e decisões duráveis (ou quando ele pedir para lembrar). Nunca salve senhas ou dados "
+           "sensíveis. Para conversa simples, responda direto, sem ferramentas."),
+    "en": ("\n\nYou have tools to look up and update the user's memory (memories, projects, graph, past "
+           "conversations{docs}). Rules: (1) for questions about the user, their past, work, projects, people or "
+           "decisions, call search_memories BEFORE answering, with names and acronyms exactly as written; (2) never say "
+           "you will look something up without calling the tool in the same reply; (3) if the user doubts you ('are you "
+           "sure?', 'look again'), search again more broadly; (4) answer from what you found and name the project or "
+           "memory it came from; if nothing is found, say in one sentence where you looked. Only save durable facts, "
+           "preferences and decisions (or when asked to remember). Never save passwords or sensitive data. For small "
+           "talk, answer directly without tools."),
+    "es": ("\n\nTienes herramientas para consultar y actualizar la memoria del usuario (memorias, proyectos, grafo, "
+           "conversaciones anteriores{docs}). Reglas: (1) para preguntas sobre el usuario, su pasado, trabajo, proyectos, "
+           "personas o decisiones, llama a search_memories ANTES de responder, con los nombres y siglas tal como los "
+           "escribió; (2) nunca digas que vas a buscar sin llamar a la herramienta en la misma respuesta; (3) si duda "
+           "('¿seguro?', 'busca otra vez'), busca de nuevo de forma más amplia; (4) responde con lo que encontraste y "
+           "cita el proyecto o la memoria; si no hay nada, di en una frase dónde buscaste. Guarda solo hechos, "
+           "preferencias y decisiones duraderas (o cuando lo pida). Nunca guardes contraseñas ni datos sensibles. Para "
+           "charla simple, responde directo, sin herramientas."),
 }
 
 
@@ -231,11 +252,233 @@ def _search_memories(a, ctx):
     if _bool(a.get("pinned_only"), False):
         r = memstore.memorias_listar(projeto=proj, fixadas=True, limite=lim, escopo="inherit" if proj else "exact")
         itens = r["items"]
+        return {"count": len(itens), "memories": [_mem_out(m) for m in itens]}
+    extras = [ctx.get("texto_usuario") or ""]
+    ampla = bool(ctx.get("ampla")) or _bool(a.get("broad"), False)
+    if ampla:
+        extras.append(ctx.get("anterior") or "")
+    return buscar_tudo(_str(a.get("query"), 500), ctx, limite=lim, projeto=proj, ampla=ampla, extras=extras)
+
+
+# ── busca ampla: memórias + projetos + grafo + documentos (+ conversas) ─────────
+_SIGLA_PARTIDA = re.compile(r"\b([A-Z]{2,})\s+([A-Z])\b")
+
+
+def consertar_siglas(q, referencia=""):
+    """'ACM E' → 'ACME' quando a junção aparece na mensagem do usuário (modelos pequenos quebram siglas)."""
+    ref = set(re.findall(r"\b[A-Z][A-Z0-9]{1,}\b", referencia or ""))
+
+    def junta(mt):
+        j = mt.group(1) + mt.group(2)
+        return j if (j in ref or not ref) else mt.group(0)
+    return _SIGLA_PARTIDA.sub(junta, q or "")
+
+
+def _sem_geral(proj):
+    """'geral' é a raiz: buscar 'na geral' significa buscar em tudo."""
+    if not proj:
+        return None
+    try:
+        info = memstore.projeto_obter(proj)
+        return None if info.get("id") == memstore.PROJETO_PADRAO else info.get("id")
+    except memstore.ErroAPI:
+        return None                                  # projeto que não existe: busca em tudo
+
+
+def _juntar(listas, limite):
+    melhor = {}
+    for itens in listas:
+        for m in itens:
+            if m["id"] not in melhor or m.get("score", 0) > melhor[m["id"]].get("score", 0):
+                melhor[m["id"]] = m
+    out = sorted(melhor.values(), key=lambda m: m.get("score", 0), reverse=True)
+    if out and out[0].get("score"):
+        corte = max(0.08, 0.35 * float(out[0]["score"]))
+        out = [m for m in out if float(m.get("score") or 0) >= corte]
+    return out[:limite]
+
+
+def buscar_tudo(query, ctx, limite=6, projeto=None, ampla=False, extras=()):
+    """Busca em tudo o que o usuário guardou. As frases do usuário (extras) entram como consultas
+    extras, para que nomes e siglas exatos sempre contem, mesmo se o modelo reescrever a consulta.
+    Na geral (ou sem projeto) busca em todos os projetos; num projeto, inclui pais e subprojetos e,
+    se achar pouco, amplia para todos. Devolve um resultado compacto para caber em contextos de 4k."""
+    cfg = ctx.get("cfg") or {}
+    ref = " ".join(x for x in extras if x)
+    query = consertar_siglas(query, ref)
+    consultas = [x for x in dict.fromkeys([query] + [consertar_siglas(e, ref) for e in extras]) if x and x.strip()]
+    if not consultas:
+        consultas = [""]
+    if ampla:
+        limite = max(limite, 10)
+        projeto = None
+    pid = _sem_geral(projeto)
+    sem = bool((cfg.get("contexto") or {}).get("busca_semantica"))
+    n = max(limite * 2, 12)
+
+    def busca(escopo_pid, escopo):
+        return [memstore.memorias_buscar(q, projeto=escopo_pid, limite=n, semantica=sem, escopo=escopo)["items"]
+                for q in consultas]
+
+    if pid:
+        mems = _juntar(busca(pid, "inherit") + busca(pid, "tree"), limite)
+        ampliou = len(mems) < 2
+        if ampliou:
+            mems = _juntar(busca(None, "all"), limite)
     else:
-        sem = bool(((ctx.get("cfg") or {}).get("contexto") or {}).get("busca_semantica"))
-        r = memstore.memorias_buscar(_str(a.get("query"), 500), projeto=proj, limite=lim, semantica=sem)
-        itens = r["items"]
-    return {"count": len(itens), "memories": [_mem_out(m) for m in itens]}
+        mems, ampliou = _juntar(busca(None, "all"), limite), False
+
+    projs = {}
+    for q in consultas:
+        for p in memstore.projetos_buscar(q, limite=3):
+            if p["id"] not in projs or p["score"] > projs[p["id"]]["score"]:
+                projs[p["id"]] = p
+    projs = sorted(projs.values(), key=lambda p: p["score"], reverse=True)[:4 if ampla else 3]
+
+    conceitos = []
+    if core.habilidade("memoria", cfg) or core.habilidade("grafo", cfg):
+        vistos = set()
+        for q in consultas[:2]:
+            for c in _graph_search({"query": q, "limit": 3}, ctx)["concepts"]:
+                if c["key"] not in vistos:
+                    vistos.add(c["key"])
+                    conceitos.append({"label": c["label"], "description": c.get("description", "")[:200],
+                                      "relations": c["relations"][:6]})
+        conceitos = conceitos[:4]
+
+    documentos, docs_estado = [], "off"
+    if core.habilidade("documentos", cfg):
+        import docs
+        docs_estado = "on"
+        try:
+            for q in consultas[:2]:
+                t = docs.consultar(q, k=3, limite=1500)
+                if t and t not in documentos:
+                    documentos.append(t)
+        except Exception:
+            docs_estado = "error"
+
+    conversas = ""
+    if ampla:
+        for q in consultas:
+            t = chats.recall(q, excluir_id=ctx.get("chat_id"), max_trechos=3) if q.strip() else ""
+            if t:
+                conversas = t[:800]
+                break
+
+    nomes_proj = {p["id"]: p["name"] for p in memstore.projetos_listar()}
+    corte = 300 if ampla else 400
+    # ordem pensada para o corte de MAX_RESULTADO: o mais curto e decisivo (projetos) vem antes
+    out = {"count": len(mems), "searched": {"queries": consultas[:3], "projects": "all" if (not pid or ampliou) else pid}}
+    if projs:
+        out["projects"] = [{"id": p["id"], "name": p["name"], "description": p["description"][:400],
+                            "memories": p["memories"]} for p in projs]
+    out["memories"] = [{**_mem_out(m), "content": _mem_out(m)["content"][:corte],
+                        "project_name": nomes_proj.get(m.get("project"), m.get("project"))} for m in mems]
+    for m in out["memories"]:
+        for k in ("tags", "pinned", "updated"):
+            m.pop(k, None)
+    if conceitos:
+        out["concepts"] = conceitos
+    if documentos:
+        out["documents"] = "\n\n".join(documentos)[:2000]
+    if conversas:
+        out["past_conversations"] = conversas
+    if ampla and (mems or projs or documentos or conversas):
+        out["note"] = ("The user doubts the previous answer. Re-check it against these results and answer in full: "
+                       "confirm or correct it, and name the project or memory the answer comes from.")
+    if not (mems or projs or documentos or conversas):
+        out["found"] = False
+        out["checked"] = {"memories": memstore.memorias_listar(limite=1)["total"], "projects": len(nomes_proj),
+                          "graph": "yes" if (core.habilidade("memoria", cfg) or core.habilidade("grafo", cfg)) else "no",
+                          "documents": docs_estado,
+                          "past_conversations": "yes" if ampla else "no"}
+        out["note"] = ("Nothing matched. Do not invent. Tell the user in one sentence what you checked "
+                       "(memories in every project, project descriptions, documents) and ask for a detail.")
+    return out
+
+
+# ── quando buscar sozinho ────────────────────────────────────────────────────
+def _n(s):
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", (s or "").lower()) if not unicodedata.combining(c))
+
+
+_RE_INSISTE = re.compile(
+    r"(\b(tem |voce tem |vc tem |ta |esta |estas )?certeza\b|\bcerteza\?|\b(procura|procure|busca|busque|olha|olhe|"
+    r"verifica|verifique|checa|cheque|tenta|tente|pesquisa|pesquise)\b.{0,20}\b(de novo|denovo|novamente|melhor|direito|"
+    r"outra vez|mais)\b|\bnao (se )?lembra\b|\bnao (tem|achou|encontrou) nada\b|\bare you sure\b|\b(look|search|"
+    r"check|try) (again|harder|better)\b|\byou (don'?t|do not) remember\b|^\s*(estas |esta )?segur[oa]\b|"
+    r"\bbusca otra vez\b|\bno (te )?acuerdas\b)")
+_RE_PESSOAL = re.compile(
+    r"\b(meu|minha|meus|minhas|eu|comigo|nosso|nossa|nossos|nossas|a gente|lembra|lembrar|lembro|lembre|"
+    r"recorda|voce sabe|vc sabe|sabe (o|a|quem|qual|quando|onde|se)|my|mine|i|our|we|remember|recall|"
+    r"do you know|mi|mis|yo|nuestro|nuestra|recuerdas)\b")
+_RE_PERGUNTA = re.compile(
+    r"(\?|^\s*(qual|quais|quando|onde|quem|o que|quanto|quantos|quantas|por que|what|when|where|who|which|"
+    r"did i|did we|have i|cual|cuando|donde|quien)\b)")
+_RE_PROMESSA = re.compile(
+    r"\b(vou|vamos|deixa eu|deixe-me|deixe me|irei|preciso) (procurar|buscar|verificar|checar|pesquisar|consultar|"
+    r"olhar|dar uma olhada|conferir)\b|\bvamos (la )?(ver|procurar)\b|\b(let me|i'?ll|i will|let's) (search|look|"
+    r"check|find|go through)\b|\b(voy a|vamos a|dejame) (buscar|revisar|verificar|mirar)\b")
+_RE_SEM_INFO = re.compile(
+    r"\bnao (tenho|encontrei|achei|possuo|sei|lembro)\b.{0,40}\b(informac|registr|dado|nada|detalhe|memoria|isso)|"
+    r"\bnao tenho (essa|esta|nenhuma|a) informac|\bi (don'?t|do not) (have|know|remember|recall)\b|"
+    r"\b(no|any) (information|record|memory)\b|\bno tengo (esa |ninguna )?informaci")
+
+
+def _nomes_conhecidos():
+    """Nomes de projetos e conceitos do grafo (para notar 'ACME', 'Aurora'...)."""
+    nomes = set()
+    try:
+        for p in memstore.projetos_listar():
+            if p.get("id") != memstore.PROJETO_PADRAO:
+                nomes.update(t for t in memstore._tokens(p.get("name") or "") if len(t) >= 3)
+        for k, nd in (skills.carregar_grafo().get("nos") or {}).items():
+            lab = nd.get("label") or k
+            if len(lab) >= 3:
+                nomes.add(_n(lab))
+    except Exception:
+        pass
+    return nomes
+
+
+def insistencia(texto):
+    """'Certeza?', 'procura de novo', 'are you sure?'... (mensagem curta duvidando da resposta)."""
+    t = _n(texto).strip()
+    return bool(t) and len(t) <= 160 and bool(_RE_INSISTE.search(t))
+
+
+def classificar(texto, anterior=""):
+    """None (conversa normal), 'memoria' (pergunta sobre o usuário/projetos) ou 'ampla' (o usuário
+    duvidou da resposta anterior). Barato e conservador: conversa simples não dispara nada."""
+    t = _n(texto).strip()
+    if not t:
+        return None
+    if anterior and insistencia(texto):
+        return "ampla"
+    if not _RE_PERGUNTA.search(t):
+        return None
+    if _RE_PESSOAL.search(t):
+        return "memoria"
+    # nome próprio conhecido escrito com maiúscula ("ACME", "Aurora"): também é sobre a memória
+    nomes = _nomes_conhecidos()
+    for w in re.findall(r"\b[A-Z][\w-]{2,}", texto or ""):
+        wn = _n(w)
+        if wn in nomes or any(wn == x.split()[0] for x in nomes if " " in x):
+            return "memoria"
+    return None
+
+
+def promete_buscar(texto, so_promessa=False):
+    """O modelo disse que ia procurar ('vou procurar', 'let me check')? Sem so_promessa, também
+    conta 'não tenho essa informação' (que só vale depois de procurar)."""
+    t = _n(texto)
+    return bool(_RE_PROMESSA.search(t) or (not so_promessa and _RE_SEM_INFO.search(t)))
+
+
+def consulta_auto(texto, anterior, modo):
+    return ((anterior or "") + " " + (texto or "")).strip() if modo == "ampla" else (texto or "")
 
 
 def _graph_search(a, ctx):
@@ -430,7 +673,14 @@ def _resumo(nome, args, res):
     if not isinstance(res, dict):
         return ""
     if nome == "search_memories":
-        return f"{res.get('count', 0)} memória(s)"
+        partes = [f"{res.get('count', 0)} memória(s)"]
+        if res.get("projects"):
+            partes.append(f"{len(res['projects'])} projeto(s)")
+        if res.get("documents"):
+            partes.append("documentos")
+        if res.get("past_conversations"):
+            partes.append("conversas")
+        return ", ".join(partes)
     if nome == "graph_search":
         return f"{res.get('count', 0)} conceito(s)"
     if nome == "list_projects":
@@ -504,9 +754,59 @@ def executar(nome, args, ctx):
     return {"ok": True, "resultado": res, "evento": evento}
 
 
-def resultado_texto(res) -> str:
+# ── caber na janela do modelo ────────────────────────────────────────────────
+# Em janelas de 4k tokens, esquemas das ferramentas + prompt + histórico + um resultado grande
+# estouravam o contexto: o Ollama cortava o começo da conversa e a resposta parava no meio
+# (done_reason "length"). Agora cada resultado é encolhido para o espaço que realmente sobra.
+CHARS_TOKEN_JANELA = 3.3        # PT/EN/JSON medido no qwen3.5 (~3,6); um pouco de folga
+RESERVA_RESPOSTA = 2400         # ~700 tokens para a resposta
+RESERVA_PENSAR = 2000           # + ~600 tokens quando o "pensar" está ligado
+MIN_RESULTADO = 1500            # nunca menos que isso para um resultado de ferramenta
+
+
+def janela_chars(num_ctx) -> int:
+    return int(int(num_ctx or 4096) * CHARS_TOKEN_JANELA)
+
+
+def _encolher(res, limite):
+    """Tira primeiro o que é acessório (conversas, documentos, conceitos), depois encurta e corta
+    memórias do fim (as menos relevantes). Projetos e a nota ficam."""
+    r = copy.deepcopy(res)
+    caber = lambda: len(json.dumps(r, ensure_ascii=False, default=str)) <= limite   # noqa: E731
+    passos = [
+        lambda: r.pop("past_conversations", None),
+        lambda: r.__setitem__("documents", r["documents"][:800]) if r.get("documents") else None,
+        lambda: r.pop("concepts", None),
+        lambda: [m.__setitem__("content", m["content"][:220]) for m in r.get("memories") or []],
+        lambda: r.pop("documents", None),
+        lambda: [p.__setitem__("description", p["description"][:220]) for p in r.get("projects") or []],
+    ]
+    for passo in passos:
+        if caber():
+            return r
+        passo()
+    while not caber() and r.get("memories"):
+        r["memories"].pop()
+        r["count"] = len(r["memories"])
+    return r
+
+
+def resultado_texto(res, limite=None) -> str:
+    limite = max(MIN_RESULTADO, min(MAX_RESULTADO, int(limite))) if limite is not None else MAX_RESULTADO
     t = json.dumps(res, ensure_ascii=False, default=str)
-    return t if len(t) <= MAX_RESULTADO else t[:MAX_RESULTADO] + "…(truncated)"
+    if len(t) > limite and isinstance(res, dict):
+        t = json.dumps(_encolher(res, limite), ensure_ascii=False, default=str)
+    return t if len(t) <= limite else t[:limite] + "…(truncated)"
+
+
+def busca_servidor(modo, texto, anterior, ctx):
+    """A busca que o servidor faz sozinho ('memoria' ou 'ampla'). Mesmo caminho da ferramenta
+    (executar), com o evento marcado como automático. Devolve o resultado de executar + 'args'."""
+    args = {"query": consulta_auto(texto, anterior, modo), "limit": 10 if modo == "ampla" else 6}
+    res = executar("search_memories", args, {**ctx, "ampla": modo == "ampla"})
+    res["evento"]["auto"] = True
+    res["args"] = args
+    return res
 
 
 def marcador(evento) -> str:

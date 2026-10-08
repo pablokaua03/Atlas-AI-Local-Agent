@@ -250,9 +250,14 @@ def aplicar(cfg: dict, d: dict, instalados=None):
     if isinstance(d.get("ferramentas"), dict):
         f = dict(cfg.get("ferramentas") or {})
         df = d["ferramentas"]
-        for k in ("ativo", "escrita"):
+        for k in ("ativo", "escrita", "busca_auto"):
             if k in df:
                 f[k] = bool(df[k])
+        if "pensar" in df:
+            if df["pensar"] in ("nunca", "auto", "sempre"):
+                f["pensar"] = df["pensar"]
+            else:
+                avisos.append("ferramentas.pensar inválido")
         if "max_rodadas" in df:
             v = _num(df["max_rodadas"], *LIM_RODADAS, inteiro=True)
             if v is None:
