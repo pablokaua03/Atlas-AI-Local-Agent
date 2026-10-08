@@ -19,6 +19,7 @@ modelo de embedding (nomic-embed-text) já está instalado. Nada vai pra rede.
 """
 import os
 import re
+import math
 import time
 import secrets
 import threading
@@ -449,6 +450,8 @@ def memoria_criar(dados):
             "created": _agora(),
             "updated": _agora(),
         }
+        if dados.get("pinned") is True:
+            m["pinned"] = True
         s["memorias"][m["id"]] = m
         s["projetos"][pid]["updated"] = _agora()
         _salvar(s)
@@ -496,6 +499,10 @@ def memoria_atualizar(mid, dados):
             m["meta"] = dados["meta"]
         if "expires_at" in dados:
             m["expires_at"] = _texto(dados["expires_at"], "expires_at", 32) or None
+        if "pinned" in dados:
+            if not isinstance(dados["pinned"], bool):
+                raise ErroAPI(400, "invalid_request", "'pinned' must be true or false.")
+            m["pinned"] = dados["pinned"]
         m["updated"] = _agora()
         _salvar(s)
     if mudou_texto:
@@ -541,11 +548,14 @@ def _filtrar(s, projeto=None, tags=None, tipo=None, fonte=None, incluir_expirada
 
 
 def memorias_listar(projeto=None, tags=None, tipo=None, fonte=None, limite=50, offset=0, ordem="recent",
-                    escopo="exact"):
+                    escopo="exact", fixadas=None):
+    """`fixadas`: True = só as fixadas; False = só as não fixadas; None = todas."""
     with _lock:
         _checar_cofre()
         s = _carregar()
         mems = _filtrar(s, projeto, tags, tipo, fonte, escopo=escopo)
+    if fixadas is not None:
+        mems = [m for m in mems if bool(m.get("pinned")) == fixadas]
     mems.sort(key=lambda m: m["updated"], reverse=True)
     if ordem == "importance":
         mems.sort(key=lambda m: m["importance"], reverse=True)   # estável: empate fica por data
@@ -554,18 +564,42 @@ def memorias_listar(projeto=None, tags=None, tipo=None, fonte=None, limite=50, o
     return {"total": len(mems), "items": mems[offset:offset + limite]}
 
 
-def _score_palavras(q_toks, m):
+def _toks_memoria(m):
+    return set(_tokens(m["content"])) | set(_tokens(" ".join(m["tags"]))) | \
+        set(_tokens(" ".join(m.get("entities") or [])))
+
+
+def _acerto(t, m_toks):
+    if t in m_toks:
+        return 1.0
+    if len(t) >= 4 and any(x.startswith(t) or t.startswith(x) for x in m_toks if len(x) >= 4):
+        return 0.5
+    return 0.0
+
+
+def _score_palavras(q_toks, m, pesos=None, m_toks=None):
+    """Fração (ponderada) dos termos da consulta presentes na memória. Com `pesos` (IDF),
+    um termo raro como 'kubernetes' vale mais que um comum como 'hoje'."""
     if not q_toks:
         return 0.0
-    m_toks = set(_tokens(m["content"])) | set(_tokens(" ".join(m["tags"]))) | \
-        set(_tokens(" ".join(m.get("entities") or [])))
-    acertos = 0.0
+    m_toks = m_toks if m_toks is not None else _toks_memoria(m)
+    if not pesos:
+        return sum(_acerto(t, m_toks) for t in q_toks) / len(q_toks)
+    total = sum(pesos.get(t, 1.0) for t in q_toks) or 1.0
+    return sum(pesos.get(t, 1.0) * _acerto(t, m_toks) for t in q_toks) / total
+
+
+def _pesos_idf(q_toks, toks_por_mem):
+    """IDF suavizado por termo da consulta, em relação ao conjunto filtrado. Com poucas
+    memórias os pesos ficam quase iguais (= média simples)."""
+    n = len(toks_por_mem)
+    if n < 3 or len(q_toks) < 2:
+        return None
+    pesos = {}
     for t in q_toks:
-        if t in m_toks:
-            acertos += 1.0
-        elif len(t) >= 4 and any(x.startswith(t) or t.startswith(x) for x in m_toks if len(x) >= 4):
-            acertos += 0.5
-    return acertos / len(q_toks)
+        df = sum(1 for ts in toks_por_mem if _acerto(t, ts) > 0)
+        pesos[t] = math.log(1 + n / (1 + df))
+    return pesos
 
 
 def memorias_buscar(query, projeto=None, tags=None, tipo=None, limite=10, semantica=True, min_score=0.05,
@@ -585,8 +619,10 @@ def memorias_buscar(query, projeto=None, tags=None, tipo=None, limite=10, semant
         if vetores and _embed_disponivel():
             qv = _embed(query)
     res = []
-    for m in mems:
-        kw = _score_palavras(q_toks, m)
+    toks = [_toks_memoria(m) for m in mems] if q_toks else [None] * len(mems)
+    pesos = _pesos_idf(q_toks, toks) if q_toks else None
+    for m, mt in zip(mems, toks):
+        kw = _score_palavras(q_toks, m, pesos, mt)
         sem = None
         if qv is not None and m["id"] in vetores:
             sem = max(0.0, _cos(qv, vetores[m["id"]]))

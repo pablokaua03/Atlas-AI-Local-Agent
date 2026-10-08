@@ -210,6 +210,8 @@ def aplicar(cfg: dict, d: dict, instalados=None):
                     c[k] = v
         if "incluir_conversas" in dc:
             c["incluir_conversas"] = bool(dc["incluir_conversas"])
+        if "busca_semantica" in dc:
+            c["busca_semantica"] = bool(dc["busca_semantica"])
         if "fatos_modo" in dc:
             if dc["fatos_modo"] in FATOS_MODOS:
                 c["fatos_modo"] = dc["fatos_modo"]

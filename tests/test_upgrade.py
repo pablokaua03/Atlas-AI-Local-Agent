@@ -19,6 +19,8 @@ import core               # noqa: E402
 import chats              # noqa: E402
 import skills             # noqa: E402
 import server             # noqa: E402
+import memstore           # noqa: E402
+import contexto           # noqa: E402
 
 
 class FakeResp:
@@ -251,6 +253,70 @@ class TestOllamaStatus(BaseChat):
         linhas = self.c.post("/api/pull", json={"modelo": "qwen3:4b"}).get_data(as_text=True).strip()
         self.assertEqual(json.loads(linhas)["error"], "ollama_offline")
         self.assertEqual(self.c.post("/api/ollama/delete", json={"modelo": "../x"}).status_code, 400)
+
+
+class TestSelecaoMemorias(tm.Base):
+    def cfg(self, **c):
+        cfg = core.carregar_config()
+        cfg["contexto"].update(c)
+        return cfg
+
+    def test_idf_prefere_termo_raro(self):
+        for i in range(6):
+            self.api("POST", "/v1/memories", {"content": f"Hoje eu fiz a tarefa comum número {i}"})
+        st, raro = self.api("POST", "/v1/memories", {"content": "O cluster kubernetes roda no servidor de casa"})
+        st, comum = self.api("POST", "/v1/memories", {"content": "Hoje o servidor reiniciou sozinho"})
+        r = memstore.memorias_buscar("kubernetes hoje", semantica=False)["items"]
+        self.assertEqual(r[0]["id"], raro["id"])
+
+    def test_piso_de_relevancia(self):
+        itens = [{"id": "a", "score": 0.9}, {"id": "b", "score": 0.2}, {"id": "c", "score": 0.1}]
+        self.assertEqual([m["id"] for m in contexto.cortar_fracas(itens)], ["a"])
+        itens = [{"id": "a", "score": 0.3}, {"id": "b", "score": 0.15}]
+        self.assertEqual([m["id"] for m in contexto.cortar_fracas(itens)], ["a", "b"])
+        self.assertEqual(contexto.cortar_fracas([]), [])
+
+    def test_memoria_fraca_nao_entra_no_contexto(self):
+        st, forte = self.api("POST", "/v1/memories", {"content": "O foguete usa metano líquido e oxigênio"})
+        st, fraca = self.api("POST", "/v1/memories",
+                             {"content": "Lista de compras: arroz, feijão, café, leite, pão, ovos, manteiga e foguetes de festa"})
+        u = contexto.selecionar_memorias("qual combustível o foguete usa? metano líquido?", None, self.cfg(), {}, 5000)
+        ids = [x["id"] for x in u]
+        self.assertIn(forte["id"], ids)
+        self.assertNotIn(fraca["id"], ids)
+
+    def test_fixada_global_respeita_projeto(self):
+        st, g = self.api("POST", "/v1/memories", {"content": "Prefiro respostas curtas", "pinned": True})
+        self.assertTrue(g["pinned"])
+        st, p = self.api("POST", "/v1/memories", {"content": "Deploy do foguete é na sexta", "project": "foguete"})
+        st, d = self.api("PATCH", f"/v1/memories/{p['id']}", {"pinned": True})
+        self.assertEqual(st, 200)
+        self.assertTrue(d["pinned"])
+        self.api("POST", "/v1/memories", {"content": "Outro projeto", "project": "loja", "pinned": True})
+        st, d = self.api("PATCH", f"/v1/memories/{p['id']}", {"pinned": "sim"})
+        self.assertEqual(st, 400)
+
+        sem_proj = {x["id"] for x in contexto.selecionar_memorias("bom dia", None, self.cfg(), {}, 5000)}
+        self.assertEqual(sem_proj, {g["id"]})                                  # só a da geral
+        no_foguete = contexto.selecionar_memorias("bom dia", "foguete", self.cfg(), {}, 5000)
+        self.assertEqual({x["id"] for x in no_foguete}, {g["id"], p["id"]})      # herda a da geral, não a da loja
+        self.assertTrue(all(x["pinned"] and x["why"] == "fixada" for x in no_foguete))
+        excl = contexto.selecionar_memorias("bom dia", "foguete", self.cfg(), {"ctx_excluidas": [g["id"]]}, 5000)
+        self.assertEqual({x["id"] for x in excl}, {p["id"]})                   # exclusão da conversa vence
+
+        st, d = self.api("GET", "/v1/memories?pinned=true&scope=all")
+        self.assertEqual(d["total"], 3)
+        st, d = self.api("GET", "/v1/memories?pinned=false&scope=all")
+        self.assertEqual(d["total"], 0)
+        st, d = self.api("GET", f"/v1/memories/{p['id']}")
+        self.assertTrue(d["pinned"])
+        st, d = self.api("POST", "/v1/memories", {"content": "Sem campo novo"})
+        self.assertNotIn("pinned", d)                                          # formato antigo continua igual
+
+    def test_busca_semantica_opcional_salva(self):
+        d = self.c.post("/api/config", json={"contexto": {"busca_semantica": True}}).get_json()
+        self.assertTrue(d["config"]["contexto"]["busca_semantica"])
+        self.assertTrue(core.carregar_config()["contexto"]["busca_semantica"])
 
 
 class TestPorta(unittest.TestCase):

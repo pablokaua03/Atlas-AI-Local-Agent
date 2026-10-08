@@ -178,9 +178,11 @@ def memorias_listar():
     if a.get("q"):
         return jsonify(memstore.memorias_buscar(a["q"], a.get("project"), _arg_tags(), a.get("type"),
                                                 a.get("limit", 10, type=int), escopo=a.get("scope", "inherit")))
+    fixadas = None if a.get("pinned") in (None, "") else _arg_bool("pinned")
     return jsonify(memstore.memorias_listar(a.get("project"), _arg_tags(), a.get("type"), a.get("source"),
                                             a.get("limit", 50, type=int), a.get("offset", 0, type=int),
-                                            a.get("sort", "recent"), escopo=a.get("scope", "exact")))
+                                            a.get("sort", "recent"), escopo=a.get("scope", "exact"),
+                                            fixadas=fixadas))
 
 
 @bp.post("/v1/memories")
@@ -351,7 +353,8 @@ def _openapi():
                                                   "Default: exact for listing, inherit for q"),
                                        q("type", "Memory type"), q("source", "Who wrote it"),
                                        q("sort", "recent | importance"), q("limit", "Max items", "integer"),
-                                       q("offset", "Pagination offset", "integer")],
+                                       q("offset", "Pagination offset", "integer"),
+                                       q("pinned", "true = only pinned, false = only unpinned (listing only)", "boolean")],
                         "responses": {"200": ok}},
                 "post": {"operationId": "createMemory", "summary": "Store a memory (exact duplicates return the existing one)",
                          "requestBody": corpo(ref("MemoryInput")), "responses": {"201": resp(ref("Memory"))}}},
@@ -443,7 +446,10 @@ def _openapi():
                     "source": {"type": "string", "description": "Which AI or tool wrote it"},
                     "entities": {"type": "array", "items": {"type": "string"},
                                  "description": "Graph node labels this memory is about (created if missing)"},
-                    "meta": {"type": "object"}, "expires_at": {"type": "string", "description": "ISO date-time"}}},
+                    "meta": {"type": "object"}, "expires_at": {"type": "string", "description": "ISO date-time"},
+                    "pinned": {"type": "boolean", "default": False,
+                               "description": "Always include in the Atlas chat context for its project "
+                                              "(and subprojects). Missing = false."}}},
                 "Memory": {"allOf": [ref("MemoryInput"), {"type": "object", "properties": {
                     "id": {"type": "string"}, "created": {"type": "string"}, "updated": {"type": "string"}}}]},
                 "NodeInput": {"type": "object", "required": ["label"], "properties": {

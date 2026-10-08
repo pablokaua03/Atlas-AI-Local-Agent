@@ -143,21 +143,48 @@ def _forma(m: dict, motivo: str, fixada: bool) -> dict:
             "inherited": bool(m.get("inherited")), "score": m.get("_final"), "why": motivo, "pinned": fixada}
 
 
+PISO_RELEVANCIA = 0.12        # abaixo disso a memória quase não tem a ver com a pergunta
+PISO_RELATIVO = 0.3           # ...ou é bem mais fraca que a melhor encontrada
+MAX_FIXADAS_GLOBAIS = 8
+
+
+def cortar_fracas(itens, piso: float = PISO_RELEVANCIA, relativo: float = PISO_RELATIVO):
+    """Tira candidatas de relevância baixa (absoluta ou em relação à melhor), para não
+    encher o prompt com memórias que só compartilham uma palavra com a pergunta."""
+    if not itens:
+        return []
+    melhor = max(float(m.get("score") or 0) for m in itens)
+    corte = max(piso, relativo * melhor)
+    return [m for m in itens if float(m.get("score") or 0) >= corte]
+
+
 def selecionar_memorias(texto: str, projeto: str, cfg: dict, chat: dict, orcamento: int, buscar=None, obter=None,
-                        listar=None, agora: float = None):
-    """Escolhe as memórias do contexto. `buscar/obter/listar` são injetáveis (testes); por padrão usam memstore.
-    Devolve lista de dicts (ver _forma), na ordem em que entram no prompt."""
+                        listar=None, agora: float = None, fixadas=None):
+    """Escolhe as memórias do contexto. `buscar/obter/listar/fixadas` são injetáveis (testes); por padrão
+    usam memstore. Devolve lista de dicts (ver _forma), na ordem em que entram no prompt."""
     import memstore
-    buscar = buscar or (lambda q, p, n: memstore.memorias_buscar(q, p, limite=n, semantica=False, min_score=0.05,
-                                                                 escopo="inherit")["items"])
+    if fixadas is None and buscar is not None:     # busca injetada (testes): não lê o banco real
+        fixadas = lambda p: []
+    cc = cfg.get("contexto") or {}
+    semantica = bool(cc.get("busca_semantica"))
+    buscar = buscar or (lambda q, p, n: cortar_fracas(memstore.memorias_buscar(
+        q, p, limite=n, semantica=semantica, min_score=0.05, escopo="inherit")["items"]))
     obter = obter or memstore.memoria_obter
     listar = listar or (lambda p, n: memstore.memorias_listar(p, limite=n, ordem="importance",
                                                               escopo="inherit")["items"])
-    cc = cfg.get("contexto") or {}
+    # fixadas na própria memória (pinned): valem para o projeto delas e os subprojetos; sem projeto, só as da geral
+    fixadas = fixadas or (lambda p: memstore.memorias_listar(p or memstore.PROJETO_PADRAO,
+                                                             limite=MAX_FIXADAS_GLOBAIS, ordem="importance",
+                                                             escopo="inherit" if p else "exact",
+                                                             fixadas=True)["items"])
     maximo = int(cc.get("max_memorias", 6))
     meia = float(cc.get("recencia_dias", 30))
     fix, exc = regras(cfg, chat, projeto)
-    if maximo <= 0 and not fix:
+    try:
+        globais = [m for m in fixadas(projeto or None) if m.get("pinned")][:MAX_FIXADAS_GLOBAIS]
+    except Exception:
+        globais = []
+    if maximo <= 0 and not fix and not globais:
         return []
 
     escolhidas, ids = [], set()
@@ -172,6 +199,10 @@ def selecionar_memorias(texto: str, projeto: str, cfg: dict, chat: dict, orcamen
             m = obter(mid)
         except Exception:
             continue
+        if ok(m):
+            escolhidas.append(_forma(m, "fixada", True))
+            ids.add(m["id"])
+    for m in globais:
         if ok(m):
             escolhidas.append(_forma(m, "fixada", True))
             ids.add(m["id"])

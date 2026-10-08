@@ -139,6 +139,7 @@ CONFIG_PADRAO = {
         "max_memorias": 6,                 # máximo de memórias injetadas por resposta
         "recencia_dias": 30,               # meia-vida da recência no ranking
         "incluir_conversas": True,         # recall de conversas anteriores
+        "busca_semantica": False,          # usa embeddings na seleção (mais preciso, um pouco mais lento)
         "hist_msgs": 6,                    # pares pergunta/resposta recentes enviados
         "fatos_modo": "perguntar",         # "perguntar" | "automatico" | "desligado"
     },
