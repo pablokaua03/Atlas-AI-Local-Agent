@@ -30,7 +30,18 @@ import contexto
 import urllib.parse
 
 WEB_DIR = os.path.join(core.BASE_DIR, "web")
-HOST, PORT = "127.0.0.1", 5005
+
+
+def _porta():
+    """Porta do servidor: ATLAS_PORT (1024–65535) ou 5005."""
+    try:
+        p = int(os.environ.get("ATLAS_PORT", "5005"))
+        return p if 1024 <= p <= 65535 else 5005
+    except ValueError:
+        return 5005
+
+
+HOST, PORT = "127.0.0.1", _porta()
 
 app = Flask(__name__, static_folder=None)
 memapi.registrar(app, HOST, PORT)       # API de memória /v1 para qualquer IA
@@ -391,7 +402,8 @@ def api_lembrete_excluir(lid):
 # ── CONVERSAS (chats salvos localmente) ───────────────────────────────────────
 @app.route("/api/chats")
 def api_chats():
-    return jsonify(chats.listar())
+    q = (request.args.get("q") or "").strip()[:100]
+    return jsonify(chats.listar(q or None))
 
 
 @app.route("/api/chats/<cid>")
@@ -899,6 +911,8 @@ def chat():
         if core.info_modelo(modelo).get("think") is False or "qwen3" in modelo:
             body["think"] = False
         filtro = contexto.FiltroPensamento()
+        r = None
+        interrompido = False
         try:
             r = requests.post(f"{core.OLLAMA}/api/chat", json=body, stream=True, timeout=300)
             for line in r.iter_lines():
@@ -919,10 +933,23 @@ def chat():
                         yield tok
                 if data.get("done"):
                     break
+        except GeneratorExit:
+            # o usuário clicou em parar (ou fechou a aba): guarda o que já saiu e não aprende nada
+            interrompido = True
+            raise
         except Exception as e:
             yield f"\n(erro ao falar com o modelo: {e})"
         finally:
             skills.conversando.clear()
+            if r is not None:
+                try:
+                    r.close()                            # fecha o stream → o Ollama para de gerar
+                except Exception:
+                    pass
+            if interrompido:
+                parcial = (full + filtro.fim()).strip()
+                if parcial:
+                    chats.adicionar(cid, texto_salvar, parcial, ctx=ctx_msg, parcial=True)
         resto = filtro.fim()
         if resto:
             full += resto
