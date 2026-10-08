@@ -17,10 +17,10 @@ TOOLS = [
     {"type": "function", "function": {"name": "link_concepts", "description": "Link two concepts in the knowledge graph with a short relation.",
      "parameters": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "relation": {"type": "string"}}, "required": ["from", "to", "relation"]}}},
 ]
-SYS = "Você é o assistente pessoal local do Pablo. Responda SEMPRE em português brasileiro. Use as ferramentas quando fizer sentido; não use para conversa casual."
+SYS = "Você é o assistente pessoal local do Ana. Responda SEMPRE em português brasileiro. Use as ferramentas quando fizer sentido; não use para conversa casual."
 CASOS = [
     ("save", "Guarda isso: meu time do coração é o Palmeiras.", "save_memory", lambda a: "palmeiras" in json.dumps(a, ensure_ascii=False).lower()),
-    ("search", "O que eu decidi sobre o banco de dados do projeto SpaceBooks? Confere nas minhas memórias.", "search_memories", lambda a: any(k in json.dumps(a, ensure_ascii=False).lower() for k in ("banco", "spacebooks", "database", "dados"))),
+    ("search", "O que eu decidi sobre o banco de dados do projeto Aurora? Confere nas minhas memórias.", "search_memories", lambda a: any(k in json.dumps(a, ensure_ascii=False).lower() for k in ("banco", "aurora", "database", "dados"))),
     ("link", "No meu grafo, liga o conceito 'Atlas' ao conceito 'Ollama' com a relação 'usa'.", "link_concepts", lambda a: "atlas" in json.dumps(a).lower() and "ollama" in json.dumps(a).lower()),
     ("none", "Oi! Tudo bem?", None, None),
 ]
@@ -105,7 +105,7 @@ def bench(m):
             # rodada 2: devolve o resultado da ferramenta e vê se responde em PT
             if calls and esperado:
                 follow = [{"role": "system", "content": SYS}, {"role": "user", "content": prompt}, msg,
-                          {"role": "tool", "tool_name": nomes[0], "content": json.dumps({"ok": True, "items": [{"content": "Decidimos usar MySQL 8 no SpaceBooks (out/2026)."}]} if nomes[0] == "search_memories" else {"ok": True, "id": "mem_123"}, ensure_ascii=False)}]
+                          {"role": "tool", "tool_name": nomes[0], "content": json.dumps({"ok": True, "items": [{"content": "Decidimos usar MySQL 8 no Aurora (out/2026)."}]} if nomes[0] == "search_memories" else {"ok": True, "id": "mem_123"}, ensure_ascii=False)}]
                 r2 = chat(m, follow, tools=TOOLS, think=think, npred=200)
                 item["final"] = ((r2.get("message") or {}).get("content") or "")[:300]
             tool_res.append(item)
@@ -125,7 +125,7 @@ def bench_embed(m):
     t = time.time()
     a = emb("Meu time do coração é o Palmeiras.")
     b = emb("Qual time de futebol eu torço?")
-    c = emb("Decidimos usar MySQL no projeto SpaceBooks.")
+    c = emb("Decidimos usar MySQL no projeto Aurora.")
     dt = (time.time() - t) / 3
     p = ps(m)
     requests.post(f"{OL}/api/generate", json={"model": m, "keep_alive": 0}, timeout=60)

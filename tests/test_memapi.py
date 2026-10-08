@@ -140,7 +140,7 @@ class TestHierarquia(Base):
         self.api("POST", "/v1/projects", {"name": "Empresa"})
         self.api("POST", "/v1/projects", {"name": "Site", "parent": "empresa"})
         self.api("POST", "/v1/projects", {"name": "Checkout", "parent": "Site"})
-        self.api("POST", "/v1/memories", {"content": "Pablo gosta de respostas curtas"})              # geral
+        self.api("POST", "/v1/memories", {"content": "Ana gosta de respostas curtas"})              # geral
         self.api("POST", "/v1/memories", {"content": "A empresa usa Python no backend", "project": "empresa"})
         self.api("POST", "/v1/memories", {"content": "O site usa React", "project": "site"})
         self.api("POST", "/v1/memories", {"content": "O checkout usa Stripe", "project": "checkout"})
@@ -165,7 +165,7 @@ class TestHierarquia(Base):
         self.assertEqual(d["total"], 4)
         dist = {m["content"]: (m["distance"], m["inherited"]) for m in d["items"]}
         self.assertEqual(dist["O checkout usa Stripe"], (0, False))
-        self.assertEqual(dist["Pablo gosta de respostas curtas"], (3, True))
+        self.assertEqual(dist["Ana gosta de respostas curtas"], (3, True))
         self.assertEqual(self.api("GET", "/v1/memories?project=checkout")[1]["total"], 1)        # exact
         self.assertEqual(self.api("GET", "/v1/memories?project=empresa&scope=tree")[1]["total"], 3)
         self.assertEqual(self.api("GET", "/v1/memories?project=site&scope=bad")[0], 400)
@@ -276,8 +276,8 @@ class TestMemorias(Base):
         self.assertIn("Stripe integra Loja", d["text"])
 
     def test_chat_usa_memorias(self):
-        self.api("POST", "/v1/memories", {"content": "Pablo prefere Python"})
-        self.assertIn("Pablo prefere Python", memstore.contexto_chat("eu gosto de python?"))
+        self.api("POST", "/v1/memories", {"content": "Ana prefere Python"})
+        self.assertIn("Ana prefere Python", memstore.contexto_chat("eu gosto de python?"))
 
 
 class TestGrafo(Base):

@@ -105,10 +105,10 @@ class TestLoopFerramentas(FakeOllama):
         self.assertNotIn("mem_antes", acoes[0])
 
     def test_busca_e_resposta_em_paragrafo_novo(self):
-        memstore.memoria_criar({"content": "Decidimos usar MySQL 8 no SpaceBooks.", "type": "decision"})
-        self.roteiros = [[_linha({"message": {"content": "Vou conferir."}})] + [chamada("search_memories", {"query": "SpaceBooks banco"})],
+        memstore.memoria_criar({"content": "Decidimos usar MySQL 8 no Aurora.", "type": "decision"})
+        self.roteiros = [[_linha({"message": {"content": "Vou conferir."}})] + [chamada("search_memories", {"query": "Aurora banco"})],
                          texto("Vocês escolheram MySQL 8.")]
-        limpo, eventos = self.conversar("qual banco decidimos no SpaceBooks?")
+        limpo, eventos = self.conversar("qual banco decidimos no Aurora?")
         self.assertEqual(limpo, "Vou conferir.\n\nVocês escolheram MySQL 8.")
         self.assertEqual(eventos[0]["resumo"], "1 memória(s)")
         self.assertIn("MySQL 8", self.enviado[1]["messages"][-1]["content"])
@@ -144,7 +144,7 @@ class TestLoopFerramentas(FakeOllama):
         self.assertEqual(memstore.memorias_listar()["total"], 0)
 
     def test_modelo_sem_ferramentas_mantem_injecao_de_contexto(self):
-        memstore.memoria_criar({"content": "Pablo prefere respostas curtas em português.", "type": "preference"})
+        memstore.memoria_criar({"content": "Ana prefere respostas curtas em português.", "type": "preference"})
         cfg = core.carregar_config()
         cfg["perfis_modelo"] = {"qwen3.5:4b": {"ferramentas": False}}
         core.salvar_config(cfg)
@@ -228,15 +228,15 @@ class TestDesfazer(FakeOllama):
         self.assertFalse(memstore.memoria_obter(m["id"])["pinned"])
 
     def test_desfazer_ligacao_no_grafo(self):
-        memstore.no_criar("Pablo", "pessoa")
-        r = ferramentas.executar("link_concepts", {"from": "Pablo", "to": "SpaceBooks", "relation": "trabalha em"}, self.ctx())
+        memstore.no_criar("Ana", "pessoa")
+        r = ferramentas.executar("link_concepts", {"from": "Ana", "to": "Aurora", "relation": "trabalha em"}, self.ctx())
         self.assertTrue(r["ok"])
-        busca = ferramentas.executar("graph_search", {"query": "Pablo"}, self.ctx())
-        self.assertIn("Pablo trabalha em SpaceBooks", busca["resultado"]["concepts"][0]["relations"])
+        busca = ferramentas.executar("graph_search", {"query": "Ana"}, self.ctx())
+        self.assertIn("Ana trabalha em Aurora", busca["resultado"]["concepts"][0]["relations"])
         self.assertTrue(ferramentas.desfazer(r["evento"]["acao"])["ok"])
         g = skills.carregar_grafo()
-        self.assertIn("pablo", g["nos"])
-        self.assertNotIn("spacebooks", g["nos"])
+        self.assertIn("ana", g["nos"])
+        self.assertNotIn("aurora", g["nos"])
         self.assertEqual(g["arestas"], {})
 
     def test_leitura_nao_registra_acao(self):
