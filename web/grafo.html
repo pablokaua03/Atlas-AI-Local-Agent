@@ -10,8 +10,8 @@
   :root{color-scheme:dark;--bg:#07090d;--panel:rgba(18,22,30,.86);--panel2:#141925;--line:#232a38;--txt:#e6e9ef;--dim:#8b94a3;--accent:#7c9bff;--danger:#ff6b6b}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:ui-sans-serif,system-ui,"Segoe UI",Arial,sans-serif;overflow:hidden}
-  button,input,select{font-family:inherit;font-size:13px}
-  canvas{position:fixed;inset:0;top:54px;display:block}
+  button,input,select,textarea{font-family:inherit;font-size:13px}
+  canvas{position:fixed;inset:0;top:54px;display:block;touch-action:none}
   #top{position:fixed;top:0;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 14px;
     border-bottom:1px solid var(--line);background:rgba(7,9,13,.82);backdrop-filter:blur(8px);z-index:5}
   #top h1{font-size:15px;margin:0 4px 0 0;white-space:nowrap} #stats{font-size:12px;color:var(--dim);white-space:nowrap}
@@ -21,8 +21,17 @@
   .tbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:20px;padding:6px 12px;cursor:pointer;white-space:nowrap}
   .tbtn:hover{border-color:var(--accent)} .tbtn.on{background:var(--accent);color:#07090d;border-color:var(--accent)}
   .sp{flex:1}
-  #busca{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:20px;padding:6px 12px;width:170px;outline:none}
+  #buscaW{position:relative}
+  #busca{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:20px;padding:6px 12px;width:190px;outline:none}
   #busca:focus{border-color:var(--accent)}
+  #res{position:fixed;width:300px;max-height:min(360px,60vh);overflow:auto;background:rgba(14,18,26,.97);border:1px solid var(--line);
+    border-radius:12px;padding:5px;z-index:9;display:none;box-shadow:0 12px 40px rgba(0,0,0,.55)}
+  #res .r{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13px;color:#dfe4ee}
+  #res .r i{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  #res .r .l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #res .r .t{font-size:11px;color:var(--dim);flex:0 0 auto}
+  #res .r.on,#res .r:hover{background:var(--panel2)} #res .r.on{outline:1px solid var(--accent)}
+  #res .n{font-size:11px;color:var(--dim);padding:4px 9px 6px}
   select.tbtn{padding-right:8px}
   label.chk{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
   #painel{position:fixed;right:14px;top:66px;width:300px;max-height:calc(100% - 80px);overflow:auto;background:var(--panel);
@@ -30,7 +39,9 @@
     box-shadow:0 12px 50px rgba(0,0,0,.55)}
   #painel .x{position:absolute;top:8px;right:10px;color:var(--dim);cursor:pointer;background:none;border:none;font-size:16px}
   #painel .lbl{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;margin:10px 0 4px}
-  #painel input,#painel select{width:100%;background:#0c1017;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;outline:none}
+  #painel input,#painel select,#painel textarea{width:100%;background:#0c1017;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;outline:none}
+  #painel textarea{resize:vertical;min-height:58px;line-height:1.45}
+  #painel input:focus,#painel select:focus,#painel textarea:focus{border-color:var(--accent)}
   #painel h3{margin:0 24px 2px 0;font-size:16px} #painel .sub{font-size:12px;color:var(--dim)}
   #painel .txt{font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
   .chip{display:inline-block;font-size:11.5px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:2px 8px;margin:2px 3px 2px 0;cursor:pointer;color:#cdd3dd}
@@ -45,19 +56,27 @@
     font-size:11.5px;z-index:4;display:flex;flex-wrap:wrap;gap:4px 10px;max-width:60%;backdrop-filter:blur(8px)}
   #legenda span{display:flex;align-items:center;gap:5px;cursor:pointer;color:#cdd3dd;user-select:none}
   #legenda span.off{opacity:.3} #legenda i{width:9px;height:9px;border-radius:50%;display:inline-block}
-  #ajuda{position:fixed;right:14px;bottom:14px;font-size:11.5px;color:var(--dim);z-index:3;text-align:right;pointer-events:none}
+  #legenda i.dia{border-radius:1px;transform:rotate(45deg);width:8px;height:8px}
+  #legenda .nota{cursor:default;color:var(--dim);flex-basis:100%}
+  #zoom{position:fixed;right:14px;bottom:40px;display:flex;flex-direction:column;gap:6px;z-index:4}
+  #zoom button{width:36px;height:36px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--txt);cursor:pointer;font-size:16px;backdrop-filter:blur(8px)}
+  #zoom button:hover{border-color:var(--accent)}
+  #ajuda{position:fixed;right:60px;bottom:14px;font-size:11.5px;color:var(--dim);z-index:3;text-align:right;pointer-events:none}
   #tip{position:fixed;pointer-events:none;background:rgba(10,13,19,.94);border:1px solid var(--line);border-radius:10px;padding:7px 10px;
     font-size:12px;max-width:280px;z-index:8;display:none;box-shadow:0 6px 24px rgba(0,0,0,.5)}
   #tip b{display:block;margin-bottom:2px} #tip .d{color:var(--dim)}
   #hint{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);
     color:var(--txt);border-radius:20px;padding:8px 16px;font-size:13px;display:none;z-index:7}
   #vazio{position:fixed;inset:54px 0 0 0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--dim);text-align:center;padding:30px;pointer-events:none}
-  @media (max-width:980px){#busca{width:110px}#stats{display:none}}
+  #top{overflow-x:auto;overflow-y:hidden;scrollbar-width:none} #top::-webkit-scrollbar{display:none} #top>*{flex-shrink:0}
+  #legenda #legStats{display:none}
+  @media (max-width:1560px){#stats{display:none} #legenda #legStats{display:inline}}
+  @media (max-width:980px){#busca{width:130px}}
   #carregando{position:fixed;inset:54px 0 0 0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;
     color:var(--dim);font-size:13px;z-index:2;pointer-events:none}
   #carregando .ui-skel{width:min(260px,70%);height:10px}
   .tbtn,.eb,.seg button{min-height:34px}
-  .tbtn:focus-visible,.seg button:focus-visible,.eb:focus-visible,#legenda span:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .tbtn:focus-visible,.seg button:focus-visible,.eb:focus-visible,#legenda span:focus-visible,#zoom button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   @media (max-width:680px){
     #top{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:6px;padding:0 10px}
     #top::-webkit-scrollbar{display:none}
@@ -65,60 +84,164 @@
     #top h1{font-size:14px}
     #painel{left:10px;right:10px;top:auto;bottom:10px;width:auto;max-height:55%}
     #legenda{max-width:calc(100% - 20px);bottom:auto;top:62px;left:10px;font-size:11px}
+    #legenda .nota{display:none}
     #ajuda{display:none}
+    #zoom{bottom:16px;right:10px}
+    #res{width:calc(100% - 20px)}
   }
 </style>
 </head>
 <body>
 <div id="top">
-  <h1>🕸️ Grafo</h1><span id="stats"></span>
+  <h1 data-i="h1">🕸️ Grafo</h1><span id="stats"></span>
   <div class="seg" id="modos">
-    <button data-m="rede">🕸 Rede</button><button data-m="orbita">🌌 Órbita 3D</button><button data-m="hier">🌳 Hierarquia</button>
+    <button data-m="rede" data-i="m_rede">🕸 Rede</button><button data-m="orbita" data-i="m_orbita">🌌 Órbita 3D</button><button data-m="hier" data-i="m_hier">🌳 Hierarquia</button>
   </div>
-  <select class="tbtn" id="projSel" title="projeto"></select>
-  <label class="chk" id="subBox"><input type="checkbox" id="subChk" checked>subprojetos</label>
-  <input id="busca" placeholder="🔎 buscar…" autocomplete="off">
+  <select class="tbtn" id="projSel" data-it="projTitle"></select>
+  <label class="chk" id="subBox"><input type="checkbox" id="subChk" checked><span data-i="sub">subprojetos</span></label>
+  <label class="chk" id="memBox" data-it="memsTitle"><input type="checkbox" id="memChk"><span data-i="mems">memórias</span></label>
+  <div id="buscaW"><input id="busca" data-ip="busca" placeholder="🔎 buscar…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="res" aria-autocomplete="list"></div>
   <div class="sp"></div>
-  <button class="tbtn" id="novoNo" title="novo conceito" aria-label="Novo conceito">➕</button>
-  <button class="tbtn" id="conectar" title="conectar conceitos" aria-label="Conectar conceitos">🔗</button>
-  <button class="tbtn" id="centrar" title="centralizar" aria-label="Centralizar">⊙</button>
-  <button class="tbtn" id="limpar" title="limpar o grafo" aria-label="Limpar o grafo" style="color:var(--danger)">🧹</button>
-  <a class="tbtn" href="/memorias" style="text-decoration:none" title="memórias" aria-label="Memórias">🗂️</a>
-  <a class="tbtn" href="/" style="text-decoration:none">← voltar</a>
+  <button class="tbtn" id="novoNo" data-it="novo">➕</button>
+  <button class="tbtn" id="conectar" data-it="conectar">🔗</button>
+  <button class="tbtn" id="centrar" data-it="centrar">⊙</button>
+  <button class="tbtn" id="limpar" data-it="limpar" style="color:var(--danger)">🧹</button>
+  <a class="tbtn" href="/memorias" style="text-decoration:none" data-it="memLink">🗂️</a>
+  <a class="tbtn" href="/" style="text-decoration:none" data-i="voltar">← voltar</a>
 </div>
 <canvas id="cv"></canvas>
+<div id="res" role="listbox"></div>
 <div id="painel"></div>
 <div id="legenda"></div>
+<div id="zoom"><button id="zIn" data-it="zoomIn">+</button><button id="zOut" data-it="zoomOut">−</button></div>
 <div id="ajuda"></div>
 <div id="tip"></div>
 <div id="hint"></div>
 <div id="vazio"><div style="font-size:38px">🧠</div><div id="vazioTxt"></div></div>
-<div id="carregando" role="status"><span class="ui-skel"></span><span class="ui-skel" style="width:min(180px,50%)"></span><span>Carregando o grafo…</span></div>
+<div id="carregando" role="status"><span class="ui-skel"></span><span class="ui-skel" style="width:min(180px,50%)"></span><span data-i="carregando">Carregando o grafo…</span></div>
 <script src="/static/ui.js"></script>
 <script>
 const $=s=>document.querySelector(s);
+const GI={
+pt:{h1:'🕸️ Grafo',title:'Grafo',m_rede:'🕸 Rede',m_orbita:'🌌 Órbita 3D',m_hier:'🌳 Hierarquia',projTitle:'Projeto',sub:'subprojetos',
+  mems:'memórias',memsTitle:'Mostrar memórias ligadas aos conceitos',busca:'🔎 buscar…',novo:'Novo conceito',conectar:'Conectar conceitos',
+  centrar:'Centralizar',limpar:'Limpar o grafo',memLink:'Memórias',voltar:'← voltar',zoomIn:'Aproximar',zoomOut:'Afastar',carregando:'Carregando o grafo…',
+  todosProj:'📁 todos os projetos',nadaFiltro:'Nada neste filtro.',
+  vazio:'O grafo ainda está vazio.<br>Ative <b>Grafo</b> nas configurações ou conecte uma IA pela API de memória.',
+  statsHier:'{p} projetos · {m} memórias',statsRede:'{n} conceitos · {a} conexões',statsMem:' · {m} memórias',
+  memGeral:'Memória geral',maisMem:'+{n} memórias',clique2:'clique no segundo conceito',novaRel:'Nova relação',
+  relLbl:'Relação (ex.: usa, joga, criou)',relPad:'liga',conectarBtn:'Conectar',por:'por {s}',
+  projTip:'{a} memórias próprias · {b} no total',dblAbrir:'duplo clique: abrir na rede',cliqueVer:'clique para ver',fechar:'Fechar',
+  conceito:'Conceito',tipo:'Tipo',projetos:'Projetos',descricao:'Descrição',descPh:'Do que se trata este conceito?',conexoes:'Conexões',
+  memRel:'Memórias relacionadas',carregandoP:'carregando…',nenhumaAinda:'nenhuma ainda',nenhuma:'nenhuma',
+  conectarOutro:'🔗 conectar a outro',ligarA:'clique em outro conceito para ligar a “{n}”',excluirNo:'🗑 excluir conceito',
+  excluirTit:'Excluir conceito',excluirMsg:'Excluir “{n}”? Isso também remove as ligações dele (e fatos da memória que o mencionam).',
+  excluir:'Excluir',conteudo:'Conteúdo',tags:'Tags',entidades:'Entidades no grafo',atualizada:'atualizada em {d}',
+  abrirMem:'🗂️ abrir em Memórias',fixada:'📌 fixada',semMemProp:'nenhuma memória própria',
+  projInfo:'{a} memórias próprias · {b} com subprojetos · {c} conceitos',herda:'herda a memória de: {c}',geral:'Geral',memorias:'Memórias',
+  verRede:'🕸 ver conceitos na rede',novoSub:'➕ novo subprojeto',novoSubT:'Novo subprojeto',novoProjT:'Novo projeto',
+  nomeSub:'Nome do subprojeto',nomeProj:'Nome do projeto',criar:'Criar',erro:'Erro: {e}',salvarErr:'Não foi possível salvar a alteração.',
+  descOk:'Descrição salva.',clique2conc:'clique em dois conceitos para ligá-los',novoT:'Novo conceito',nomeConc:'Nome do conceito',
+  limparT:'Limpar o grafo',limparMsg:'Todos os conceitos e ligações serão removidos. Esta ação não pode ser desfeita.',
+  limparMem:'Limpar também os fatos da memória',limparBtn:'Limpar grafo',lgGeral:'memória geral',lgProj:'projeto',lgToggle:'mostrar/ocultar',
+  lgTam:'tamanho do nó = nº de conexões',lgMem:'memória',
+  aj_rede:'arraste nós · roda/pinça: zoom · clique: detalhes · / busca',aj_orbita:'arraste para girar · roda/pinça: aproximar · clique: detalhes',
+  aj_hier:'geral → projetos → subprojetos → memórias · duplo clique num projeto: abrir na rede',
+  nRes:'{n} resultados',umRes:'1 resultado',semRes:'Nada encontrado',ok:'Confirmar',cancel:'Cancelar',
+  tipos:{pessoa:'pessoa',projeto:'projeto',tecnologia:'tecnologia',tema:'tema',ferramenta:'ferramenta',jogo:'jogo',lugar:'lugar',anime:'anime',empresa:'empresa'},
+  memT:{note:'nota',fact:'fato',preference:'preferência',decision:'decisão',task:'tarefa',event:'evento'}},
+en:{h1:'🕸️ Graph',title:'Graph',m_rede:'🕸 Network',m_orbita:'🌌 3D Orbit',m_hier:'🌳 Hierarchy',projTitle:'Project',sub:'subprojects',
+  mems:'memories',memsTitle:'Show memories linked to concepts',busca:'🔎 search…',novo:'New concept',conectar:'Connect concepts',
+  centrar:'Center',limpar:'Clear the graph',memLink:'Memories',voltar:'← back',zoomIn:'Zoom in',zoomOut:'Zoom out',carregando:'Loading the graph…',
+  todosProj:'📁 all projects',nadaFiltro:'Nothing in this filter.',
+  vazio:'The graph is still empty.<br>Turn on <b>Graph</b> in settings or connect an AI through the memory API.',
+  statsHier:'{p} projects · {m} memories',statsRede:'{n} concepts · {a} links',statsMem:' · {m} memories',
+  memGeral:'General memory',maisMem:'+{n} memories',clique2:'click the second concept',novaRel:'New relation',
+  relLbl:'Relation (e.g. uses, plays, created)',relPad:'links',conectarBtn:'Connect',por:'by {s}',
+  projTip:'{a} own memories · {b} in total',dblAbrir:'double-click: open in network',cliqueVer:'click to view',fechar:'Close',
+  conceito:'Concept',tipo:'Type',projetos:'Projects',descricao:'Description',descPh:'What is this concept about?',conexoes:'Links',
+  memRel:'Related memories',carregandoP:'loading…',nenhumaAinda:'none yet',nenhuma:'none',
+  conectarOutro:'🔗 connect to another',ligarA:'click another concept to link to “{n}”',excluirNo:'🗑 delete concept',
+  excluirTit:'Delete concept',excluirMsg:'Delete “{n}”? This also removes its links (and memory facts that mention it).',
+  excluir:'Delete',conteudo:'Content',tags:'Tags',entidades:'Entities in the graph',atualizada:'updated {d}',
+  abrirMem:'🗂️ open in Memories',fixada:'📌 pinned',semMemProp:'no own memories',
+  projInfo:'{a} own memories · {b} with subprojects · {c} concepts',herda:'inherits memory from: {c}',geral:'General',memorias:'Memories',
+  verRede:'🕸 see concepts in network',novoSub:'➕ new subproject',novoSubT:'New subproject',novoProjT:'New project',
+  nomeSub:'Subproject name',nomeProj:'Project name',criar:'Create',erro:'Error: {e}',salvarErr:'Could not save the change.',
+  descOk:'Description saved.',clique2conc:'click two concepts to link them',novoT:'New concept',nomeConc:'Concept name',
+  limparT:'Clear the graph',limparMsg:'All concepts and links will be removed. This cannot be undone.',
+  limparMem:'Also clear memory facts',limparBtn:'Clear graph',lgGeral:'general memory',lgProj:'project',lgToggle:'show/hide',
+  lgTam:'node size = number of links',lgMem:'memory',
+  aj_rede:'drag nodes · wheel/pinch: zoom · click: details · / search',aj_orbita:'drag to rotate · wheel/pinch: zoom · click: details',
+  aj_hier:'general → projects → subprojects → memories · double-click a project: open in network',
+  nRes:'{n} results',umRes:'1 result',semRes:'Nothing found',ok:'OK',cancel:'Cancel',
+  tipos:{pessoa:'person',projeto:'project',tecnologia:'technology',tema:'topic',ferramenta:'tool',jogo:'game',lugar:'place',anime:'anime',empresa:'company'},
+  memT:{note:'note',fact:'fact',preference:'preference',decision:'decision',task:'task',event:'event'}},
+es:{h1:'🕸️ Grafo',title:'Grafo',m_rede:'🕸 Red',m_orbita:'🌌 Órbita 3D',m_hier:'🌳 Jerarquía',projTitle:'Proyecto',sub:'subproyectos',
+  mems:'memorias',memsTitle:'Mostrar memorias vinculadas a los conceptos',busca:'🔎 buscar…',novo:'Nuevo concepto',conectar:'Conectar conceptos',
+  centrar:'Centrar',limpar:'Limpiar el grafo',memLink:'Memorias',voltar:'← volver',zoomIn:'Acercar',zoomOut:'Alejar',carregando:'Cargando el grafo…',
+  todosProj:'📁 todos los proyectos',nadaFiltro:'Nada en este filtro.',
+  vazio:'El grafo todavía está vacío.<br>Activa <b>Grafo</b> en los ajustes o conecta una IA por la API de memoria.',
+  statsHier:'{p} proyectos · {m} memorias',statsRede:'{n} conceptos · {a} conexiones',statsMem:' · {m} memorias',
+  memGeral:'Memoria general',maisMem:'+{n} memorias',clique2:'haz clic en el segundo concepto',novaRel:'Nueva relación',
+  relLbl:'Relación (ej.: usa, juega, creó)',relPad:'une',conectarBtn:'Conectar',por:'por {s}',
+  projTip:'{a} memorias propias · {b} en total',dblAbrir:'doble clic: abrir en la red',cliqueVer:'haz clic para ver',fechar:'Cerrar',
+  conceito:'Concepto',tipo:'Tipo',projetos:'Proyectos',descricao:'Descripción',descPh:'¿De qué trata este concepto?',conexoes:'Conexiones',
+  memRel:'Memorias relacionadas',carregandoP:'cargando…',nenhumaAinda:'ninguna todavía',nenhuma:'ninguna',
+  conectarOutro:'🔗 conectar a otro',ligarA:'haz clic en otro concepto para unirlo a “{n}”',excluirNo:'🗑 eliminar concepto',
+  excluirTit:'Eliminar concepto',excluirMsg:'¿Eliminar “{n}”? También se eliminan sus conexiones (y los hechos de memoria que lo mencionan).',
+  excluir:'Eliminar',conteudo:'Contenido',tags:'Etiquetas',entidades:'Entidades en el grafo',atualizada:'actualizada {d}',
+  abrirMem:'🗂️ abrir en Memorias',fixada:'📌 fijada',semMemProp:'ninguna memoria propia',
+  projInfo:'{a} memorias propias · {b} con subproyectos · {c} conceptos',herda:'hereda la memoria de: {c}',geral:'General',memorias:'Memorias',
+  verRede:'🕸 ver conceptos en la red',novoSub:'➕ nuevo subproyecto',novoSubT:'Nuevo subproyecto',novoProjT:'Nuevo proyecto',
+  nomeSub:'Nombre del subproyecto',nomeProj:'Nombre del proyecto',criar:'Crear',erro:'Error: {e}',salvarErr:'No se pudo guardar el cambio.',
+  descOk:'Descripción guardada.',clique2conc:'haz clic en dos conceptos para unirlos',novoT:'Nuevo concepto',nomeConc:'Nombre del concepto',
+  limparT:'Limpiar el grafo',limparMsg:'Se eliminarán todos los conceptos y conexiones. No se puede deshacer.',
+  limparMem:'Limpiar también los hechos de la memoria',limparBtn:'Limpiar grafo',lgGeral:'memoria general',lgProj:'proyecto',lgToggle:'mostrar/ocultar',
+  lgTam:'tamaño del nodo = nº de conexiones',lgMem:'memoria',
+  aj_rede:'arrastra nodos · rueda/pellizco: zoom · clic: detalles · / buscar',aj_orbita:'arrastra para girar · rueda/pellizco: acercar · clic: detalles',
+  aj_hier:'general → proyectos → subproyectos → memorias · doble clic en un proyecto: abrir en la red',
+  nRes:'{n} resultados',umRes:'1 resultado',semRes:'Nada encontrado',ok:'Confirmar',cancel:'Cancelar',
+  tipos:{pessoa:'persona',projeto:'proyecto',tecnologia:'tecnología',tema:'tema',ferramenta:'herramienta',jogo:'juego',lugar:'lugar',anime:'anime',empresa:'empresa'},
+  memT:{note:'nota',fact:'hecho',preference:'preferencia',decision:'decisión',task:'tarea',event:'evento'}}};
+let LANGG='pt';
+function tr(k,v){const D=GI[LANGG]||GI.pt;let s=D[k]!=null?D[k]:(GI.pt[k]!=null?GI.pt[k]:k);
+  if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]);return s;}
+const nomeTipo=t=>(GI[LANGG]||GI.pt).tipos[t]||t;
+const nomeMem=t=>(GI[LANGG]||GI.pt).memT[t]||t;
+function aplicarI18n(){
+  document.documentElement.lang=LANGG==='en'?'en':LANGG==='es'?'es':'pt-BR';document.title=tr('title');
+  for(const e of document.querySelectorAll('[data-i]'))e.textContent=tr(e.dataset.i);
+  for(const e of document.querySelectorAll('[data-it]')){e.title=tr(e.dataset.it);e.setAttribute('aria-label',tr(e.dataset.it));}
+  for(const e of document.querySelectorAll('[data-ip]'))e.placeholder=tr(e.dataset.ip);
+  if(window.AtlasUI)AtlasUI.labels({ok:tr('ok'),cancel:tr('cancel'),close:tr('fechar')});
+}
+
 const CORES={pessoa:'#ff8a5c',projeto:'#7aa2ff',tecnologia:'#5ad1c2',tema:'#c08bff',ferramenta:'#ffd166',jogo:'#ff6bce',
   lugar:'#8bd46e',anime:'#ff9dd1',empresa:'#4fc3f7'};
 const CORES_MEM={note:'#9aa4b5',fact:'#5ad1c2',preference:'#ff8a5c',decision:'#7aa2ff',task:'#ffd166',event:'#ff6bce'};
-const NOME_MEM={note:'nota',fact:'fato',preference:'preferência',decision:'decisão',task:'tarefa',event:'evento'};
+const MAX_MEM_NOS=300;
 function corTipo(t){if(CORES[t])return CORES[t];let h=0;for(const c of (t||''))h=(h*31+c.charCodeAt(0))%360;return `hsl(${h},70%,65%)`;}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function el(tag,props,...f){const e=document.createElement(tag);Object.assign(e,props||{});for(const x of f)if(x!=null)e.append(x);return e;}
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const curto=(s,n)=>{s=String(s||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n-1)+'…':s;};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 const cv=$('#cv'),ctx=cv.getContext('2d');
-let W,H,DPR=Math.min(2,window.devicePixelRatio||1);
-function resize(){W=innerWidth;H=innerHeight-54;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);}
-addEventListener('resize',resize);resize();
+let W,H,DPR=Math.min(2,window.devicePixelRatio||1),fundoG=null;
+function resize(){W=innerWidth;H=innerHeight-54;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);fundoG=null;sujo=true;}
 
 // ── estado ──
 let MODO=localStorage.getItem('atlasGrafoModo')||'rede';
-let G={nos:{},arestas:{}},PROJETOS=[],ARVORE=null,MEMS=[],TK='',LANGG='pt';
-let PROJ='',SUB=true,BUSCA='',OCULTOS=new Set();
-let nos=[],arestas=[],porK={},viz={};         // rede/órbita
+let G={nos:{},arestas:{}},PROJETOS=[],ARVORE=null,MEMS=[],TK='';
+let PROJ='',SUB=true,BUSCA='',OCULTOS=new Set(),VER_MEM=localStorage.getItem('atlasGrafoMem')==='1';
+let nos=[],arestas=[],porK={},viz={},nMemNos=0;  // rede/órbita
 let hnos=[],hlig=[];                            // hierarquia
-let view={x:0,y:0,k:1},cam={ry:0,rx:-0.35,dist:900,auto:true},alpha=1;
-let sel=null,hover=null,connectMode=false,connectFrom=null,estrelas=[];
+let view={x:0,y:0,k:1},cam={ry:0,rx:-0.35,dist:900,auto:true},alpha=1,anim=null;
+let sel=null,hover=null,connectMode=false,connectFrom=null,estrelas=[],sujo=true,animPart=false,hierMov=false;
 for(let i=0;i<260;i++)estrelas.push({x:Math.random()*2-1,y:Math.random()*2-1,z:Math.random(),t:Math.random()*6});
+addEventListener('resize',resize);resize();
 
 async function api(m,path,body){
   const r=await fetch('/v1'+path,{method:m,headers:{'Authorization':'Bearer '+TK,'X-Atlas-UI':'1','Content-Type':'application/json'},
@@ -141,32 +264,54 @@ async function carregar(){
 }
 function montarSeletor(){
   const s=$('#projSel'),atual=PROJ;s.innerHTML='';
-  s.append(el('option',{value:'',textContent:'📁 todos os projetos'}));
-  for(const p of PROJETOS){if(p.id==='geral')continue;s.append(el('option',{value:p.id,textContent:'  '.repeat(Math.max(0,p.depth-1))+'📁 '+p.name}));}
+  s.append(el('option',{value:'',textContent:tr('todosProj')}));
+  for(const p of PROJETOS){if(p.id==='geral')continue;s.append(el('option',{value:p.id,textContent:'  '.repeat(Math.max(0,p.depth-1))+'📁 '+p.name}));}
   s.value=PROJETOS.some(p=>p.id===atual)?atual:'';PROJ=s.value;
-  s.style.display=PROJETOS.length>1?'':'none';$('#subBox').style.display=PROJETOS.length>1&&MODO!=='hier'?'':'none';
+  s.style.display=PROJETOS.length>1?'':'none';
+  $('#subBox').style.display=PROJETOS.length>1&&MODO!=='hier'?'':'none';
+  $('#memBox').style.display=TK&&MODO!=='hier'?'':'none';
 }
+function chaveNo(e){if(porK[e]&&!porK[e].mem)return e;const l=norm(e);return porK[l]&&!porK[l].mem?l:null;}
 function reconstruir(){
   const incl=PROJ?(SUB?descendentes(PROJ):new Set([PROJ])):null;
   const ns=G.nos||{},ks=Object.keys(ns).filter(k=>(!incl||(ns[k].projetos||[]).some(p=>incl.has(p)))&&!OCULTOS.has(ns[k].tipo||'tema'));
   const old=porK;porK={};
-  nos=ks.map(k=>{const o=old[k],n=ns[k];return porK[k]={k,label:n.label,disp:(n.t&&n.t[LANGG])||n.label,tipo:n.tipo||'tema',peso:n.peso||1,
-    projetos:n.projetos||[],desc:n.descricao||'',fixo:!!n.fixo,
-    x:o?o.x:(Math.random()-.5)*400,y:o?o.y:(Math.random()-.5)*400,z:o?o.z:(Math.random()-.5)*400,vx:0,vy:0,vz:0};});
+  const conceitos=ks.map(k=>{const o=old[k],n=ns[k];const disp=(n.t&&n.t[LANGG])||n.label;
+    return porK[k]={k,label:n.label,disp,tipo:n.tipo||'tema',peso:n.peso||1,projetos:n.projetos||[],desc:n.descricao||'',fixo:!!n.fixo,
+      busca:norm(disp+' '+n.label+' '+k),x:o?o.x:(Math.random()-.5)*400,y:o?o.y:(Math.random()-.5)*400,z:o?o.z:(Math.random()-.5)*400,vx:0,vy:0,vz:0};});
   arestas=Object.values(G.arestas||{}).filter(a=>porK[a.de]&&porK[a.para]).map(a=>({...a,A:porK[a.de],B:porK[a.para],hier:!!a.hierarquia}));
+  const deg={};for(const a of arestas){deg[a.de]=(deg[a.de]||0)+1;deg[a.para]=(deg[a.para]||0)+1;}
+  for(const n of conceitos){n.grau=deg[n.k]||0;n.r=4+Math.min(20,Math.sqrt(n.grau*1.6+n.peso)*3.2)+(n.tipo==='projeto'?3:0);}
+  // memórias como nós satélite, ligadas às entidades que mencionam
+  const memNos=[];
+  if(VER_MEM&&TK&&MODO!=='hier'&&!OCULTOS.has('@mem')){
+    for(const m of MEMS){if(memNos.length>=MAX_MEM_NOS)break;
+      if(incl&&!incl.has(m.project))continue;
+      const alvos=[...new Set((m.entities||[]).map(chaveNo).filter(Boolean))];if(!alvos.length)continue;
+      const k='m:'+m.id,o=old[k],b=porK[alvos[0]];
+      const n=porK[k]={k,mem:m,label:m.content,disp:curto(m.content,42),tipo:'@mem',peso:1,projetos:[m.project],desc:'',grau:alvos.length,
+        r:2.6+(m.importance||3)*.7,busca:norm(m.content),
+        x:o?o.x:b.x+(Math.random()-.5)*80,y:o?o.y:b.y+(Math.random()-.5)*80,z:o?o.z:b.z+(Math.random()-.5)*80,vx:0,vy:0,vz:0};
+      memNos.push(n);for(const e of alvos)arestas.push({de:k,para:e,rel:'',A:n,B:porK[e],mem:true});}
+  }
+  nMemNos=memNos.length;
+  nos=memNos.concat(conceitos);   // memórias primeiro: os conceitos ficam por cima no desenho e no clique
   viz={};for(const a of arestas){(viz[a.de]=viz[a.de]||new Set()).add(a.para);(viz[a.para]=viz[a.para]||new Set()).add(a.de);}
-  const assinatura=ks.join('|')+'#'+arestas.map(a=>a.de+'>'+a.para).join('|');
+  const assinatura=nos.map(n=>n.k).join('|')+'#'+arestas.map(a=>a.de+'>'+a.para).join('|');
   if(assinatura!==window._assin){window._assin=assinatura;alpha=1;}      // só reaquece se a estrutura mudou
+  if(sel&&sel.kind==='no'&&!porK[sel.id])fecharPainel();
   montarHier();legenda();atualizarStats();
   const vazio=MODO==='hier'?!hnos.length:!nos.length;
   $('#vazio').style.display=vazio?'flex':'none';
-  $('#vazioTxt').innerHTML=Object.keys(ns).length?'Nada neste filtro.':'O grafo ainda está vazio.<br>Ative <b>Grafo</b> nas configurações ou conecte uma IA pela API de memória.';
+  $('#vazioTxt').innerHTML=Object.keys(ns).length?esc(tr('nadaFiltro')):tr('vazio');
   if(!window._centrou&&(nos.length||hnos.length)){window._centrou=true;setTimeout(centralizar,700);}
+  if(BUSCA)mostrarRes();
+  sujo=true;
 }
 function atualizarStats(){
-  $('#stats').textContent=MODO==='hier'
-    ?`${PROJETOS.length} projetos · ${MEMS.length} memórias`
-    :`${nos.length} conceitos · ${arestas.length} conexões`;
+  const s=MODO==='hier'?tr('statsHier',{p:PROJETOS.length,m:MEMS.length})
+    :tr('statsRede',{n:nos.length-nMemNos,a:arestas.filter(a=>!a.mem).length})+(nMemNos?tr('statsMem',{m:nMemNos}):'');
+  $('#stats').textContent=s;const l=$('#legStats');if(l)l.textContent=s+(MODO==='hier'?'':' · ');
 }
 
 // ── hierarquia (árvore radial: geral → projetos → subprojetos → memórias) ──
@@ -178,13 +323,13 @@ function montarHier(){
   const raiz=PROJ?(achar(ARVORE,PROJ)||ARVORE):ARVORE;
   const MAXM=14;
   function construir(p,depth,pai){
-    const h={id:'p:'+p.id,kind:depth===0&&p.id==='geral'?'root':'proj',label:p.id==='geral'?'Memória geral':p.name,data:p,depth,pai,filhos:[]};
+    const h={id:'p:'+p.id,kind:depth===0&&p.id==='geral'?'root':'proj',label:p.id==='geral'?tr('memGeral'):p.name,data:p,depth,pai,filhos:[]};
     hnos.push(h);if(pai){pai.filhos.push(h);hlig.push({A:pai,B:h,kind:'proj'});}
     for(const c of p.children)construir(c,depth+1,h);
     const ms=(memPor[p.id]||[]);
     for(const m of ms.slice(0,MAXM)){const f={id:'m:'+m.id,kind:'mem',label:m.content,data:m,depth:depth+1,pai:h,filhos:[]};
       hnos.push(f);h.filhos.push(f);hlig.push({A:h,B:f,kind:'mem'});}
-    if(ms.length>MAXM){const f={id:'x:'+p.id,kind:'mais',label:`+${ms.length-MAXM} memórias`,data:p,depth:depth+1,pai:h,filhos:[]};
+    if(ms.length>MAXM){const f={id:'x:'+p.id,kind:'mais',label:tr('maisMem',{n:ms.length-MAXM}),data:p,depth:depth+1,pai:h,filhos:[]};
       hnos.push(f);h.filhos.push(f);hlig.push({A:h,B:f,kind:'mem'});}
     return h;
   }
@@ -201,24 +346,27 @@ function montarHier(){
   }
   posicionar(r,-Math.PI/2,Math.PI*1.5);r.tx=0;r.ty=0;
   for(const h of hnos){const o=oldPos[h.id];const p=h.pai&&oldPos[h.pai.id];h.x=o?o.x:(p?p.x:0);h.y=o?o.y:(p?p.y:0);
-    const tot=h.data&&h.data.total_memories||0;
+    const tot=h.data&&h.data.total_memories||0;h.busca=norm(h.label);
     h.r=h.kind==='root'?20:h.kind==='proj'?9+Math.min(14,Math.sqrt(tot)*3):h.kind==='mais'?5:3.5+(h.data.importance||3)*.8;
     h.cor=h.kind==='root'?'#b07cff':h.kind==='proj'?CORES.projeto:h.kind==='mais'?'#5b6475':(CORES_MEM[h.data.type]||'#9aa4b5');}
 }
 
-// ── física (rede 2D e órbita 3D) ──
+// ── física (rede 2D e órbita 3D); repulsão só entre vizinhos de grade (corte de 500px) ──
+const CEL=500;
 function passo(){
   if(alpha<0.004&&!dragNo)return;
-  const tres=MODO==='orbita',k=tres?2600:1500;
-  for(const n of nos){let fx=0,fy=0,fz=0;
-    for(const m of nos){if(m===n)continue;const dx=n.x-m.x,dy=n.y-m.y,dz=tres?n.z-m.z:0,d2=dx*dx+dy*dy+dz*dz+.01;
-      if(d2>250000)continue;const f=k/d2;fx+=dx*f;fy+=dy*f;fz+=dz*f;}
+  const tres=MODO==='orbita',k=tres?2600:1500,grade=new Map();
+  for(const n of nos){const c=(Math.floor(n.x/CEL)+512)*4096+(Math.floor(n.y/CEL)+512);let l=grade.get(c);if(!l)grade.set(c,l=[]);l.push(n);n._c=c;}
+  for(const n of nos){let fx=0,fy=0,fz=0;const kn=n.mem?k*.35:k;
+    for(let dx0=-1;dx0<=1;dx0++)for(let dy0=-1;dy0<=1;dy0++){const l=grade.get(n._c+dx0*4096+dy0);if(!l)continue;
+      for(const m of l){if(m===n)continue;const dx=n.x-m.x,dy=n.y-m.y,dz=tres?n.z-m.z:0,d2=dx*dx+dy*dy+dz*dz+.01;
+        if(d2>250000)continue;const f=(m.mem?kn*.35:kn)/d2;fx+=dx*f;fy+=dy*f;fz+=dz*f;}}
     fx-=n.x*.012;fy-=n.y*.012;fz-=(tres?n.z*.012:n.z*.2);
     n.vx=(n.vx+fx*alpha)*.78;n.vy=(n.vy+fy*alpha)*.78;n.vz=(n.vz+fz*alpha)*.78;}
   for(const a of arestas){const dx=a.B.x-a.A.x,dy=a.B.y-a.A.y,dz=tres?a.B.z-a.A.z:0,d=Math.hypot(dx,dy,dz)+.01;
-    const alvo=a.hier?110:85,f=(d-alvo)*.02*alpha,ux=dx/d,uy=dy/d,uz=dz/d;
-    a.A.vx+=ux*f;a.A.vy+=uy*f;a.A.vz+=uz*f;a.B.vx-=ux*f;a.B.vy-=uy*f;a.B.vz-=uz*f;}
-  for(const n of nos){if(n===dragNo)continue;const c=v=>Math.max(-12,Math.min(12,v));n.x+=c(n.vx);n.y+=c(n.vy);n.z+=c(n.vz);}
+    const alvo=a.mem?46:a.hier?110:85,f=(d-alvo)*(a.mem?.03:.02)*alpha,ux=dx/d,uy=dy/d,uz=dz/d;
+    a.A.vx+=ux*f;a.A.vy+=uy*f;a.A.vz+=uz*f;if(!a.mem){a.B.vx-=ux*f;a.B.vy-=uy*f;a.B.vz-=uz*f;}}
+  for(const n of nos){if(n===dragNo)continue;const c=v=>clamp(v,-12,12);n.x+=c(n.vx);n.y+=c(n.vy);n.z+=c(n.vz);}
   alpha=Math.max(0,alpha*.994);
 }
 
@@ -231,37 +379,54 @@ function proj3(n){
   const f=cam.dist/(cam.dist+z+400);return {x:W/2+x*f,y:H/2+y*f,s:f,z};
 }
 function centralizar(){
+  sujo=true;anim=null;
   const pts=MODO==='hier'?hnos.map(h=>({x:h.tx,y:h.ty})):nos;
-  if(MODO==='orbita'){cam.dist=Math.max(500,Math.min(2400,Math.sqrt(nos.length)*190));return;}
+  if(MODO==='orbita'){cam.dist=clamp(Math.sqrt(nos.length)*190,500,2400);return;}
   if(!pts.length)return;let a=1e9,b=1e9,c=-1e9,e=-1e9;
   for(const n of pts){a=Math.min(a,n.x);b=Math.min(b,n.y);c=Math.max(c,n.x);e=Math.max(e,n.y);}
-  view.k=Math.max(.25,Math.min(1.5,Math.min(W/((c-a)+200),H/((e-b)+160))));
+  view.k=clamp(Math.min(W/((c-a)+200),H/((e-b)+160)),.25,1.5);
   view.x=W/2-((a+c)/2)*view.k;view.y=H/2-((b+e)/2)*view.k;
 }
+function focar(x,y,k){k=k||view.k;anim={x:W/2-x*k,y:H/2-y*k,k};sujo=true;}
+function zoomPor(f,mx,my){
+  sujo=true;anim=null;
+  if(MODO==='orbita'){cam.dist=clamp(cam.dist/f,250,4000);return;}
+  mx=mx??W/2;my=my??H/2;const w=IV(mx,my);view.k=clamp(view.k*f,.15,4);view.x=mx-w.x*view.k;view.y=my-w.y*view.k;
+}
 
-// ── desenho ──
+// ── desenho (nós pré-renderizados em sprites: brilho sem shadowBlur a cada quadro) ──
 let T=0;
+const SPR=new Map(),SPR_R=20,SPR_T=96;
+function sprite(cor){
+  let s=SPR.get(cor);if(s)return s;
+  s=document.createElement('canvas');s.width=s.height=SPR_T;const g=s.getContext('2d'),c=SPR_T/2;
+  g.shadowColor=cor;g.shadowBlur=16;g.fillStyle=cor;g.beginPath();g.arc(c,c,SPR_R,0,7);g.fill();g.shadowBlur=0;
+  const gr=g.createRadialGradient(c-SPR_R*.35,c-SPR_R*.35,SPR_R*.1,c,c,SPR_R);
+  gr.addColorStop(0,'#ffffff');gr.addColorStop(.25,cor);gr.addColorStop(1,cor);
+  g.fillStyle=gr;g.beginPath();g.arc(c,c,SPR_R,0,7);g.fill();
+  SPR.set(cor,s);return s;
+}
 function fundo(){
-  const g=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*.75);
-  g.addColorStop(0,'#101624');g.addColorStop(1,'#05070b');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  if(!fundoG){fundoG=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*.75);fundoG.addColorStop(0,'#101624');fundoG.addColorStop(1,'#05070b');}
+  ctx.fillStyle=fundoG;ctx.fillRect(0,0,W,H);
   if(MODO==='orbita'){for(const s of estrelas){const tw=.35+.35*Math.sin(T*.02+s.t);ctx.fillStyle=`rgba(180,200,255,${tw*s.z})`;
       ctx.fillRect((s.x*.5+.5)*W+Math.sin(cam.ry)*s.z*30,(s.y*.5+.5)*H,1.4,1.4);}}
   else{const passoG=36*view.k;if(passoG>10){ctx.fillStyle='rgba(120,140,190,.07)';
       for(let x=((view.x%passoG)+passoG)%passoG;x<W;x+=passoG)for(let y=((view.y%passoG)+passoG)%passoG;y<H;y+=passoG)ctx.fillRect(x,y,1.2,1.2);}}
 }
-function combina(k){if(!BUSCA)return false;return (porK[k]&&(porK[k].disp||'').toLowerCase().includes(BUSCA))||k.includes(BUSCA);}
+function combina(k){if(!BUSCA)return false;const n=porK[k];return !!n&&n.busca.includes(BUSCA);}
 function foco(){  // conjunto destacado (hover/seleção → vizinhança)
-  const alvo=hover&&hover.k?hover.k:(sel&&sel.kind==='no'?sel.id:null);
+  const alvo=hover&&hover.k?hover.k:(sel&&sel.kind==='no'?sel.id:(sel&&sel.kind==='mem'&&porK['m:'+sel.id]?'m:'+sel.id:null));
   if(!alvo||!porK[alvo])return null;return new Set([alvo,...(viz[alvo]||[])]);
 }
 function desenharNo(p,r,cor,n,dim,destaque){
-  ctx.globalAlpha=dim?.16:1;
-  ctx.shadowColor=cor;ctx.shadowBlur=destaque?28:14;
-  const g=ctx.createRadialGradient(p.x-r*.35,p.y-r*.35,r*.1,p.x,p.y,r);
-  g.addColorStop(0,'#ffffff');g.addColorStop(.25,cor);g.addColorStop(1,cor);
-  ctx.beginPath();ctx.arc(p.x,p.y,r,0,7);ctx.fillStyle=g;ctx.fill();ctx.shadowBlur=0;
+  ctx.globalAlpha=dim?.16:(ctx.globalAlpha||1);
+  if(n&&n.mem){ctx.fillStyle=cor;ctx.beginPath();ctx.moveTo(p.x,p.y-r*1.25);ctx.lineTo(p.x+r*1.25,p.y);ctx.lineTo(p.x,p.y+r*1.25);ctx.lineTo(p.x-r*1.25,p.y);ctx.closePath();ctx.fill();
+    if(n.mem.pinned){ctx.strokeStyle='#ff7ab6';ctx.lineWidth=1.2;ctx.stroke();}}
+  else if(r<1.6){ctx.fillStyle=cor;ctx.fillRect(p.x-r,p.y-r,r*2,r*2);}
+  else{const e=(destaque?1.18:1)*r*SPR_T/(SPR_R*2);ctx.drawImage(sprite(cor),p.x-e,p.y-e,e*2,e*2);}
   if(n&&n.tipo==='projeto'){ctx.strokeStyle=cor;ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(p.x,p.y,r+4,0,7);ctx.stroke();}
-  if(destaque){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,r+2,0,7);ctx.stroke();}
+  if(destaque){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,r+2.5,0,7);ctx.stroke();}
   ctx.globalAlpha=1;
 }
 function rotulo(txt,x,y,tam,dim,forte){
@@ -270,43 +435,52 @@ function rotulo(txt,x,y,tam,dim,forte){
     ctx.roundRect?ctx.roundRect(x-w/2,y-tam+1,w,tam+7,8):ctx.rect(x-w/2,y-tam+1,w,tam+7);ctx.fill();}
   ctx.fillStyle=forte?'#fff':'#dfe4ee';ctx.fillText(txt,x,y+2);ctx.globalAlpha=1;
 }
-function raioNo(n){return 5+Math.min(18,Math.sqrt(n.peso||1)*4)+(n.tipo==='projeto'?4:0);}
-function particula(p1,p2,cor,vel,off){const t=((T*vel+off)%100)/100;ctx.fillStyle=cor;ctx.beginPath();
+const corNo=n=>n.mem?(CORES_MEM[n.mem.type]||'#9aa4b5'):corTipo(n.tipo);
+function particula(p1,p2,cor,vel,off){animPart=true;const t=((T*vel+off)%100)/100;ctx.fillStyle=cor;ctx.beginPath();
   ctx.arc(p1.x+(p2.x-p1.x)*t,p1.y+(p2.y-p1.y)*t,1.8,0,7);ctx.fill();}
 
 function desenharRede(){
-  const F=foco();
+  const F=foco(),muitas=arestas.length>300,lw=Math.min(1.4,view.k);
   for(const a of arestas){const p1=V(a.A),p2=V(a.B),on=F&&F.has(a.de)&&F.has(a.para);
-    const dim=F&&!on;const g=ctx.createLinearGradient(p1.x,p1.y,p2.x,p2.y);
-    g.addColorStop(0,corTipo(a.A.tipo));g.addColorStop(1,corTipo(a.B.tipo));
-    ctx.globalAlpha=dim?.05:(on?.9:(a.hier?.55:.28));ctx.strokeStyle=g;ctx.lineWidth=(a.hier?2:(.7+Math.min(a.peso||1,6)*.35))*Math.min(1.4,view.k);
-    if(a.hier)ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();ctx.setLineDash([]);
-    ctx.globalAlpha=1;if(on||a.hier)particula(p1,p2,on?'#fff':'rgba(176,124,255,.8)',on?.9:.35,(a.de.length*37)%100);
-    if(on&&view.k>.5){ctx.fillStyle='#8b94a3';ctx.font='10px system-ui';ctx.textAlign='center';ctx.fillText(a.rel,(p1.x+p2.x)/2,(p1.y+p2.y)/2-4);}}
-  for(const n of nos){const p=V(n),r=raioNo(n)*view.k,cor=corTipo(n.tipo);
-    const dest=hover===n||(sel&&sel.kind==='no'&&sel.id===n.k)||combina(n.k),dim=(F&&!F.has(n.k))||(BUSCA&&!combina(n.k));
-    desenharNo(p,r,cor,n,dim,dest);
-    if(view.k>.55||n.peso>2||dest||n.tipo==='projeto')rotulo(n.disp,p.x,p.y+r+13*Math.min(1.2,view.k),Math.round(11*Math.min(1.3,Math.max(.8,view.k))),dim,dest);}
+    if(Math.max(p1.x,p2.x)<-20||Math.min(p1.x,p2.x)>W+20||Math.max(p1.y,p2.y)<-20||Math.min(p1.y,p2.y)>H+20)continue;
+    const dim=(F&&!on)||(BUSCA&&!on);
+    if(a.mem){ctx.globalAlpha=dim?.04:(on?.8:.22);ctx.strokeStyle=on?'#fff':corNo(a.A);ctx.lineWidth=.8*lw;}
+    else{ctx.globalAlpha=dim?.05:(on?.9:(a.hier?.55:.28));
+      if(muitas&&!on)ctx.strokeStyle=corTipo(a.A.tipo);
+      else{const g=ctx.createLinearGradient(p1.x,p1.y,p2.x,p2.y);g.addColorStop(0,corTipo(a.A.tipo));g.addColorStop(1,corTipo(a.B.tipo));ctx.strokeStyle=g;}
+      ctx.lineWidth=(a.hier?2:(.7+Math.min(a.peso||1,6)*.35))*lw;}
+    if(a.hier)ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();if(a.hier)ctx.setLineDash([]);
+    ctx.globalAlpha=1;if(on||(a.hier&&arestas.length<=200))particula(p1,p2,on?'#fff':'rgba(176,124,255,.8)',on?.9:.35,(a.de.length*37)%100);
+    if(on&&!a.mem&&view.k>.5){ctx.fillStyle='#8b94a3';ctx.font='10px system-ui';ctx.textAlign='center';ctx.fillText(a.rel,(p1.x+p2.x)/2,(p1.y+p2.y)/2-4);}}
+  for(const n of nos){const p=V(n),r=n.r*view.k;
+    if(p.x<-40||p.x>W+40||p.y<-40||p.y>H+40)continue;
+    const selN=sel&&((sel.kind==='no'&&sel.id===n.k)||(sel.kind==='mem'&&n.mem&&sel.id===n.mem.id));
+    const dest=hover===n||selN||combina(n.k),dim=(F&&!F.has(n.k))||(BUSCA&&!combina(n.k));
+    desenharNo(p,r,corNo(n),n,dim,dest);
+    if(n.mem){if(dest)rotulo(n.disp,p.x,p.y+r+14,11,false,true);continue;}
+    if(view.k>.55||n.grau>2||n.peso>2||dest||n.tipo==='projeto')rotulo(n.disp,p.x,p.y+r+13*Math.min(1.2,view.k),Math.round(11*clamp(view.k,.8,1.3)),dim,dest);}
 }
 function desenharOrbita(){
   if(cam.auto&&!rot)cam.ry+=.0022;
   const F=foco(),P={};for(const n of nos)P[n.k]=proj3(n);
   const ordem=[...nos].sort((a,b)=>P[b.k].z-P[a.k].z);
   for(const a of arestas){const p1=P[a.de],p2=P[a.para],on=F&&F.has(a.de)&&F.has(a.para),prof=Math.min(p1.s,p2.s);
-    ctx.globalAlpha=(F&&!on)?.04:Math.max(.06,Math.min(.7,(on?.95:(a.hier?.5:.25))*prof*1.3));
-    ctx.strokeStyle=on?'#ffffff':(a.hier?'#b07cff':corTipo(a.A.tipo));ctx.lineWidth=(a.hier?1.8:1)*prof;
+    ctx.globalAlpha=(F&&!on)?.04:clamp((on?.95:(a.mem?.18:a.hier?.5:.25))*prof*1.3,.06,.7);
+    ctx.strokeStyle=on?'#ffffff':(a.mem?corNo(a.A):a.hier?'#b07cff':corTipo(a.A.tipo));ctx.lineWidth=(a.hier?1.8:a.mem?.7:1)*prof;
     ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();ctx.globalAlpha=1;
     if(on)particula(p1,p2,'#fff',.9,0);}
-  for(const n of ordem){const p=P[n.k],r=raioNo(n)*p.s*1.1,cor=corTipo(n.tipo);
-    const dest=hover===n||(sel&&sel.kind==='no'&&sel.id===n.k)||combina(n.k),dim=(F&&!F.has(n.k))||(BUSCA&&!combina(n.k));
-    ctx.globalAlpha=Math.min(1,.35+p.s*.8);desenharNo(p,r,cor,n,dim,dest);n._p=p;n._r=r;
+  for(const n of ordem){const p=P[n.k],r=n.r*p.s*1.1;
+    const selN=sel&&((sel.kind==='no'&&sel.id===n.k)||(sel.kind==='mem'&&n.mem&&sel.id===n.mem.id));
+    const dest=hover===n||selN||combina(n.k),dim=(F&&!F.has(n.k))||(BUSCA&&!combina(n.k));
+    ctx.globalAlpha=Math.min(1,.35+p.s*.8);desenharNo(p,r,corNo(n),n,dim,dest);n._p=p;n._r=r;
+    if(n.mem){if(dest)rotulo(n.disp,p.x,p.y+r+12,11,false,true);continue;}
     if(p.s>.75||dest||n.tipo==='projeto')rotulo(n.disp,p.x,p.y+r+12,Math.round(10+2*p.s),dim,dest);}
 }
 function desenharHier(){
-  for(const h of hnos){h.x+=(h.tx-h.x)*.12;h.y+=(h.ty-h.y)*.12;}
-  // anéis de profundidade
+  hierMov=false;
+  for(const h of hnos){const dx=h.tx-h.x,dy=h.ty-h.y;if(Math.abs(dx)+Math.abs(dy)>.3)hierMov=true;h.x+=dx*.12;h.y+=dy*.12;}
   ctx.strokeStyle='rgba(124,155,255,.07)';ctx.lineWidth=1;const c=V({x:0,y:0});
-  for(const rr of [170,300,410,500])if(hnos.some(h=>h.depth>0)){ctx.beginPath();ctx.arc(c.x,c.y,rr*view.k,0,7);ctx.stroke();}
+  if(hnos.some(h=>h.depth>0))for(const rr of [170,300,410,500]){ctx.beginPath();ctx.arc(c.x,c.y,rr*view.k,0,7);ctx.stroke();}
   const hv=hover&&hover.kind?hover:null,selId=sel&&sel.hid;
   const caminho=new Set();let x=hv||hnos.find(h=>h.id===selId);while(x){caminho.add(x.id);x=x.pai;}
   for(const l of hlig){const p1=V(l.A),p2=V(l.B),on=caminho.has(l.B.id);
@@ -314,167 +488,258 @@ function desenharHier(){
     ctx.globalAlpha=on?.95:(l.kind==='proj'?.55:.22);ctx.strokeStyle=on?'#fff':(l.kind==='proj'?'#7aa2ff':l.B.cor);
     ctx.lineWidth=(l.kind==='proj'?2:1)*Math.min(1.4,view.k);ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.quadraticCurveTo(m.x,m.y,p2.x,p2.y);ctx.stroke();
     ctx.globalAlpha=1;if(l.kind==='proj'||on)particula(p1,p2,on?'#fff':'rgba(176,124,255,.9)',.45,(l.B.id.length*23)%100);}
-  for(const h of hnos){const p=V(h),r=h.r*Math.max(.6,view.k),bs=BUSCA&&(h.label||'').toLowerCase().includes(BUSCA);
+  for(const h of hnos){const p=V(h),r=h.r*Math.max(.6,view.k),bs=BUSCA&&h.busca.includes(BUSCA);
     const dest=caminho.has(h.id)||bs,dim=BUSCA&&!bs;
-    if(h.kind==='root'){const pul=1+.08*Math.sin(T*.05);ctx.globalAlpha=.25;ctx.fillStyle='#b07cff';ctx.beginPath();ctx.arc(p.x,p.y,r*1.9*pul,0,7);ctx.fill();ctx.globalAlpha=1;}
+    if(h.kind==='root'){animPart=true;const pul=1+.08*Math.sin(T*.05);ctx.globalAlpha=.25;ctx.fillStyle='#b07cff';ctx.beginPath();ctx.arc(p.x,p.y,r*1.9*pul,0,7);ctx.fill();ctx.globalAlpha=1;}
     desenharNo(p,r,h.cor,null,dim,dest);
     if(h.kind==='proj'||h.kind==='root'){if(h.kind==='proj'){ctx.strokeStyle='rgba(122,162,255,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(p.x,p.y,r+4,0,7);ctx.stroke();}
       rotulo(h.label+(h.data.total_memories?`  ·  ${h.data.total_memories}`:''),p.x,p.y+r+15,h.kind==='root'?13:12,dim,true);}
     else if(h.kind==='mais'&&view.k>.6)rotulo(h.label,p.x,p.y+r+11,10,dim,false);
-    else if(dest&&h.kind==='mem')rotulo(h.label.length>40?h.label.slice(0,40)+'…':h.label,p.x,p.y+r+12,11,false,true);}
+    else if(dest&&h.kind==='mem')rotulo(curto(h.label,40),p.x,p.y+r+12,11,false,true);}
 }
-function laco(){T++;passo();fundo();if(MODO==='rede')desenharRede();else if(MODO==='orbita')desenharOrbita();else desenharHier();requestAnimationFrame(laco);}
+function animarVista(){
+  if(!anim)return;
+  view.x+=(anim.x-view.x)*.2;view.y+=(anim.y-view.y)*.2;view.k+=(anim.k-view.k)*.2;
+  if(Math.abs(anim.x-view.x)+Math.abs(anim.y-view.y)<.5&&Math.abs(anim.k-view.k)<.002){view.x=anim.x;view.y=anim.y;view.k=anim.k;anim=null;}
+}
+// só redesenha quando algo muda ou anima (economiza CPU/GPU com o grafo parado)
+function laco(){
+  requestAnimationFrame(laco);
+  const ativo=sujo||anim||alpha>=0.004||dragNo||pan||rot||pinch||animPart||hierMov||MODO==='orbita';
+  if(!ativo||document.hidden)return;
+  sujo=false;animPart=false;T++;passo();animarVista();fundo();
+  if(MODO==='rede')desenharRede();else if(MODO==='orbita')desenharOrbita();else desenharHier();
+}
 
-// ── interação ──
-let down=null,dragNo=null,pan=null,rot=null,moved=false;
+// ── interação (ponteiro: mouse, caneta e toque; pinça para zoom) ──
+let down=null,dragNo=null,pan=null,rot=null,pinch=null,moved=false,ultToque={t:0,it:null};
+const ptrs=new Map();
 function itemEm(x,y){
   if(MODO==='hier'){for(let i=hnos.length-1;i>=0;i--){const h=hnos[i],p=V(h);if(Math.hypot(p.x-x,p.y-y)<=h.r*Math.max(.6,view.k)+5)return h;}return null;}
   if(MODO==='orbita'){let best=null,bz=1e9;for(const n of nos){if(!n._p)continue;if(Math.hypot(n._p.x-x,n._p.y-y)<=n._r+4&&n._p.z<bz){best=n;bz=n._p.z;}}return best;}
-  for(let i=nos.length-1;i>=0;i--){const p=V(nos[i]);if(Math.hypot(p.x-x,p.y-y)<=raioNo(nos[i])*view.k+4)return nos[i];}return null;
+  for(let i=nos.length-1;i>=0;i--){const p=V(nos[i]);if(Math.hypot(p.x-x,p.y-y)<=nos[i].r*view.k+(nos[i].mem?3:4))return nos[i];}return null;
 }
-cv.addEventListener('mousedown',e=>{const x=e.clientX,y=e.clientY-54;down={x,y};moved=false;const it=itemEm(x,y);down.it=it;
+function iniciarPinca(){
+  const [a,b]=[...ptrs.values()];
+  pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,mx:(a.x+b.x)/2,my:(a.y+b.y)/2,k:view.k,vx:view.x,vy:view.y,dist:cam.dist};
+  dragNo=null;rot=null;pan=null;down=null;moved=true;
+}
+cv.addEventListener('pointerdown',e=>{
+  if(e.button>0)return;
+  const x=e.clientX,y=e.clientY-54;try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  ptrs.set(e.pointerId,{x,y});sujo=true;anim=null;fecharRes();
+  if(ptrs.size===2){iniciarPinca();return;}
+  if(ptrs.size>2)return;
+  down={x,y,tipo:e.pointerType};moved=false;const it=itemEm(x,y);down.it=it;
   if(MODO==='orbita'){rot={x,y,ry:cam.ry,rx:cam.rx};cam.auto=false;}
   else if(MODO==='rede'&&it&&!connectMode){dragNo=it;alpha=Math.max(alpha,.3);}
-  else pan={x,y,vx:view.x,vy:view.y};});
-addEventListener('mousemove',e=>{const x=e.clientX,y=e.clientY-54;
-  if(down&&Math.abs(x-down.x)+Math.abs(y-down.y)>4)moved=true;
-  if(dragNo){const w=IV(x,y);dragNo.x=w.x;dragNo.y=w.y;dragNo.vx=dragNo.vy=0;}
-  else if(rot){cam.ry=rot.ry+(x-rot.x)*.006;cam.rx=Math.max(-1.4,Math.min(1.4,rot.rx+(y-rot.y)*.006));}
-  else if(pan){view.x=pan.vx+(x-pan.x);view.y=pan.vy+(y-pan.y);}
-  else if(e.target===cv){hover=itemEm(x,y);cv.style.cursor=hover?'pointer':(MODO==='orbita'?'grab':'default');dica(hover,e.clientX,e.clientY);}});
-addEventListener('mouseup',e=>{
-  const foiClique=down&&!moved&&e.target===cv,it=down&&down.it;
+  else pan={x,y,vx:view.x,vy:view.y};
+});
+cv.addEventListener('pointermove',e=>{
+  const x=e.clientX,y=e.clientY-54;
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x,y});
+  if(pinch&&ptrs.size>=2){const [a,b]=[...ptrs.values()],f=(Math.hypot(a.x-b.x,a.y-b.y)||1)/pinch.d,mx=(a.x+b.x)/2,my=(a.y+b.y)/2;sujo=true;
+    if(MODO==='orbita'){cam.dist=clamp(pinch.dist/f,250,4000);return;}
+    const k=clamp(pinch.k*f,.15,4),wx=(pinch.mx-pinch.vx)/pinch.k,wy=(pinch.my-pinch.vy)/pinch.k;
+    view.k=k;view.x=mx-wx*k;view.y=my-wy*k;return;}
+  const lim=down&&down.tipo==='touch'?10:4;
+  if(down&&Math.abs(x-down.x)+Math.abs(y-down.y)>lim)moved=true;
+  if(dragNo){if(!moved)return;const w=IV(x,y);dragNo.x=w.x;dragNo.y=w.y;dragNo.vx=dragNo.vy=0;sujo=true;}
+  else if(rot){cam.ry=rot.ry+(x-rot.x)*.006;cam.rx=clamp(rot.rx+(y-rot.y)*.006,-1.4,1.4);}
+  else if(pan){if(!moved)return;view.x=pan.vx+(x-pan.x);view.y=pan.vy+(y-pan.y);sujo=true;}
+  else if(e.pointerType==='mouse'){const h=itemEm(x,y);if(h!==hover){hover=h;sujo=true;}
+    cv.style.cursor=hover?'pointer':(MODO==='orbita'?'grab':'default');dica(hover,e.clientX,e.clientY);}
+});
+function soltar(e,cancelado){
+  ptrs.delete(e.pointerId);sujo=true;
+  if(pinch){if(ptrs.size<2)pinch=null;down=null;dragNo=null;pan=null;rot=null;return;}
+  const foiClique=!cancelado&&down&&!moved,it=down&&down.it;
   dragNo=null;pan=null;rot=null;down=null;if(!foiClique)return;
   if(!it){if(!connectMode)fecharPainel();return;}
-  if(connectMode&&it.k){
-    if(!connectFrom){connectFrom=it;hint('clique no segundo conceito');}
+  if(connectMode&&it.k&&!it.mem){
+    if(!connectFrom){connectFrom=it;hint(tr('clique2'));}
     else if(connectFrom!==it){const de=connectFrom,para=it;sairConectar();
-      AtlasUI.prompt({title:'Nova relação',message:`“${de.disp}” → “${para.disp}”`,label:'Relação (ex.: usa, joga, criou)',value:'liga',
-        okText:'Conectar',required:false,maxLength:24}).then(rel=>{
-        if(rel!==null)editar({acao:'criar_aresta',de:de.label,para:para.label,rel:rel||'liga'});});}
+      AtlasUI.prompt({title:tr('novaRel'),message:`“${de.disp}” → “${para.disp}”`,label:tr('relLbl'),value:tr('relPad'),
+        okText:tr('conectarBtn'),required:false,maxLength:24}).then(rel=>{
+        if(rel!==null)editar({acao:'criar_aresta',de:de.label,para:para.label,rel:rel||tr('relPad')});});}
     return;}
-  selecionar(it);});
-cv.addEventListener('dblclick',e=>{const it=itemEm(e.clientX,e.clientY-54);
-  if(MODO==='hier'&&it&&(it.kind==='proj'||it.kind==='root')){PROJ=it.kind==='root'?'':it.data.id;$('#projSel').value=PROJ;window._centrou=false;trocarModo('rede');}});
-cv.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.12:.89;
-  if(MODO==='orbita'){cam.dist=Math.max(250,Math.min(4000,cam.dist/f));return;}
-  const mx=e.clientX,my=e.clientY-54,w=IV(mx,my);view.k=Math.max(.15,Math.min(4,view.k*f));view.x=mx-w.x*view.k;view.y=my-w.y*view.k;},{passive:false});
+  const agora=performance.now(),duplo=ultToque.it===it&&agora-ultToque.t<380;
+  ultToque={t:duplo?0:agora,it};
+  if(duplo&&MODO==='hier'&&(it.kind==='proj'||it.kind==='root')){
+    PROJ=it.kind==='root'?'':it.data.id;$('#projSel').value=PROJ;window._centrou=false;trocarModo('rede');return;}
+  selecionar(it);
+}
+cv.addEventListener('pointerup',e=>soltar(e,false));
+cv.addEventListener('pointercancel',e=>soltar(e,true));
+cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!down&&hover){hover=null;sujo=true;dica(null);}});
+cv.addEventListener('wheel',e=>{e.preventDefault();zoomPor(e.deltaY<0?1.12:.89,e.clientX,e.clientY-54);},{passive:false});
 function dica(it,x,y){const t=$('#tip');if(!it){t.style.display='none';return;}
   let h='';
-  if(it.k)h=`<b>${esc(it.disp)}</b><span class="d">${esc(it.tipo)}${it.projetos.length?' · 📁 '+esc(it.projetos.map(nomeProj).join(', ')):''}</span>${it.desc?'<div>'+esc(it.desc)+'</div>':''}`;
-  else if(it.kind==='mem')h=`<b>${esc(NOME_MEM[it.data.type]||it.data.type)} · ${'●'.repeat(it.data.importance)}</b><div>${esc(it.data.content)}</div><span class="d">por ${esc(it.data.source)}</span>`;
-  else if(it.kind==='proj'||it.kind==='root')h=`<b>${esc(it.label)}</b><span class="d">${it.data.memories} memórias próprias · ${it.data.total_memories} no total</span>${it.data.description?'<div>'+esc(it.data.description)+'</div>':''}<span class="d">duplo clique: abrir na rede</span>`;
-  else h=`<b>${esc(it.label)}</b><span class="d">clique para ver</span>`;
+  if(it.mem){const m=it.mem;h=`<b>${esc(nomeMem(m.type))} · ${'●'.repeat(m.importance||0)}${m.pinned?' 📌':''}</b><div>${esc(curto(m.content,240))}</div><span class="d">📁 ${esc(nomeProj(m.project))}</span>`;}
+  else if(it.k)h=`<b>${esc(it.disp)}</b><span class="d">${esc(nomeTipo(it.tipo))}${it.projetos.length?' · 📁 '+esc(it.projetos.map(nomeProj).join(', ')):''}</span>${it.desc?'<div>'+esc(it.desc)+'</div>':''}`;
+  else if(it.kind==='mem')h=`<b>${esc(nomeMem(it.data.type))} · ${'●'.repeat(it.data.importance||0)}</b><div>${esc(it.data.content)}</div><span class="d">${esc(tr('por',{s:it.data.source}))}</span>`;
+  else if(it.kind==='proj'||it.kind==='root')h=`<b>${esc(it.label)}</b><span class="d">${esc(tr('projTip',{a:it.data.memories,b:it.data.total_memories}))}</span>${it.data.description?'<div>'+esc(it.data.description)+'</div>':''}<span class="d">${esc(tr('dblAbrir'))}</span>`;
+  else h=`<b>${esc(it.label)}</b><span class="d">${esc(tr('cliqueVer'))}</span>`;
   t.innerHTML=h;t.style.display='block';t.style.left=Math.min(x+14,innerWidth-300)+'px';t.style.top=(y+14)+'px';}
 
+// ── busca: lista de resultados, ↑/↓ e Enter focam o item ──
+let RES=[],resIdx=0;
+function resultados(){
+  if(!BUSCA)return [];
+  if(MODO==='hier')return hnos.filter(h=>h.busca.includes(BUSCA)).slice(0,30);
+  const r=nos.filter(n=>n.busca.includes(BUSCA));
+  r.sort((a,b)=>(!!a.mem-!!b.mem)||(!a.busca.startsWith(BUSCA)-!b.busca.startsWith(BUSCA))||(b.grau-a.grau));
+  return r.slice(0,30);
+}
+function fecharRes(){$('#res').style.display='none';$('#busca').setAttribute('aria-expanded','false');}
+function mostrarRes(){
+  const box=$('#res');RES=resultados();resIdx=Math.min(resIdx,Math.max(0,RES.length-1));
+  if(!BUSCA||document.activeElement!==$('#busca')){fecharRes();return;}
+  box.textContent='';
+  box.append(el('div',{className:'n',textContent:RES.length?(RES.length===1?tr('umRes'):tr('nRes',{n:RES.length>=30?'30+':RES.length})):tr('semRes')}));
+  RES.forEach((it,i)=>{
+    const cor=it.k?corNo(it):it.cor,tipo=it.mem?nomeMem(it.mem.type):it.k?nomeTipo(it.tipo):it.kind==='mem'?nomeMem(it.data.type):it.kind==='proj'?tr('lgProj'):'';
+    const r=el('div',{className:'r'+(i===resIdx?' on':''),role:'option'},el('i',{style:'background:'+cor}),
+      el('span',{className:'l',textContent:it.k?it.disp:curto(it.label,60)}),el('span',{className:'t',textContent:tipo}));
+    r.setAttribute('aria-selected',String(i===resIdx));
+    r.onmousedown=ev=>{ev.preventDefault();focarItem(it);};
+    box.append(r);});
+  const b=$('#busca').getBoundingClientRect();
+  if(innerWidth>680){box.style.left=Math.min(b.left,innerWidth-310)+'px';}else box.style.left='10px';
+  box.style.top=(b.bottom+6)+'px';box.style.display='block';$('#busca').setAttribute('aria-expanded','true');
+  const on=box.querySelector('.r.on');if(on)on.scrollIntoView({block:'nearest'});
+}
+function focarItem(it){
+  fecharRes();
+  if(MODO==='hier'){selecionar(it);focar(it.tx,it.ty,Math.max(view.k,.9));return;}
+  selecionar(it);
+  if(MODO==='rede')focar(it.x,it.y,Math.max(view.k,1.1));
+  else{cam.auto=false;sujo=true;}
+}
+
 // ── painel de detalhes ──
-function fecharPainel(){sel=null;$('#painel').style.display='none';}
-function painel(...filhos){const p=$('#painel');p.innerHTML='';p.append(el('button',{className:'x',textContent:'✕',ariaLabel:'Fechar',onclick:fecharPainel}),...filhos);p.style.display='block';}
+function fecharPainel(){if(sel)sujo=true;sel=null;$('#painel').style.display='none';}
+function painel(...filhos){const p=$('#painel');p.innerHTML='';p.append(el('button',{className:'x',textContent:'✕',ariaLabel:tr('fechar'),onclick:fecharPainel}),...filhos);p.style.display='block';sujo=true;}
 const lbl=t=>el('div',{className:'lbl',textContent:t});
 function selecionar(it){
+  if(it.mem)return painelMem(it.mem,'m:'+it.mem.id);
   if(it.k)return painelNo(it.k);
   if(it.kind==='mem')return painelMem(it.data,it.id);
   if(it.kind==='proj'||it.kind==='root')return painelProj(it.data,it.id);
   if(it.kind==='mais')return painelProj(it.data,'p:'+it.data.id);
 }
 async function painelNo(k){
-  const n=porK[k];if(!n)return;sel={kind:'no',id:k};
+  const n=porK[k];if(!n||n.mem)return;sel={kind:'no',id:k};
   const nome=el('input',{value:n.label,onchange:()=>editar({acao:'renomear_no',chave:k,label:nome.value})});
   const tipos=[...new Set(['pessoa','projeto','tecnologia','tema','ferramenta','jogo','lugar','empresa',n.tipo])];
   const tipo=el('select',{onchange:()=>editar({acao:'tipo_no',chave:k,tipo:tipo.value})});
-  for(const t of tipos)tipo.append(el('option',{value:t,textContent:t,selected:t===n.tipo}));
-  const conx=el('div');const cs=arestas.filter(a=>a.de===k||a.para===k);
-  if(!cs.length)conx.append(el('div',{className:'sub',textContent:'nenhuma ainda'}));
+  for(const t of tipos)tipo.append(el('option',{value:t,textContent:nomeTipo(t),selected:t===n.tipo}));
+  let desc=null;
+  if(TK){desc=el('textarea',{value:n.desc,placeholder:tr('descPh'),maxLength:500,rows:3});
+    desc.onchange=async()=>{try{await api('PATCH','/graph/nodes/'+encodeURIComponent(k),{description:desc.value.trim()});
+      AtlasUI.toast(tr('descOk'),{kind:'ok'});await carregar();}catch(e){AtlasUI.toast(tr('salvarErr'),{kind:'err'});}};}
+  else if(n.desc)desc=el('div',{className:'txt',textContent:n.desc});
+  const conx=el('div');const cs=arestas.filter(a=>!a.mem&&(a.de===k||a.para===k));
+  if(!cs.length)conx.append(el('div',{className:'sub',textContent:tr('nenhumaAinda')}));
   for(const a of cs){const o=a.de===k?a.para:a.de,seta=a.de===k?'→':'←';
     const r=el('div',{className:'conx'},el('span',{textContent:`${a.rel} ${seta} ${(porK[o]||{}).disp||o}`,style:'cursor:pointer',onclick:()=>painelNo(o)}));
-    if(!a.hier)r.append(el('button',{textContent:'✕',onclick:()=>editar({acao:'excluir_aresta',de:a.de,para:a.para})}));conx.append(r);}
+    if(!a.hier)r.append(el('button',{textContent:'✕',ariaLabel:tr('excluir'),onclick:()=>editar({acao:'excluir_aresta',de:a.de,para:a.para})}));conx.append(r);}
   const projs=el('div');for(const p of n.projetos)projs.append(el('span',{className:'chip',textContent:'📁 '+nomeProj(p),onclick:()=>{PROJ=p;$('#projSel').value=p;window._centrou=false;reconstruir();}}));
-  const mems=el('div',{className:'sub',textContent:TK?'carregando…':''});
-  painel(lbl('Conceito'),nome,lbl('Tipo'),tipo,n.projetos.length?lbl('Projetos'):null,n.projetos.length?projs:null,
-    n.desc?lbl('Descrição'):null,n.desc?el('div',{className:'txt',textContent:n.desc}):null,
-    lbl('Conexões'),conx,TK?lbl('Memórias relacionadas'):null,TK?mems:null,
-    el('button',{className:'eb pri',textContent:'🔗 conectar a outro',onclick:()=>{connectMode=true;connectFrom=n;$('#conectar').classList.add('on');hint(`clique em outro conceito para ligar a "${n.disp}"`);fecharPainel();}}),
-    el('button',{className:'eb del',textContent:'🗑 excluir conceito',onclick:async()=>{if(await AtlasUI.confirm({title:'Excluir conceito',message:`Excluir “${n.disp}”? Isso também remove as ligações dele (e fatos da memória que o mencionam).`,okText:'Excluir',danger:true})){editar({acao:'excluir_no',chave:k});fecharPainel();}}}));
+  const mems=el('div',{className:'sub',textContent:TK?tr('carregandoP'):''});
+  painel(lbl(tr('conceito')),nome,lbl(tr('tipo')),tipo,n.projetos.length?lbl(tr('projetos')):null,n.projetos.length?projs:null,
+    desc?lbl(tr('descricao')):null,desc,
+    lbl(tr('conexoes')+(n.grau?` (${n.grau})`:'')),conx,TK?lbl(tr('memRel')):null,TK?mems:null,
+    el('button',{className:'eb pri',textContent:tr('conectarOutro'),onclick:()=>{if(MODO==='hier')trocarModo('rede');connectMode=true;connectFrom=n;$('#conectar').classList.add('on');hint(tr('ligarA',{n:n.disp}));fecharPainel();}}),
+    el('button',{className:'eb del',textContent:tr('excluirNo'),onclick:async()=>{if(await AtlasUI.confirm({title:tr('excluirTit'),message:tr('excluirMsg',{n:n.disp}),okText:tr('excluir'),danger:true})){editar({acao:'excluir_no',chave:k});fecharPainel();}}}));
   if(TK){try{const d=await api('GET','/graph/nodes/'+encodeURIComponent(k));mems.textContent='';
-    if(!d.memories.length)mems.textContent='nenhuma';for(const m of d.memories.slice(0,12))mems.append(cartaoMem(m));}catch(e){mems.textContent='';}}
+    if(!d.memories.length)mems.textContent=tr('nenhuma');for(const m of d.memories.slice(0,12))mems.append(cartaoMem(m));}catch(e){mems.textContent='';}}
 }
 function cartaoMem(m){return el('div',{className:'mem',onclick:()=>painelMem(m,'m:'+m.id)},
-  el('div',{textContent:m.content}),el('div',{className:'m',textContent:`${NOME_MEM[m.type]||m.type} · ${nomeProj(m.project)} · ${'●'.repeat(m.importance)}`}));}
+  el('div',{textContent:(m.pinned?'📌 ':'')+m.content}),el('div',{className:'m',textContent:`${nomeMem(m.type)} · ${nomeProj(m.project)} · ${'●'.repeat(m.importance||0)}`}));}
 function painelMem(m,hid){
   sel={kind:'mem',id:m.id,hid};
-  const ents=el('div');for(const e of (m.entities||[]))ents.append(el('span',{className:'chip',textContent:(porK[e]||{}).disp||e,
-    onclick:()=>{if(MODO==='hier')trocarModo('rede');setTimeout(()=>porK[e]&&painelNo(e),50);}}));
+  const ents=el('div');for(const e of (m.entities||[])){const ck=chaveNo(e);ents.append(el('span',{className:'chip',textContent:(ck&&porK[ck].disp)||e,
+    onclick:()=>{if(MODO==='hier')trocarModo('rede');setTimeout(()=>{const k2=chaveNo(e);if(k2){painelNo(k2);if(MODO==='rede')focar(porK[k2].x,porK[k2].y);}},60);}}));}
   const tags=el('div');for(const t of (m.tags||[]))tags.append(el('span',{className:'chip',textContent:'#'+t}));
   const p=PROJETOS.find(x=>x.id===m.project);
-  painel(el('h3',{textContent:`${NOME_MEM[m.type]||m.type}  ${'●'.repeat(m.importance)}`}),
-    el('div',{className:'sub',textContent:(p?p.path.map(x=>x.name).join(' › '):m.project)+' · por '+m.source}),
-    lbl('Conteúdo'),el('div',{className:'txt',textContent:m.content}),
-    (m.tags||[]).length?lbl('Tags'):null,(m.tags||[]).length?tags:null,
-    (m.entities||[]).length?lbl('Entidades no grafo'):null,(m.entities||[]).length?ents:null,
-    el('div',{className:'sub',style:'margin-top:10px',textContent:'atualizada em '+(m.updated||'').replace('T',' ').slice(0,16)}),
-    el('button',{className:'eb',textContent:'🗂️ abrir em Memórias',onclick:()=>location.href='/memorias#'+encodeURIComponent(m.project)}));
+  painel(el('h3',{textContent:`${nomeMem(m.type)}  ${'●'.repeat(m.importance||0)}`}),
+    el('div',{className:'sub',textContent:(p?p.path.map(x=>x.name).join(' › '):m.project)+' · '+tr('por',{s:m.source})+(m.pinned?' · '+tr('fixada'):'')}),
+    lbl(tr('conteudo')),el('div',{className:'txt',textContent:m.content}),
+    (m.tags||[]).length?lbl(tr('tags')):null,(m.tags||[]).length?tags:null,
+    (m.entities||[]).length?lbl(tr('entidades')):null,(m.entities||[]).length?ents:null,
+    el('div',{className:'sub',style:'margin-top:10px',textContent:tr('atualizada',{d:(m.updated||'').replace('T',' ').slice(0,16)})}),
+    el('button',{className:'eb',textContent:tr('abrirMem'),onclick:()=>location.href='/memorias#'+encodeURIComponent(m.project)}));
 }
 function painelProj(p,hid){
   sel={kind:'proj',id:p.id,hid};
   const full=PROJETOS.find(x=>x.id===p.id)||p;
   const mems=el('div');const ms=MEMS.filter(m=>m.project===p.id);
-  if(!ms.length)mems.append(el('div',{className:'sub',textContent:'nenhuma memória própria'}));
+  if(!ms.length)mems.append(el('div',{className:'sub',textContent:tr('semMemProp')}));
   for(const m of ms.slice(0,15))mems.append(cartaoMem(m));
   const trilha=(full.path||[]).map(x=>x.name).join(' › ');
-  painel(el('h3',{textContent:p.id==='geral'?'Memória geral':p.name}),el('div',{className:'sub',textContent:trilha}),
+  painel(el('h3',{textContent:p.id==='geral'?tr('memGeral'):p.name}),el('div',{className:'sub',textContent:trilha}),
     p.description?el('div',{className:'txt',style:'margin-top:8px',textContent:p.description}):null,
-    el('div',{className:'sub',style:'margin-top:8px',textContent:`${p.memories} memórias próprias · ${p.total_memories} com subprojetos · ${p.nodes} conceitos`}),
-    p.id!=='geral'?el('div',{className:'sub',textContent:'herda a memória de: '+((full.path||[]).slice(0,-1).map(x=>x.name).reverse().join(' → ')||'Geral')}):null,
-    lbl('Memórias'),mems,
-    p.id!=='geral'?el('button',{className:'eb pri',textContent:'🕸 ver conceitos na rede',onclick:()=>{PROJ=p.id;$('#projSel').value=p.id;window._centrou=false;trocarModo('rede');}}):null,
-    el('button',{className:'eb',textContent:'➕ novo subprojeto',onclick:()=>novoProjeto(p.id==='geral'?null:p.id)}),
-    el('button',{className:'eb',textContent:'🗂️ abrir em Memórias',onclick:()=>location.href='/memorias#'+encodeURIComponent(p.id)}));
+    el('div',{className:'sub',style:'margin-top:8px',textContent:tr('projInfo',{a:p.memories,b:p.total_memories,c:p.nodes})}),
+    p.id!=='geral'?el('div',{className:'sub',textContent:tr('herda',{c:(full.path||[]).slice(0,-1).map(x=>x.name).reverse().join(' → ')||tr('geral')})}):null,
+    lbl(tr('memorias')),mems,
+    p.id!=='geral'?el('button',{className:'eb pri',textContent:tr('verRede'),onclick:()=>{PROJ=p.id;$('#projSel').value=p.id;window._centrou=false;trocarModo('rede');}}):null,
+    el('button',{className:'eb',textContent:tr('novoSub'),onclick:()=>novoProjeto(p.id==='geral'?null:p.id)}),
+    el('button',{className:'eb',textContent:tr('abrirMem'),onclick:()=>location.href='/memorias#'+encodeURIComponent(p.id)}));
 }
 async function novoProjeto(pai){
   if(!TK)return;
-  const nome=await AtlasUI.prompt({title:pai?'Novo subprojeto':'Novo projeto',label:pai?'Nome do subprojeto':'Nome do projeto',okText:'Criar',maxLength:80});
+  const nome=await AtlasUI.prompt({title:pai?tr('novoSubT'):tr('novoProjT'),label:pai?tr('nomeSub'):tr('nomeProj'),okText:tr('criar'),maxLength:80});
   if(!nome)return;
-  try{await api('POST','/projects',{name:nome,parent:pai});await carregar();}catch(e){AtlasUI.toast('Erro: '+e.message,{kind:'err'});}
+  try{await api('POST','/projects',{name:nome,parent:pai});await carregar();}catch(e){AtlasUI.toast(tr('erro',{e:e.message}),{kind:'err'});}
 }
 
 // ── edição (mesmos endpoints da interface) ──
 async function editar(body){
   try{const r=await fetch('/api/grafo/editar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!r.ok)throw new Error('HTTP '+r.status);}
-  catch(e){AtlasUI.toast('Não foi possível salvar a alteração.',{kind:'err'});}
+  catch(e){AtlasUI.toast(tr('salvarErr'),{kind:'err'});}
   await carregar();
   if(sel&&sel.kind==='no'&&porK[sel.id])painelNo(sel.id);}
 function hint(t){const h=$('#hint');h.textContent=t||'';h.style.display=t?'block':'none';}
 function sairConectar(){connectMode=false;connectFrom=null;hint('');$('#conectar').classList.remove('on');}
-$('#conectar').onclick=()=>{if(connectMode)return sairConectar();if(MODO==='hier')trocarModo('rede');connectMode=true;connectFrom=null;$('#conectar').classList.add('on');hint('clique em dois conceitos para ligá-los');};
+$('#conectar').onclick=()=>{if(connectMode)return sairConectar();if(MODO==='hier')trocarModo('rede');connectMode=true;connectFrom=null;$('#conectar').classList.add('on');hint(tr('clique2conc'));};
 $('#novoNo').onclick=async()=>{
   if(MODO==='hier')return novoProjeto(PROJ||null);
-  const nome=await AtlasUI.prompt({title:'Novo conceito',label:'Nome do conceito',okText:'Criar',maxLength:40});
+  const nome=await AtlasUI.prompt({title:tr('novoT'),label:tr('nomeConc'),okText:tr('criar'),maxLength:40});
   if(!nome)return;
   if(PROJ&&TK){try{await api('POST','/graph/nodes',{label:nome,project:PROJ});await carregar();return;}catch(e){}}
   await editar({acao:'criar_no',label:nome});};
 $('#limpar').onclick=async()=>{
-  const r=await AtlasUI.form({title:'Limpar o grafo',message:'Todos os conceitos e ligações serão removidos. Esta ação não pode ser desfeita.',
-    fields:[{name:'mem',type:'checkbox',label:'Limpar também os fatos da memória'}],okText:'Limpar grafo',danger:true});
+  const r=await AtlasUI.form({title:tr('limparT'),message:tr('limparMsg'),
+    fields:[{name:'mem',type:'checkbox',label:tr('limparMem')}],okText:tr('limparBtn'),danger:true});
   if(r){editar({acao:'limpar',tambem_memoria:!!r.mem});fecharPainel();}};
 $('#centrar').onclick=centralizar;
+$('#zIn').onclick=()=>zoomPor(1.25);
+$('#zOut').onclick=()=>zoomPor(.8);
 
 // ── filtros / modos ──
+function itemLegenda(cor,txt,o){const s=el('span',o||{},el('i',{style:'background:'+cor,className:(o&&o.dia)?'dia':''}),txt);return s;}
 function legenda(){
   const L=$('#legenda');L.innerHTML='';
-  if(MODO==='hier'){L.append(el('span',{},el('i',{style:'background:#b07cff'}),'memória geral'),el('span',{},el('i',{style:'background:'+CORES.projeto}),'projeto'));
-    for(const t in CORES_MEM)L.append(el('span',{},el('i',{style:'background:'+CORES_MEM[t]}),NOME_MEM[t]));return;}
+  if(MODO==='hier'){L.append(itemLegenda('#b07cff',tr('lgGeral')),itemLegenda(CORES.projeto,tr('lgProj')));
+    for(const t in CORES_MEM)L.append(itemLegenda(CORES_MEM[t],nomeMem(t)));
+    L.append(el('span',{className:'nota'},el('span',{id:'legStats'})));L.style.display='flex';return;}
   const tipos=[...new Set(Object.values(G.nos||{}).map(n=>n.tipo||'tema'))].sort();
-  for(const t of tipos)L.append(el('span',{className:OCULTOS.has(t)?'off':'',title:'mostrar/ocultar',
-    onclick:()=>{OCULTOS.has(t)?OCULTOS.delete(t):OCULTOS.add(t);reconstruir();}},el('i',{style:'background:'+corTipo(t)}),t));
+  const alternar=t=>()=>{OCULTOS.has(t)?OCULTOS.delete(t):OCULTOS.add(t);reconstruir();};
+  for(const t of tipos){const s=itemLegenda(corTipo(t),nomeTipo(t),{className:OCULTOS.has(t)?'off':'',title:tr('lgToggle'),tabIndex:0,onclick:alternar(t)});
+    s.setAttribute('role','button');s.setAttribute('aria-pressed',String(!OCULTOS.has(t)));
+    s.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();alternar(t)();}};L.append(s);}
+  if(VER_MEM&&TK){const s=itemLegenda(CORES_MEM.fact,tr('lgMem'),{className:OCULTOS.has('@mem')?'off':'',title:tr('lgToggle'),tabIndex:0,onclick:alternar('@mem'),dia:true});
+    s.setAttribute('role','button');L.append(s);}
+  if(tipos.length)L.append(el('span',{className:'nota'},el('span',{id:'legStats'}),tr('lgTam')));
   L.style.display=tipos.length?'flex':'none';
 }
-const AJUDA={rede:'arraste nós · roda do mouse: zoom · clique: detalhes',orbita:'arraste para girar · roda: aproximar · clique: detalhes',
-  hier:'geral → projetos → subprojetos → memórias · duplo clique num projeto: abrir na rede'};
 function trocarModo(m){
   MODO=m;try{localStorage.setItem('atlasGrafoModo',m);}catch(_){}
-  for(const b of document.querySelectorAll('#modos button'))b.classList.toggle('on',b.dataset.m===m);
-  $('#ajuda').textContent=AJUDA[m];$('#subBox').style.display=PROJETOS.length>1&&m!=='hier'?'':'none';
+  for(const b of document.querySelectorAll('#modos button')){b.classList.toggle('on',b.dataset.m===m);b.setAttribute('aria-pressed',String(b.dataset.m===m));}
+  $('#ajuda').textContent=tr('aj_'+m);
+  $('#subBox').style.display=PROJETOS.length>1&&m!=='hier'?'':'none';
+  $('#memBox').style.display=TK&&m!=='hier'?'':'none';
   if(m==='orbita'){cam.auto=true;for(const n of nos)if(Math.abs(n.z)<1)n.z=(Math.random()-.5)*300;}
   if(m==='hier')sairConectar();
   hover=null;fecharPainel();window._assin='';reconstruir();window._centrou=false;setTimeout(centralizar,m==='hier'?50:900);
@@ -482,20 +747,36 @@ function trocarModo(m){
 for(const b of document.querySelectorAll('#modos button'))b.onclick=()=>trocarModo(b.dataset.m);
 $('#projSel').onchange=()=>{PROJ=$('#projSel').value;window._centrou=false;reconstruir();setTimeout(centralizar,MODO==='hier'?50:1500);};
 $('#subChk').onchange=()=>{SUB=$('#subChk').checked;reconstruir();};
-$('#busca').addEventListener('input',()=>{BUSCA=$('#busca').value.trim().toLowerCase();});
-$('#busca').addEventListener('keydown',e=>{if(e.key!=='Enter'||!BUSCA)return;
-  if(MODO==='hier'){const h=hnos.find(h=>(h.label||'').toLowerCase().includes(BUSCA));if(h){selecionar(h);view.x=W/2-h.tx*view.k;view.y=H/2-h.ty*view.k;}return;}
-  const n=nos.find(n=>combina(n.k));if(n){painelNo(n.k);if(MODO==='rede'){view.x=W/2-n.x*view.k;view.y=H/2-n.y*view.k;}}});
-addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('.ui-back')){sairConectar();fecharPainel();}});
+$('#memChk').checked=VER_MEM;
+$('#memChk').onchange=()=>{VER_MEM=$('#memChk').checked;try{localStorage.setItem('atlasGrafoMem',VER_MEM?'1':'0');}catch(_){}reconstruir();};
+$('#busca').addEventListener('input',()=>{BUSCA=norm($('#busca').value.trim());resIdx=0;sujo=true;mostrarRes();});
+$('#busca').addEventListener('focus',()=>{if(BUSCA)mostrarRes();});
+$('#busca').addEventListener('blur',()=>setTimeout(fecharRes,120));
+$('#busca').addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!RES.length)return;resIdx=(resIdx+(e.key==='ArrowDown'?1:-1)+RES.length)%RES.length;mostrarRes();return;}
+  if(e.key==='Escape'){e.stopPropagation();if($('#res').style.display==='block'){fecharRes();return;}$('#busca').value='';BUSCA='';sujo=true;$('#busca').blur();return;}
+  if(e.key==='Enter'&&BUSCA){e.preventDefault();const it=RES[resIdx]||resultados()[0];if(it)focarItem(it);}
+});
+addEventListener('keydown',e=>{
+  if(document.querySelector('.ui-back'))return;
+  const digitando=/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'');
+  if(e.key==='Escape'){sairConectar();fecharPainel();return;}
+  if(digitando||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==='/'){e.preventDefault();$('#busca').focus();}
+  else if(e.key==='+'||e.key==='='){zoomPor(1.25);}
+  else if(e.key==='-'){zoomPor(.8);}
+  else if(e.key==='0'){centralizar();}
+});
 
 (async()=>{
   try{const e=await(await fetch('/api/estado')).json();LANGG=e.config.idioma||'pt';
     if(LANGG==='en'||LANGG==='es')fetch('/api/grafo/traduzir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:LANGG})});}catch(_){}
+  aplicarI18n();
   try{TK=(await(await fetch('/api/memapi')).json()).token||'';}catch(_){}
   if(!TK&&MODO==='hier')MODO='rede';
   if(!TK)$('#modos button[data-m=hier]').style.display='none';
   trocarModo(MODO);await carregar();laco();
-  setInterval(()=>{if(!down&&!connectMode)carregar();},10000);
+  setInterval(()=>{if(!down&&!connectMode&&!pinch&&document.activeElement.tagName!=='TEXTAREA')carregar();},10000);
 })();
 </script>
 </body>
