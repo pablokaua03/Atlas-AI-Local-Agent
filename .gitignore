@@ -12,6 +12,8 @@ prints/*
 docs/*
 !docs/.gitkeep
 docs_index.json
+acoes_ia.json
+scripts/bench_resultados*.json
 
 # ── assets pesados (baixados no setup/uso, nunca no repo) ──
 tessdata/
