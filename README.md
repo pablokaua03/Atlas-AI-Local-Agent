@@ -113,11 +113,49 @@ implemented; no API key is ever stored or invented). Context selection is in
 config fields are optional: an old `config.json` keeps working and is filled
 with defaults on load. Details of the local UI endpoints: [API.md](API.md).
 
+## Models for your machine
+
+Atlas detects your hardware (NVIDIA through `nvidia-smi`, other GPUs through the
+Windows registry/WMI or `/sys/class/drm` on Linux, Apple Silicon unified memory
+through `sysctl`, CPU-only machines, system RAM and CPU cores) and gives every
+catalog model a fit badge for this machine: fits in VRAM, partial offload (also
+uses RAM, slower) or too big. Settings, Model opens on **Recommended for your
+machine** (fast, balanced, smartest, vision, code and embedding picks); the
+filter bar shows all models or one tier: light (1 to 4B), moderate (7 to 9B),
+heavy (12 to 14B), large (20 to 35B, MoE) and huge (70B+). Each model lists its
+quantization variants with their own fit badge, so you can pull any of them. If
+detection is wrong (or you want to plan for another machine), use "Adjust
+hardware" to set VRAM, RAM, GPU name and unified memory by hand.
+
+Models marked "measured" were benchmarked on a 6 GB VRAM laptop GPU with
+`scripts/bench_modelos.py` (speed, VRAM use, PT-BR answer, tool calling); the
+others are marked "researched" (numbers from the model cards, not measured).
+Run the benchmark on your own machine with Ollama running:
+
+```bash
+python scripts/bench_modelos.py qwen3.5:4b nomic-embed-text   # writes scripts/bench_resultados.json
+```
+
+## Tools: the model can use Atlas
+
+With a model that supports tool calling (the catalog and Ollama's `/api/show`
+say so; you can force it per model in the model profile), the chat model can call
+Atlas itself: search, save, update and pin memories, search the knowledge graph,
+add concepts and link them, list projects, recall past conversations and, with
+the Documents skill on, list and read files inside the `docs/` folder only.
+Calls show up live in a collapsible "Tools used" block under the answer. Writes
+go through the same code as the Memories page and the `/v1` API, are tagged
+`atlas-chat:<model>`, and are logged in `acoes_ia.json` (encrypted with the vault
+when it is on), where each one can be undone from the block or from Settings,
+Memory, Tools. Settings, Memory, Tools lets you turn tools off, allow read-only
+tools, and set the maximum tool rounds per answer. Models without tool support
+keep working as before (memories are injected into the prompt).
+
 ## Privacy
 
 Everything runs locally through Ollama on 127.0.0.1. No telemetry, no cloud,
 no account. Your data (config.json, conversas.json, memoria.json, grafo.json,
-observacoes.json, lembretes.json, memorias.json, prints, docs and docs_index.json) stays only
+observacoes.json, lembretes.json, memorias.json, acoes_ia.json, prints, docs and docs_index.json) stays only
 on your machine and is listed in .gitignore.
 
 You can also turn on encryption at rest in Settings, Security. A password is
