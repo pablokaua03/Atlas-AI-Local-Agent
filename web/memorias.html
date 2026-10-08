@@ -70,6 +70,18 @@
   .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
   #lista .ui-skel.card{margin-bottom:9px}
   #vazio,#aviso{line-height:1.6}
+  .btn.tog[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
+  .card{transition:border-color .15s}
+  .card:hover{border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+  .card.fixada{border-left:3px solid #ff7ab6}
+  .fixtag{font-size:11px;color:#ff7ab6;border:1px solid color-mix(in srgb,#ff7ab6 45%,transparent);border-radius:6px;padding:1px 7px}
+  .ops button.pin:not(.on){filter:grayscale(1);opacity:.5} .ops button.pin:not(.on):hover{opacity:.9}
+  .ent{font-size:11px;background:none;border:1px solid var(--line);border-radius:10px;padding:1px 8px;color:var(--accent)}
+  .card mark{background:color-mix(in srgb,var(--warn) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+  .edit{margin-top:6px} .edit .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
+  .edit .row .in{padding:7px 9px} .edit .row .grow{flex:1;min-width:140px}
+  .edit .hint{font-size:11px;color:var(--dim);margin-top:5px}
+  #novo label.fx{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);cursor:pointer}
   @media (max-width:720px){
     #top{padding:0 12px}#top .links{display:none}#top .s{margin-left:auto}
     #wrap{flex-direction:column;height:auto;min-height:calc(100% - 52px)}
@@ -102,6 +114,7 @@
         <input class="in" id="q" autocomplete="off">
         <select class="in" id="fTipo"></select>
         <select class="in" id="ordem"></select>
+        <button class="btn tog" id="fFix" type="button" aria-pressed="false"></button>
         <label class="in" id="herdarBox" style="display:none;align-items:center;gap:6px;cursor:pointer;font-size:13px">
           <input type="checkbox" id="herdar"><span id="herdarTxt"></span></label>
         <button class="btn pri" id="abrirNovo"></button>
@@ -112,6 +125,7 @@
           <select class="in" id="nTipo"></select>
           <input class="in" id="nTags" style="flex:1;min-width:150px">
           <select class="in" id="nImp"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+          <label class="fx" id="nFixBox"><input type="checkbox" id="nFix"><span id="nFixTxt"></span></label>
           <button class="btn pri" id="salvarNovo"></button>
         </div>
       </div>
@@ -137,6 +151,9 @@ const I18N={
    projDelMemAll:"O projeto \"{p}\" tem {n} memória(s). Excluir o projeto e todas as memórias?",importance:"importância",
    noauth:"Não foi possível autenticar na API de memória. Recarregue a página ou ative a API em Ajustes.",loadErr:"Não foi possível carregar agora. Tente novamente.",retry:"Tentar de novo",
    inherit:"incluir herdadas",inheritedFrom:"herdada de {p}",subNew:"Nome do subprojeto de \"{p}\":",subBtn:"novo subprojeto",
+   pin:"Fixar",unpin:"Desafixar",pinnedTag:"📌 fixada",fPinned:"📌 Fixadas",pinHint:"Memórias fixadas entram sempre no contexto dos chats do projeto delas (até 8).",
+   pinnedOk:"Memória fixada: vai sempre no contexto.",unpinnedOk:"Memória desafixada.",countPinned:" · {p} fixada(s)",pinNew:"fixar",
+   typeL:"Tipo",projL:"Projeto",impL:"Importância",editHint:"Ctrl+Enter salva · Esc cancela",noPinned:"Nenhuma memória fixada aqui.",
    t_note:"nota",t_fact:"fato",t_preference:"preferência",t_decision:"decisão",t_task:"tarefa",t_event:"evento"},
  en:{title:"Memories",back:"← back",graph:"🕸️ graph",projects:"Projects",all:"All",newProj:"➕ New project",
    projName:"Project name:",projDesc:"Description (optional):",projDel:"Delete project \"{p}\"?",projDelMem:"It has {n} memory(ies). Delete them too?",
@@ -150,6 +167,9 @@ const I18N={
    projDelMemAll:"Project \"{p}\" has {n} memory(ies). Delete the project and all its memories?",importance:"importance",
    noauth:"Could not authenticate with the memory API. Reload the page or enable the API in Settings.",loadErr:"Could not load right now. Try again.",retry:"Try again",
    inherit:"include inherited",inheritedFrom:"inherited from {p}",subNew:"Name of the subproject of \"{p}\":",subBtn:"new subproject",
+   pin:"Pin",unpin:"Unpin",pinnedTag:"📌 pinned",fPinned:"📌 Pinned",pinHint:"Pinned memories always go into the context of chats in their project (up to 8).",
+   pinnedOk:"Memory pinned: it always goes into the context.",unpinnedOk:"Memory unpinned.",countPinned:" · {p} pinned",pinNew:"pin",
+   typeL:"Type",projL:"Project",impL:"Importance",editHint:"Ctrl+Enter saves · Esc cancels",noPinned:"No pinned memories here.",
    t_note:"note",t_fact:"fact",t_preference:"preference",t_decision:"decision",t_task:"task",t_event:"event"},
  es:{title:"Memorias",back:"← volver",graph:"🕸️ grafo",projects:"Proyectos",all:"Todos",newProj:"➕ Nuevo proyecto",
    projName:"Nombre del proyecto:",projDesc:"Descripción (opcional):",projDel:"¿Eliminar el proyecto \"{p}\"?",projDelMem:"Tiene {n} memoria(s). ¿Eliminarlas también?",
@@ -163,6 +183,9 @@ const I18N={
    projDelMemAll:"El proyecto \"{p}\" tiene {n} memoria(s). ¿Eliminar el proyecto y todas sus memorias?",importance:"importancia",
    noauth:"No se pudo autenticar con la API de memoria. Recarga la página o activa la API en Ajustes.",loadErr:"No se pudo cargar ahora. Inténtalo de nuevo.",retry:"Reintentar",
    inherit:"incluir heredadas",inheritedFrom:"heredada de {p}",subNew:"Nombre del subproyecto de \"{p}\":",subBtn:"nuevo subproyecto",
+   pin:"Fijar",unpin:"Desfijar",pinnedTag:"📌 fijada",fPinned:"📌 Fijadas",pinHint:"Las memorias fijadas siempre entran en el contexto de los chats de su proyecto (hasta 8).",
+   pinnedOk:"Memoria fijada: siempre irá en el contexto.",unpinnedOk:"Memoria desfijada.",countPinned:" · {p} fijada(s)",pinNew:"fijar",
+   typeL:"Tipo",projL:"Proyecto",impL:"Importancia",editHint:"Ctrl+Enter guarda · Esc cancela",noPinned:"No hay memorias fijadas aquí.",
    t_note:"nota",t_fact:"hecho",t_preference:"preferencia",t_decision:"decisión",t_task:"tarea",t_event:"evento"},
 };
 let LANG='pt', TK='', PROJ='', projetos=[];
@@ -196,7 +219,25 @@ function textos(){
   for(const x of TIPOS){$('#fTipo').append(el('option',{value:x,textContent:tipoLbl(x)}));$('#nTipo').append(el('option',{value:x,textContent:tipoLbl(x)}));}
   $('#ordem').append(el('option',{value:'recent',textContent:t('recent')}),el('option',{value:'importance',textContent:t('important')}));
   $('#herdarTxt').textContent=t('inherit');
+  $('#fFix').textContent=t('fPinned');$('#fFix').title=t('pinHint');
+  $('#nFixTxt').textContent=t('pinNew');$('#nFixBox').title=t('pinHint');
 }
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+// destaca os termos buscados sem usar innerHTML (ignora acentos e maiúsculas)
+function marcado(txt,q){
+  const frag=document.createDocumentFragment(),toks=[...new Set(norm(q).split(/\s+/).filter(w=>w.length>=2))];
+  if(!toks.length){frag.append(txt);return frag;}
+  let n='';const mapa=[];
+  for(let i=0;i<txt.length;i++){const c=norm(txt[i]);for(const ch of c){n+=ch;mapa.push(i);}}
+  const faixas=[];
+  for(const w of toks){let p=n.indexOf(w);while(p>=0){faixas.push([mapa[p],mapa[p+w.length-1]+1]);p=n.indexOf(w,p+w.length);}}
+  if(!faixas.length){frag.append(txt);return frag;}
+  faixas.sort((a,b)=>a[0]-b[0]);const uni=[faixas[0]];
+  for(const f of faixas.slice(1)){const u=uni[uni.length-1];if(f[0]<=u[1])u[1]=Math.max(u[1],f[1]);else uni.push(f);}
+  let pos=0;for(const [a,b] of uni){if(a>pos)frag.append(txt.slice(pos,a));frag.append(el('mark',{textContent:txt.slice(a,b)}));pos=b;}
+  if(pos<txt.length)frag.append(txt.slice(pos));return frag;
+}
+let FIX=false;
 
 async function carregarProjetos(){
   const d=await tentar(()=>api('GET','/projects'));if(!d){$('#projs').innerHTML='';return;}
@@ -246,17 +287,20 @@ async function carregarMemorias(){
   const q=$('#q').value.trim(),tipo=$('#fTipo').value;
   const ps=new URLSearchParams();if(PROJ)ps.set('project',PROJ);if(tipo)ps.set('type',tipo);
   if(PROJ)ps.set('scope',$('#herdar').checked&&PROJ!=='geral'?'inherit':'exact');
-  if(q){ps.set('q',q);ps.set('limit','100');}else{ps.set('sort',$('#ordem').value);ps.set('limit','300');}
+  if(q){ps.set('q',q);ps.set('limit','100');}else{ps.set('sort',$('#ordem').value);ps.set('limit','300');if(FIX)ps.set('pinned','true');}
   const d=await tentar(()=>api('GET','/memories?'+ps));
   if(!d){$('#lista').innerHTML='';return;}
   aviso('');
-  const itens=d.items,box=$('#lista');box.innerHTML='';
-  $('#s').textContent=t('count',{n:q?itens.length:d.total});
-  $('#vazio').style.display=itens.length?'none':'block';$('#vazio').textContent=q?t('noResult'):t('empty');
-  for(const m of itens)box.append(cartao(m));
+  let itens=d.items;if(FIX)itens=itens.filter(m=>m.pinned);
+  if(!q)itens=itens.map((m,i)=>[m,i]).sort((a,b)=>(!!b[0].pinned-!!a[0].pinned)||(a[1]-b[1])).map(x=>x[0]);
+  const box=$('#lista');box.innerHTML='';
+  const np=itens.filter(m=>m.pinned).length;
+  $('#s').textContent=t('count',{n:q||FIX?itens.length:d.total})+(np&&!FIX?t('countPinned',{p:np}):'');
+  $('#vazio').style.display=itens.length?'none':'block';$('#vazio').textContent=FIX?t('noPinned'):q?t('noResult'):t('empty');
+  for(const m of itens)box.append(cartao(m,q));
 }
-function cartao(m){
-  const c=el('div',{className:'card'});
+function cartao(m,q){
+  const c=el('div',{className:'card'+(m.pinned?' fixada':'')});
   const imp=el('span',{className:'imp',title:t('importance')});
   for(let i=1;i<=5;i++){const dot=el('span',{className:i<=m.importance?'on':'',textContent:'●',tabIndex:0,
     onclick:async()=>{if(await tentar(()=>api('PATCH','/memories/'+m.id,{importance:i})))carregarMemorias();}});
@@ -265,38 +309,60 @@ function cartao(m){
   const nomeProj=(projetos.find(p=>p.id===m.project)||{}).name||m.project;
   if(m.inherited)c.classList.add('herdada');
   const meta=el('div',{className:'meta'},el('span',{className:'tipo',textContent:tipoLbl(m.type)}),imp,
+    m.pinned?el('span',{className:'fixtag',textContent:t('pinnedTag'),title:t('pinHint')}):null,
     m.inherited?el('span',{className:'herd',textContent:t('inheritedFrom',{p:nomeProj})}):(PROJ?null:el('span',{textContent:'📁 '+nomeProj})),
     el('span',{textContent:t('by')+' '+m.source}),el('span',{textContent:(m.updated||'').replace('T',' ').slice(0,16)}));
-  const ct=el('div',{className:'ct',textContent:m.content});
-  const ops=el('div',{className:'ops'},
+  const ct=el('div',{className:'ct'});ct.append(q?marcado(m.content,q):m.content);
+  const pin=el('button',{className:'pin'+(m.pinned?' on':''),textContent:'📌',title:(m.pinned?t('unpin'):t('pin'))+' · '+t('pinHint'),
+    ariaLabel:m.pinned?t('unpin'):t('pin'),onclick:async()=>{
+      if(await tentar(()=>api('PATCH','/memories/'+m.id,{pinned:!m.pinned}))){AtlasUI.toast(m.pinned?t('unpinnedOk'):t('pinnedOk'),{kind:'ok'});carregarMemorias();}}});
+  pin.setAttribute('aria-pressed',String(!!m.pinned));
+  const ops=el('div',{className:'ops'},pin,
     el('button',{textContent:'✎',title:t('edit'),ariaLabel:t('edit'),onclick:()=>editar(c,m,ct)}),
     el('button',{className:'del',textContent:'🗑',title:t('remove'),ariaLabel:t('remove'),onclick:async()=>{
       if(await AtlasUI.confirm({title:t('delMemT'),message:t('del')+'\n\n“'+(m.content.length>140?m.content.slice(0,140)+'…':m.content)+'”',
         okText:t('forgetBtn'),cancelText:t('cancel'),danger:true})&&await tentar(()=>api('DELETE','/memories/'+m.id))){carregarMemorias();carregarProjetos();}}}));
   meta.append(ops);c.append(meta,ct);
-  if(m.tags&&m.tags.length)c.append(el('div',{className:'tags'},...m.tags.map(x=>el('span',{className:'tag',textContent:'#'+x}))));
+  const chips=[...(m.tags||[]).map(x=>el('span',{className:'tag',textContent:'#'+x})),
+    ...(m.entities||[]).slice(0,8).map(x=>el('span',{className:'ent',textContent:'◆ '+x}))];
+  if(chips.length)c.append(el('div',{className:'tags'},...chips));
   return c;
 }
 function editar(c,m,ct){
-  if(c.querySelector('textarea'))return;
-  const ta=el('textarea',{className:'in',value:m.content});
-  const tg=el('input',{className:'in',value:(m.tags||[]).join(', '),placeholder:t('tags'),style:'flex:1'});
-  const ok=el('button',{className:'btn pri',textContent:t('save'),onclick:async()=>{
-    if(await tentar(()=>api('PATCH','/memories/'+m.id,{content:ta.value,tags:tg.value})))carregarMemorias();}});
-  const no=el('button',{className:'btn',textContent:t('cancel'),onclick:()=>{ed.remove();ct.style.display='';}});
-  const ed=el('div',{},ta,el('div',{style:'display:flex;gap:6px;margin-top:6px'},tg,no,ok));
-  ct.style.display='none';ct.after(ed);ta.focus();
+  if(c.querySelector('.edit'))return;
+  const ta=el('textarea',{className:'in',value:m.content,rows:3,ariaLabel:t('content')});
+  const tipo=el('select',{className:'in',ariaLabel:t('typeL'),title:t('typeL')});
+  for(const x of [...new Set([...TIPOS,m.type])])tipo.append(el('option',{value:x,textContent:tipoLbl(x),selected:x===m.type}));
+  const proj=el('select',{className:'in grow',ariaLabel:t('projL'),title:t('projL')});
+  for(const p of projetos)proj.append(el('option',{value:p.id,textContent:'  '.repeat(Math.max(0,(p.depth||1)-1))+'📁 '+p.name,selected:p.id===m.project}));
+  const imp=el('select',{className:'in',ariaLabel:t('impL'),title:t('impL')});
+  for(let i=1;i<=5;i++)imp.append(el('option',{value:i,textContent:'●'.repeat(i),selected:i===m.importance}));
+  const tg=el('input',{className:'in grow',value:(m.tags||[]).join(', '),placeholder:t('tags'),ariaLabel:t('tags')});
+  const fechar=()=>{ed.remove();ct.style.display='';};
+  const salvar=async()=>{
+    const body={content:ta.value.trim(),tags:tg.value,type:tipo.value,importance:+imp.value};
+    if(!body.content){ta.focus();return;}
+    const mudouProj=proj.value&&proj.value!==m.project;if(mudouProj)body.project=proj.value;
+    if(await tentar(()=>api('PATCH','/memories/'+m.id,body))){carregarMemorias();if(mudouProj)carregarProjetos();}};
+  const ok=el('button',{className:'btn pri',textContent:t('save'),onclick:salvar});
+  const no=el('button',{className:'btn',textContent:t('cancel'),onclick:fechar});
+  const ed=el('div',{className:'edit'},ta,el('div',{className:'row'},tipo,proj,imp),el('div',{className:'row'},tg,no,ok),
+    el('div',{className:'hint',textContent:t('editHint')}));
+  ed.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();salvar();}
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();fechar();}});
+  ta.style.width='100%';ct.style.display='none';ct.after(ed);ta.focus();
 }
 async function salvarNova(){
   const conteudo=$('#nConteudo').value.trim();if(!conteudo)return;
   const m=await tentar(()=>api('POST','/memories',{content:conteudo,project:PROJ||'geral',type:$('#nTipo').value,
-    tags:$('#nTags').value,importance:+$('#nImp').value,source:'atlas-ui'}));
-  if(m){$('#nConteudo').value='';$('#nTags').value='';$('#novo').style.display='none';carregarMemorias();carregarProjetos();}
+    tags:$('#nTags').value,importance:+$('#nImp').value,source:'atlas-ui',pinned:$('#nFix').checked}));
+  if(m){$('#nConteudo').value='';$('#nTags').value='';$('#nFix').checked=false;$('#novo').style.display='none';carregarMemorias();carregarProjetos();}
 }
 
 let qT;
 $('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(carregarMemorias,300);});
 $('#fTipo').onchange=carregarMemorias;$('#ordem').onchange=carregarMemorias;$('#herdar').onchange=carregarMemorias;
+$('#fFix').onclick=()=>{FIX=!FIX;$('#fFix').setAttribute('aria-pressed',String(FIX));carregarMemorias();};
 $('#novoProj').onclick=novoProjeto;$('#salvarNovo').onclick=salvarNova;
 $('#abrirNovo').onclick=()=>{const n=$('#novo');n.style.display=n.style.display==='block'?'none':'block';if(n.style.display==='block')$('#nConteudo').focus();};
 $('#nConteudo').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))salvarNova();});
