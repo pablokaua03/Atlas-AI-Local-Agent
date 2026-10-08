@@ -905,7 +905,8 @@ def chat():
     if anexos_txt:
         system += "\n\nARQUIVOS ANEXADOS PELO USUÁRIO (responda com base neles):" + anexos_txt
 
-    ctx_msg = [{"id": u["id"], "t": u["content"][:160], "p": u.get("project"), "f": bool(u.get("pinned"))}
+    ctx_msg = [{"id": u["id"], "t": u["content"][:160], "p": u.get("project"), "f": bool(u.get("pinned")),
+                "w": u.get("why")}
                for u in usadas][:8]
     info_ctx = {"mems": ctx_msg, "projeto": projeto, "orcamento": orc, "usado": sum(uso.values()),
                 "ctx": perfil["num_ctx"], "modelo": modelo}

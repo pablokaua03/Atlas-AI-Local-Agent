@@ -58,7 +58,16 @@ pt:{
  ctxEmpty:'Nenhuma memória fixada ou excluída.',ctxConv:'Nesta conversa',ctxProj:'No projeto',ctxPinned:'Fixadas',ctxExcluded:'Excluídas',remove:'Remover',gone:'(memória removida)',close:'Fechar',
  factQ:'Guardar na memória?',factSave:'Salvar',factDiscard:'Descartar',factSaved:'Fato salvo.',factDup:'Já estava salvo.',factErr:'Não foi possível salvar este fato.',
  verTodos:'Ver todos os {n} modelos',verMenos:'Mostrar só os instalados',
- loading:'Carregando…'
+ loading:'Carregando…',
+ hwPre:'Seu PC',hwGpu:'{g} · {v} GB de VRAM',hwNoGpu:'sem GPU NVIDIA detectada',hwRam:'{r} GB de RAM',
+ fitVram:'Cabe na sua VRAM ({v} GB)',fitParcial:'Vai usar a RAM também (mais lento)',fitCpu:'Roda na CPU/RAM (mais lento)',fitGrande:'Grande demais para este PC',
+ fitNote:'Estimativa: tamanho do modelo + janela de contexto atual.',
+ instHdr:'Instalados ({n})',instNone:'Nenhum modelo instalado ainda. Baixe um do catálogo abaixo.',catHdr:'Catálogo',
+ catMore:'Ver mais {n} do catálogo',catLess:'Mostrar menos',catAll:'Todos os modelos do catálogo já estão instalados.',
+ pullHdr:'Baixar outro modelo pelo nome',pullPh:'ex.: gemma3:4b',pullHint:'Qualquer modelo da biblioteca do Ollama (ollama.com/library).',pullBad:'Nome de modelo inválido.',
+ isDefault:'Padrão',setDefault:'Tornar padrão',startOllama:'Iniciar Ollama',fora:'fora do catálogo',embedTag:'embeddings',
+ c_sem:'Busca por significado',c_sem_d:'Usa o modelo de embeddings para achar memórias parecidas mesmo com outras palavras (um pouco mais lento).',
+ usedWhy_relevante:'relevante',usedWhy_projeto:'do projeto',usedHint:'Enviadas ao modelo como contexto desta resposta.',usedManage:'Gerenciar memórias'
 },
 en:{
  s_modelo:'Model',s_memoria:'Memory & context',s_personalidade:'Personality & instructions',s_geracao:'Generation',
@@ -110,7 +119,16 @@ en:{
  ctxEmpty:'No pinned or excluded memories.',ctxConv:'In this chat',ctxProj:'In the project',ctxPinned:'Pinned',ctxExcluded:'Excluded',remove:'Remove',gone:'(memory removed)',close:'Close',
  factQ:'Save to memory?',factSave:'Save',factDiscard:'Dismiss',factSaved:'Fact saved.',factDup:'Already saved.',factErr:'Could not save this fact.',
  verTodos:'Show all {n} models',verMenos:'Show installed only',
- loading:'Loading…'
+ loading:'Loading…',
+ hwPre:'Your PC',hwGpu:'{g} · {v} GB VRAM',hwNoGpu:'no NVIDIA GPU detected',hwRam:'{r} GB RAM',
+ fitVram:'Fits in your VRAM ({v} GB)',fitParcial:'Will use RAM too (slower)',fitCpu:'Runs on CPU/RAM (slower)',fitGrande:'Too big for this PC',
+ fitNote:'Estimate: model size + current context window.',
+ instHdr:'Installed ({n})',instNone:'No model installed yet. Download one from the catalog below.',catHdr:'Catalog',
+ catMore:'Show {n} more from the catalog',catLess:'Show less',catAll:'Every catalog model is already installed.',
+ pullHdr:'Download another model by name',pullPh:'e.g. gemma3:4b',pullHint:'Any model from the Ollama library (ollama.com/library).',pullBad:'Invalid model name.',
+ isDefault:'Default',setDefault:'Make default',startOllama:'Start Ollama',fora:'not in catalog',embedTag:'embeddings',
+ c_sem:'Meaning-based search',c_sem_d:'Uses the embeddings model to find related memories even with different words (a bit slower).',
+ usedWhy_relevante:'relevant',usedWhy_projeto:'from project',usedHint:'Sent to the model as context for this answer.',usedManage:'Manage memories'
 },
 es:{
  s_modelo:'Modelo',s_memoria:'Memoria y contexto',s_personalidade:'Personalidad e instrucciones',s_geracao:'Generación',
@@ -162,7 +180,16 @@ es:{
  ctxEmpty:'No hay memorias fijadas ni excluidas.',ctxConv:'En esta conversación',ctxProj:'En el proyecto',ctxPinned:'Fijadas',ctxExcluded:'Excluidas',remove:'Quitar',gone:'(memoria eliminada)',close:'Cerrar',
  factQ:'¿Guardar en la memoria?',factSave:'Guardar',factDiscard:'Descartar',factSaved:'Hecho guardado.',factDup:'Ya estaba guardado.',factErr:'No se pudo guardar este hecho.',
  verTodos:'Ver los {n} modelos',verMenos:'Mostrar solo los instalados',
- loading:'Cargando…'
+ loading:'Cargando…',
+ hwPre:'Tu PC',hwGpu:'{g} · {v} GB de VRAM',hwNoGpu:'sin GPU NVIDIA detectada',hwRam:'{r} GB de RAM',
+ fitVram:'Cabe en tu VRAM ({v} GB)',fitParcial:'Usará también la RAM (más lento)',fitCpu:'Corre en CPU/RAM (más lento)',fitGrande:'Demasiado grande para este PC',
+ fitNote:'Estimación: tamaño del modelo + ventana de contexto actual.',
+ instHdr:'Instalados ({n})',instNone:'Aún no hay modelos instalados. Descarga uno del catálogo.',catHdr:'Catálogo',
+ catMore:'Ver {n} más del catálogo',catLess:'Mostrar menos',catAll:'Todos los modelos del catálogo ya están instalados.',
+ pullHdr:'Descargar otro modelo por nombre',pullPh:'ej.: gemma3:4b',pullHint:'Cualquier modelo de la biblioteca de Ollama (ollama.com/library).',pullBad:'Nombre de modelo no válido.',
+ isDefault:'Predeterminado',setDefault:'Usar por defecto',startOllama:'Iniciar Ollama',fora:'fuera del catálogo',embedTag:'embeddings',
+ c_sem:'Búsqueda por significado',c_sem_d:'Usa el modelo de embeddings para encontrar memorias parecidas aunque usen otras palabras (un poco más lento).',
+ usedWhy_relevante:'relevante',usedWhy_projeto:'del proyecto',usedHint:'Enviadas al modelo como contexto de esta respuesta.',usedManage:'Gestionar memorias'
 }};
 
 function t(k,v){var s=(D[LANG]&&D[LANG][k])||D.pt[k]||k;if(v)for(var x in v)s=s.split('{'+x+'}').join(v[x]);return s;}
@@ -226,49 +253,112 @@ async function restaurar(sec){
 }
 
 // ── seção Modelo ──
-function ramPC(){return H.ramTotalGB||0;}
+var CAT_MAIS=false;
+var RE_MODELO=/^[A-Za-z0-9][A-Za-z0-9_.\-\/]{0,79}(:[A-Za-z0-9_.\-]{1,40})?$/;
+function ramPC(){var hw=est().hardware||{};return hw.ram_gb||H.ramTotalGB||0;}
+function vramPC(){return (est().hardware||{}).vram_gb||0;}
 function fmtGB(n){return (n>=10?Math.round(n):Math.round(n*10)/10)+' GB';}
 function fmtCtx(n){return n>=1024?(Math.round(n/102.4)/10)+'k':String(n);}
+function semLatest(n){return String(n||'').replace(/:latest$/,'');}
 function filtrar(lista){
   if(FILTRO==='todos')return lista;
   return lista.filter(function(m){return (m.usos||[]).indexOf(FILTRO)>=0;});
 }
+// selo "cabe na VRAM / usa RAM / grande demais" (estimativa do servidor)
+function selo(cabe,embed){
+  if(!cabe||embed)return null;
+  var txt=cabe==='vram'?'✓ '+t('fitVram',{v:Math.round(vramPC()*10)/10}):cabe==='parcial'?(vramPC()?'≈ '+t('fitParcial'):'≈ '+t('fitCpu')):'✕ '+t('fitGrande');
+  return h('span',{class:'fit '+cabe,text:txt,title:t('fitNote')});
+}
+function linhaHardware(){
+  var hw=est().hardware||{},partes=[];
+  if(hw.vram_gb)partes.push(t('hwGpu',{g:hw.gpu||'GPU',v:hw.vram_gb}));else partes.push(t('hwNoGpu'));
+  if(ramPC())partes.push(t('hwRam',{r:Math.round(ramPC())}));
+  return h('div',{class:'hw'},[h('strong',{text:t('hwPre')+': '}),document.createTextNode(partes.join(' · '))]);
+}
 function renderModelo(){
   var e=est(),c=cfg();
-  // filtros
-  var fb=$('#mFilter');fb.textContent='';
-  ['todos','geral','codigo','raciocinio','visao','leve','embed'].forEach(function(f){
-    var b=h('button',{type:'button',class:FILTRO===f?'on':'',text:t('f_'+f),'aria-pressed':String(FILTRO===f)});
-    b.onclick=function(){FILTRO=f;if(f!=='todos')TUDO=false;renderModelo();};fb.append(b);
-  });
   var info=$('#mInfo');info.textContent='';
-  if(ramPC())info.append(h('div',{class:'d',text:t('pcRam',{ram:Math.round(ramPC()*10)/10})}));
-  if(!e.ollama_online)info.append(h('div',{class:'d warn',text:t('ollamaOff')}));
+  info.append(linhaHardware());
+  if(!e.ollama_online){
+    var av=h('div',{class:'mwarn'},[h('span',{text:t('ollamaOff')})]);
+    if(e.ollama_instalado&&H.iniciarOllama)av.append(btn(t('startOllama'),'baixar',function(){H.iniciarOllama();}));
+    info.append(av);
+  }
   // janela padrão
   var mx=(lim().num_ctx||[1024,32768,4096]);
   var ctxRow=$('#mCtxRow');ctxRow.textContent='';
   ctxRow.append(linha(t('numctx'),t('numctx_d'),numero({label:t('numctx'),min:mx[0],max:mx[1],int:true,step:1024,value:c.num_ctx||mx[2],salvar:function(v){H.salvar({num_ctx:v});}})));
-  // cartões
+
   var box=$('#modelos');box.textContent='';
-  var todos=filtrar(e.catalogo||[]),lista=todos;
-  var resumo=FILTRO==='todos'&&!TUDO;
-  if(resumo){var inst=todos.filter(function(m){return m.instalado||m.ativo;});if(inst.length)lista=inst;else resumo=false;}
-  if(!lista.length)box.append(h('div',{class:'ui-empty',text:t('ollamaOff')}));
-  lista.forEach(function(m){box.append(cartao(m,e,c));});
-  if(FILTRO==='todos'&&(resumo||TUDO)){
-    var tg=btn(resumo?t('verTodos',{n:todos.length}):t('verMenos'),'baixar',function(){TUDO=!TUDO;renderModelo();});
-    box.append(tg);
+  // 1) instalados (inclusive fora do catálogo)
+  var inst=(e.instalados_info||[]).slice().sort(function(a,b){
+    return (a.tipo==='embed')-(b.tipo==='embed')||(b.ativo-a.ativo)||a.nome.localeCompare(b.nome);});
+  if(e.ollama_online){
+    box.append(h('h3',{class:'sub',text:t('instHdr',{n:inst.length})}));
+    if(!inst.length)box.append(h('div',{class:'ui-empty',text:t('instNone')}));
+    inst.forEach(function(m){box.append(cartaoInstalado(m,e,c));});
+    // 2) baixar pelo nome
+    box.append(h('h3',{class:'sub',text:t('pullHdr')}));
+    var inp=h('input',{type:'text',class:'sel',placeholder:t('pullPh'),'aria-label':t('pullHdr'),spellcheck:'false',autocomplete:'off'});
+    var pr=h('div',{class:'prog'},[h('div')]);
+    var bp=btn(t('dl'),'baixar',function(){
+      var nome=inp.value.trim();
+      if(!RE_MODELO.test(nome)||nome.indexOf('..')>=0){toast(t('pullBad'),'err');inp.focus();return;}
+      H.baixar(nome,bp,pr);});
+    inp.onkeydown=function(ev){if(ev.key==='Enter'){ev.preventDefault();bp.click();}};
+    box.append(h('div',{class:'pullrow'},[inp,bp]),pr,h('div',{class:'d',text:t('pullHint')}));
   }
+  // 3) catálogo: só o que ainda não está instalado
+  box.append(h('h3',{class:'sub',text:t('catHdr')}));
+  var fb=h('div',{class:'seg',id:'mFilter2',role:'group'});
+  ['todos','geral','codigo','raciocinio','visao','leve','embed'].forEach(function(f){
+    var b=h('button',{type:'button',class:FILTRO===f?'on':'',text:t('f_'+f),'aria-pressed':String(FILTRO===f)});
+    b.onclick=function(){FILTRO=f;renderModelo();};fb.append(b);
+  });
+  box.append(fb);
+  var resto=filtrar((e.catalogo||[]).filter(function(m){return !m.instalado;}));
+  var ordem={vram:0,parcial:1,grande:2};
+  resto.sort(function(a,b){return ((a.tipo==='embed')-(b.tipo==='embed'))||((ordem[a.cabe]||0)-(ordem[b.cabe]||0))||(b.gb-a.gb);});
+  if(!resto.length)box.append(h('div',{class:'ui-empty',text:t('catAll')}));
+  var limite=CAT_MAIS||FILTRO!=='todos'?resto.length:6;
+  resto.slice(0,limite).forEach(function(m){box.append(cartao(m,e,c));});
+  if(resto.length>6&&FILTRO==='todos')box.append(btn(CAT_MAIS?t('catLess'):t('catMore',{n:resto.length-6}),'baixar',function(){CAT_MAIS=!CAT_MAIS;renderModelo();}));
   // provedores (estrutura)
   var pv=$('#mProv');pv.textContent='';
-  var pr=e.provedores||{};
+  var pr2=e.provedores||{};
   pv.append(h('div',{class:'nm',text:t('prov')}));
-  Object.keys(pr).forEach(function(k){pv.append(h('span',{class:'tag',text:(pr[k].rotulo||k)+(pr[k].local?' · '+t('provLocal'):'')}));});
+  Object.keys(pr2).forEach(function(k){pv.append(h('span',{class:'tag',text:(pr2[k].rotulo||k)+(pr2[k].local?' · '+t('provLocal'):'')}));});
   pv.append(h('div',{class:'d',text:t('provSoon')}));
+  var mf=$('#mFilter');if(mf)mf.textContent='';
+}
+function cartaoInstalado(m,e,c){
+  var embed=m.tipo==='embed',cat=m.catalogo?(e.catalogo||[]).find(function(x){return x.nome===m.catalogo;}):null;
+  var div=h('div',{class:'modelo inst'+(m.ativo?' sel':'')});
+  var rot=cat?cat.rotulo:semLatest(m.nome);
+  var top=h('div',{class:'top'},[h('span',{class:'rot',text:rot})]);
+  if(m.ativo)top.append(h('span',{class:'tag pin',text:embed?t('active'):t('isDefault')}));
+  if(rot!==m.nome)top.append(h('span',{class:'nm',text:m.nome}));
+  div.append(top);
+  var meta=[m.gb?fmtGB(m.gb):'',m.parametros,m.quant,m.familia].filter(Boolean).join(' · ');
+  var tags=h('div',{class:'tags'});
+  if(embed)tags.append(h('span',{class:'tag',text:t('embedTag')}));
+  if(cat)(cat.usos||[]).forEach(function(u){if(u!=='embed')tags.append(h('span',{class:'tag',text:t('u_'+u)}));});
+  else tags.append(h('span',{class:'tag',text:t('fora')}));
+  div.append(tags);
+  if(meta)div.append(h('div',{class:'meta',text:meta}));
+  var s=selo(m.cabe,embed);if(s)div.append(s);
+  var acoes=h('div',{class:'acts2'});
+  if(!m.ativo)acoes.append(btn(embed?t('useEmbed'):t('setDefault'),'baixar',function(ev){ev.stopPropagation();usar({nome:m.nome,tipo:m.tipo});}));
+  if(!embed)acoes.append(btn(t('profile'),'baixar',function(ev){ev.stopPropagation();
+    perfil(cat||{nome:m.nome,rotulo:semLatest(m.nome),ctx_max:32768,temp:0.7});}));
+  acoes.append(btn('🗑 '+t('del'),'baixar danger',function(ev){ev.stopPropagation();H.excluir(m.nome);}));
+  div.append(acoes);
+  return div;
 }
 function cartao(m,e,c){
   var embed=m.tipo==='embed';
-  var div=h('div',{class:'modelo'+(m.ativo?' sel':'')});
+  var div=h('div',{class:'modelo'});
   div.append(h('div',{class:'top'},[h('span',{class:'rot',text:m.rotulo}),h('span',{class:'nm',text:m.nome})]));
   var tags=h('div',{class:'tags'});
   (m.usos||[]).forEach(function(u){tags.append(h('span',{class:'tag',text:t('u_'+u)}));});
@@ -277,20 +367,14 @@ function cartao(m,e,c){
   var legado=(window.mdesc&&window.mdesc(m.nome))||'';
   div.append(h('div',{class:'desc',text:legado||t('d_'+principal)}));
   div.append(h('div',{class:'meta',text:t('size')+' '+fmtGB(m.gb)+' · '+t('ram')+' '+fmtGB(m.ram)+(embed?'':' · '+t('ctxw')+' '+fmtCtx(m.ctx)+'/'+fmtCtx(m.ctx_max))}));
-  if(ramPC()&&m.ram>ramPC()*0.85)div.append(h('div',{class:'d warn',text:'⚠ '+t('heavy',{ram:Math.round(ramPC())})}));
-  var st=h('div',{class:'st '+(m.instalado?'ok':'no'),text:(m.instalado?t('installed'):t('notInst'))+(m.ativo?' · '+t('active'):'')});
-  div.append(st);
-  var acoes=h('div',{class:'acts2'});
-  if(e.ollama_online&&!m.instalado){
+  var s=selo(m.cabe,embed);
+  if(s)div.append(s);
+  else if(ramPC()&&m.ram>ramPC()*0.85)div.append(h('div',{class:'d warn',text:'⚠ '+t('heavy',{ram:Math.round(ramPC())})}));
+  if(e.ollama_online){
+    var acoes=h('div',{class:'acts2'});
     var bd=btn(t('dl'),'baixar');var pr=h('div',{class:'prog'},[h('div')]);
     bd.onclick=function(ev){ev.stopPropagation();H.baixar(m.nome,bd,pr);};
     acoes.append(bd);div.append(acoes);div.append(pr);
-  }else if(m.instalado){
-    if(!m.ativo){var bu=btn(embed?t('useEmbed'):t('use'),'baixar');
-      bu.onclick=function(ev){ev.stopPropagation();usar(m);};acoes.append(bu);}
-    if(!embed){var bp=btn(t('profile'),'baixar');bp.onclick=function(ev){ev.stopPropagation();perfil(m);};acoes.append(bp);}
-    if(e.ollama_online){var bx=btn('🗑 '+t('del'),'baixar danger');bx.onclick=function(ev){ev.stopPropagation();H.excluir(m.nome);};acoes.append(bx);}
-    div.append(acoes);
   }
   return div;
 }
@@ -323,6 +407,7 @@ function renderContexto(){
       salvar:function(v){var o={};o[chave]=v;H.salvar({contexto:o});}})));}
   n('ctx_pct','c_pct','c_pct_d',35);n('max_memorias','c_max','c_max_d',6);n('recencia_dias','c_rec','c_rec_d',30);n('hist_msgs','c_hist','c_hist_d',6);
   box.append(linha(t('c_conv'),t('c_conv_d'),interruptor(k.incluir_conversas!==false,function(v){H.salvar({contexto:{incluir_conversas:v}});},t('c_conv'))));
+  box.append(linha(t('c_sem'),t('c_sem_d'),interruptor(!!k.busca_semantica,function(v){H.salvar({contexto:{busca_semantica:v}});},t('c_sem'))));
   var fm=h('div',{class:'seg',id:'fatosSeg'});
   box.append(h('div',{class:'skill col'},[h('div',{class:'info'},[h('div',{class:'nm',text:t('c_fatos')}),h('div',{class:'d',text:t('c_fatos_d')})]),fm]));
   H.seg('#fatosSeg',(lim().fatos_modos||['perguntar','automatico','desligado']),k.fatos_modo||'perguntar',function(v){return t('fm_'+v);},function(v){H.salvar({contexto:{fatos_modo:v}});});
@@ -463,22 +548,30 @@ var CH={
     var velho=bub.querySelector('details.usadas');if(velho)velho.remove();
     if(!mems||!mems.length)return;
     var d=h('details',{class:'usadas'});
-    d.append(h('summary',{text:'🧠 '+t('usedN',{n:mems.length})}));
+    var nFix=mems.filter(function(m){return m.f;}).length;
+    d.append(h('summary',{text:'🧠 '+t('usedN',{n:mems.length})+(nFix?' · 📌 '+nFix:'')}));
+    d.append(h('div',{class:'uhint',text:t('usedHint')}));
     var ul=h('ul');
     mems.forEach(function(m){
       var li=h('li');
-      li.append(h('span',{class:'mt',text:m.t||''}));
+      var txt=h('span',{class:'mt'});
+      txt.append(h('span',{text:m.t||''}));
       var meta=h('span',{class:'mm'});
-      if(m.p)meta.append(h('span',{class:'tag',text:m.p}));
       if(m.f)meta.append(h('span',{class:'tag pin',text:'📌 '+t('usedPinned')}));
-      li.append(meta);
+      else if(m.w&&m.w!=='fixada')meta.append(h('span',{class:'tag why',text:t('usedWhy_'+m.w)}));
+      if(m.p)meta.append(h('span',{class:'tag',text:'📁 '+m.p}));
+      txt.append(meta);
+      li.append(txt);
       var a=h('span',{class:'ma'});
       a.append(h('button',{type:'button',class:'ic',title:t('usedPin'),'aria-label':t('usedPin'),text:'📌',onclick:function(){CH.acao('fixar',m);}}),
                h('button',{type:'button',class:'ic',title:t('usedExc'),'aria-label':t('usedExc'),text:'🚫',onclick:function(){CH.acao('excluir',m);}}));
       li.append(a);ul.append(li);
     });
     d.append(ul);
-    if(info&&info.orcamento)d.append(h('div',{class:'d',text:t('usedBudget',{u:info.usado||0,o:info.orcamento})}));
+    var rod=h('div',{class:'ufoot'});
+    if(info&&info.orcamento)rod.append(h('span',{text:t('usedBudget',{u:info.usado||0,o:info.orcamento})}));
+    rod.append(h('a',{href:'/memorias',text:t('usedManage')+' →'}));
+    d.append(rod);
     bub.append(d);
   },
   async acao(tipo,m){
