@@ -109,12 +109,82 @@
     display:inline-flex;align-items:center;gap:6px;transition:color .15s,border-color .15s,background .15s}
   #regenBtn:hover{color:var(--txt);border-color:var(--accent);background:var(--panel2)}
   #regenBtn span{line-height:1}
-  .bubble pre{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;
-    overflow-x:auto;margin:7px 0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
-  .bubble pre code{background:none;padding:0;font-size:12.5px}
-  .bubble code{background:var(--panel2);border-radius:5px;padding:1px 5px;font-family:ui-monospace,Consolas,monospace;font-size:.9em}
-  .bubble ul,.bubble ol{margin:6px 0;padding-left:22px} .bubble li{margin:2px 0}
-  .bubble h3{font-size:15px;margin:9px 0 4px} .bubble a{color:var(--accent)} .bubble.md{white-space:normal}
+  /* markdown das respostas (md.js) */
+  .bubble.md{white-space:normal}
+  .bubble .body>:first-child{margin-top:0} .bubble .body>:last-child{margin-bottom:0}
+  .bubble p{margin:0 0 9px}
+  .bubble h3,.bubble h4,.bubble h5,.bubble h6{margin:14px 0 6px;line-height:1.3}
+  .bubble h3{font-size:16.5px} .bubble h4{font-size:15.5px} .bubble h5,.bubble h6{font-size:14.5px;color:var(--dim)}
+  .bubble ul,.bubble ol{margin:6px 0 10px;padding-left:22px} .bubble li{margin:3px 0} .bubble li>ul,.bubble li>ol{margin:3px 0}
+  .bubble li input[type=checkbox]{margin:0 5px 0 -2px;vertical-align:-1px}
+  .bubble a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;word-break:break-word}
+  .bubble blockquote{margin:8px 0;padding:4px 12px;border-left:3px solid var(--accent);color:var(--dim);background:color-mix(in srgb,var(--accent) 6%,transparent);border-radius:0 8px 8px 0}
+  .bubble hr{border:none;border-top:1px solid var(--line);margin:12px 0}
+  .bubble del{opacity:.7}
+  .bubble code{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.88em}
+  .md-code{margin:9px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg2)}
+  .md-codebar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px 4px 12px;
+    background:var(--panel2);border-bottom:1px solid var(--line);font-size:11.5px;color:var(--dim);font-family:ui-monospace,Consolas,monospace}
+  .md-copy{background:transparent;border:1px solid transparent;color:var(--dim);border-radius:7px;padding:3px 9px;font-size:11.5px;cursor:pointer;min-height:26px}
+  .md-copy:hover{color:var(--txt);border-color:var(--line)} .md-copy.ok{color:var(--good)}
+  .md-code pre{margin:0;padding:11px 13px;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.8px;line-height:1.5;white-space:pre}
+  .md-code pre code{background:none;border:none;padding:0;font-size:inherit}
+  .md-table{overflow-x:auto;margin:9px 0;border:1px solid var(--line);border-radius:10px}
+  .md-table table{border-collapse:collapse;width:100%;font-size:13.5px}
+  .md-table th,.md-table td{padding:7px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  .md-table th{background:var(--panel2);font-weight:600} .md-table tr:last-child td{border-bottom:none}
+  .md-table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--panel2) 45%,transparent)}
+  /* coluna da mensagem: balão + ações */
+  .mcol{display:flex;flex-direction:column;gap:4px;min-width:0;max-width:calc(100% - 42px)}
+  .msg.user .mcol{align-items:flex-end}
+  .mcol .bubble{max-width:100%}
+  .mact{display:flex;gap:2px;opacity:0;transition:opacity .15s;min-height:26px;align-items:center}
+  .msg:hover .mact,.msg:focus-within .mact{opacity:1}
+  .mact button{background:none;border:none;color:var(--dim);cursor:pointer;border-radius:7px;padding:3px 8px;font-size:12px;min-height:26px}
+  .mact button:hover{color:var(--txt);background:var(--panel2)}
+  .mact .tag{margin-left:4px}
+  .tag.parcial{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
+  .bubble.streaming{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+  .dots{display:inline-flex;gap:4px;padding:4px 0} .dots i{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:dot 1.2s infinite ease-in-out}
+  .dots i:nth-child(2){animation-delay:.15s} .dots i:nth-child(3){animation-delay:.3s}
+  @keyframes dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+  #chatWrap{flex:1;position:relative;display:flex;flex-direction:column;min-height:0}
+  #descer{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:7px 14px;font-size:12.5px;
+    cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:2}
+  #descer:hover{border-color:var(--accent)} #descer.on{display:inline-flex}
+  /* estado vazio com sugestões */
+  .empty .chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:22px auto 0;max-width:560px;text-align:left}
+  .chip{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:11px 13px;cursor:pointer;
+    font-size:13.5px;line-height:1.4;display:flex;gap:9px;align-items:flex-start;transition:border-color .15s,background .15s}
+  .chip:hover,.chip:focus-visible{border-color:var(--accent);background:var(--panel2);outline:none}
+  .chip .ce{font-size:16px;line-height:1.2}
+  .chip small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
+  /* barra lateral: busca e grupos por data */
+  .busca{margin:0 12px 6px;position:relative}
+  .busca input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;
+    padding:8px 30px 8px 32px;font-size:13px;outline:none}
+  .busca input:focus{border-color:var(--accent)}
+  .busca .lupa{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:13px;pointer-events:none}
+  .busca .lim{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:none}
+  .busca.tem .lim{display:flex}
+  .grp{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);padding:12px 10px 4px;font-weight:700}
+  .grp:first-child{padding-top:4px}
+  .item .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+  .item .tr{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .item .tr mark{background:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--txt);border-radius:3px;padding:0 1px}
+  .item .mdl{font-size:10px;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:5px;padding:0 4px;flex-shrink:0}
+  .lista .ui-empty{padding:14px 10px;font-size:12.5px}
+  /* banner do Ollama */
+  .spin{width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--txt) 25%,transparent);border-top-color:var(--accent);
+    animation:gira .8s linear infinite;flex-shrink:0}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  #banner.ok{background:color-mix(in srgb,var(--good) 14%,var(--bg));border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+  #banner.err{background:color-mix(in srgb,var(--danger) 12%,var(--bg));border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
+  #banner .bbtn.sec{background:transparent;border:1px solid var(--line);color:var(--txt);margin-left:0}
+  #banner .bbtn:disabled{opacity:.7;cursor:default}
+  #bannerSpin{display:none} #banner.busy #bannerSpin{display:block}
+  #ctxBar #modelSel{max-width:200px}
 
   /* ── DRAWER CONFIG ── */
   #scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:9}
@@ -234,7 +304,12 @@
     #bar{padding:8px 10px 10px}
     #cfg{width:100%;max-width:100%;padding-bottom:calc(var(--ui-nav-h) + 24px)}
     #banner{margin:8px 10px 0;flex-wrap:wrap}
+    .empty .chips{grid-template-columns:1fr}
+    #ctxBar{flex-wrap:wrap} #ctxBar label{display:none} #ctxBar select,#ctxBar #modelSel{flex:1 1 40%;max-width:none}
+    .mact{opacity:1}
+    .msg{gap:8px} .av{width:26px;height:26px;font-size:12px} .mcol{max-width:calc(100% - 34px)}
   }
+  @media(max-width:1000px){#sysPill{display:none}}
 </style>
 </head>
 <body>
@@ -244,6 +319,7 @@
       <div class="brand"><span class="logo">◆</span><span id="brandTxt">Agente Local</span></div>
     </div>
     <button class="novo" id="novoChat">＋ <span id="novoTxt">Novo chat</span></button>
+    <div class="busca" id="buscaBox"><span class="lupa" aria-hidden="true">⌕</span><input type="search" id="buscaChat" autocomplete="off"><button type="button" class="ic lim" id="buscaLimpar">✕</button></div>
     <div class="lista" id="lista" aria-label="Conversas"><span class="ui-skel pill"></span><span class="ui-skel pill"></span><span class="ui-skel pill"></span></div>
     <div class="sbfoot" id="sbfoot"></div>
   </aside>
@@ -260,12 +336,15 @@
       <a class="hbtn" id="grafoBtn" href="/grafo" title="Grafo">🕸️</a>
       <button class="hbtn" id="gear" title="config">⚙</button>
     </header>
-    <div id="banner" role="status"><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button></div>
-    <div id="chat" aria-live="polite"><div class="ld"><span class="ui-skel"></span><span class="ui-skel"></span><span class="ui-skel"></span></div></div>
+    <div id="banner" role="status"><span class="spin" id="bannerSpin"></span><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button><button class="bbtn sec" id="bannerBtn2" style="display:none"></button></div>
+    <div id="chatWrap">
+      <div id="chat" aria-live="polite"><div class="ld"><span class="ui-skel"></span><span class="ui-skel"></span><span class="ui-skel"></span></div></div>
+      <button type="button" id="descer">↓ <span id="descerTxt"></span></button>
+    </div>
     <div id="chatActions" style="display:none"><button id="regenBtn"><span>↻</span><span id="regenTxt"></span></button></div>
     <div id="fatoBar" hidden role="status"></div>
     <div id="bar">
-      <div id="ctxBar"><label for="projSel" id="projLabel">Projeto</label><select id="projSel"></select><button type="button" id="ctxBtn">🧠</button></div>
+      <div id="ctxBar"><label for="projSel" id="projLabel">Projeto</label><select id="projSel"></select><select id="modelSel"></select><button type="button" id="ctxBtn">🧠</button></div>
       <div id="anexosBar"></div>
       <div class="barin">
         <button id="attachBtn" title="anexar">📎</button>
@@ -358,6 +437,7 @@
 </div>
 
 <script src="/static/ui.js"></script>
+<script src="/static/md.js"></script>
 <script src="/static/ajustes.js"></script>
 <script>
 const $=s=>document.querySelector(s);
@@ -411,7 +491,19 @@ const I18N={
    errOllama:"O Ollama não está rodando.",errModel:"Baixe o modelo {m} primeiro (⚙ → Baixar).",
    confDel:"Excluir esta conversa?",
     cancel:"Cancelar",confirmT:"Confirmar",delBtn:"Excluir",ren:"Renomear",restoreBtn:"Restaurar",uninstBtn:"Desinstalar",rotateBtn:"Gerar novo token",
-    connErr:"Sem conexão com o Atlas. Tentando novamente…",errStream:"(não foi possível concluir a resposta)",menu:"menu"},
+    connErr:"Sem conexão com o Atlas. Tentando novamente…",errStream:"(não foi possível concluir a resposta)",menu:"menu",
+    copy:"copiar",copied:"copiado",copyMsg:"Copiar resposta",partial:"interrompida",jump:"Ir para o fim",
+    search:"Buscar conversas",searchClear:"Limpar busca",noResults:"Nenhuma conversa encontrada.",
+    gHoje:"Hoje",gOntem:"Ontem",g7:"Últimos 7 dias",g30:"Últimos 30 dias",gAntes:"Mais antigas",
+    emptyHint:"Experimente:",
+    sug:[["💡","Explique um conceito","de forma simples, com exemplo","Explique de forma simples, com um exemplo do dia a dia, como funciona "],
+         ["📝","Resuma um texto","em tópicos curtos","Resuma o texto abaixo em tópicos curtos:\n\n"],
+         ["🧑‍💻","Ajude com código","revise ou explique","Revise este código, aponte problemas e sugira melhorias:\n\n```\n\n```"],
+         ["🗂️","O que você lembra?","sobre mim e meus projetos","O que você lembra sobre mim e sobre os meus projetos?"]],
+    startingN:"Iniciando o Ollama… {s}s",ollamaReady:"Ollama pronto.",startFail:"Não consegui iniciar o Ollama. Abra o aplicativo do Ollama ou tente de novo.",
+    startNotInst:"O Ollama não foi encontrado neste PC.",retry:"Tentar de novo",
+    modelDefault:"Padrão ({m})",modelChatT:"Modelo desta conversa",modelSet:"Esta conversa usará {m}.",modelReset:"Esta conversa voltou ao modelo padrão.",
+    noModel:"Nenhum modelo instalado. Abra ⚙ → Modelo e baixe um."},
  en:{title:"Local Agent",novo:"New chat",enviar:"Send",stop:"stop",regen:"Regenerate",ph:"Talk to the agent…",
    emptyT:"Start a conversation",emptyD:"Your assistant runs 100% on your machine.",
    lang:"Language",theme:"Theme",dark:"Dark",light:"Light",name:"Your name",namePh:"what the agent calls you",
@@ -459,7 +551,19 @@ const I18N={
    errOllama:"Ollama isn't running.",errModel:"Download the model {m} first (⚙ → Download).",
    confDel:"Delete this conversation?",
     cancel:"Cancel",confirmT:"Confirm",delBtn:"Delete",ren:"Rename",restoreBtn:"Restore",uninstBtn:"Uninstall",rotateBtn:"Generate new token",
-    connErr:"Can't reach Atlas. Retrying…",errStream:"(the reply could not be completed)",menu:"menu"},
+    connErr:"Can't reach Atlas. Retrying…",errStream:"(the reply could not be completed)",menu:"menu",
+    copy:"copy",copied:"copied",copyMsg:"Copy answer",partial:"stopped",jump:"Jump to latest",
+    search:"Search chats",searchClear:"Clear search",noResults:"No chats found.",
+    gHoje:"Today",gOntem:"Yesterday",g7:"Last 7 days",g30:"Last 30 days",gAntes:"Older",
+    emptyHint:"Try:",
+    sug:[["💡","Explain a concept","simply, with an example","Explain simply, with an everyday example, how this works: "],
+         ["📝","Summarize a text","in short bullet points","Summarize the text below in short bullet points:\n\n"],
+         ["🧑‍💻","Help with code","review or explain","Review this code, point out problems and suggest improvements:\n\n```\n\n```"],
+         ["🗂️","What do you remember?","about me and my projects","What do you remember about me and my projects?"]],
+    startingN:"Starting Ollama… {s}s",ollamaReady:"Ollama is ready.",startFail:"Couldn't start Ollama. Open the Ollama app or try again.",
+    startNotInst:"Ollama wasn't found on this PC.",retry:"Try again",
+    modelDefault:"Default ({m})",modelChatT:"Model for this chat",modelSet:"This chat will use {m}.",modelReset:"This chat is back to the default model.",
+    noModel:"No model installed. Open ⚙ → Model and download one."},
  es:{title:"Agente Local",novo:"Nuevo chat",enviar:"Enviar",stop:"detener",regen:"Regenerar",ph:"Habla con el agente…",
    emptyT:"Empieza una conversación",emptyD:"Tu asistente corre 100% en tu máquina.",
    lang:"Idioma",theme:"Tema",dark:"Oscuro",light:"Claro",name:"Tu nombre",namePh:"cómo te llama el agente",
@@ -507,9 +611,21 @@ const I18N={
    errOllama:"Ollama no está corriendo.",errModel:"Descarga el modelo {m} primero (⚙ → Descargar).",
    confDel:"¿Eliminar esta conversación?",
     cancel:"Cancelar",confirmT:"Confirmar",delBtn:"Eliminar",ren:"Renombrar",restoreBtn:"Restaurar",uninstBtn:"Desinstalar",rotateBtn:"Generar nuevo token",
-    connErr:"Sin conexión con Atlas. Reintentando…",errStream:"(no se pudo completar la respuesta)",menu:"menú"},
+    connErr:"Sin conexión con Atlas. Reintentando…",errStream:"(no se pudo completar la respuesta)",menu:"menú",
+    copy:"copiar",copied:"copiado",copyMsg:"Copiar respuesta",partial:"interrumpida",jump:"Ir al final",
+    search:"Buscar conversaciones",searchClear:"Limpiar búsqueda",noResults:"No se encontraron conversaciones.",
+    gHoje:"Hoy",gOntem:"Ayer",g7:"Últimos 7 días",g30:"Últimos 30 días",gAntes:"Anteriores",
+    emptyHint:"Prueba:",
+    sug:[["💡","Explica un concepto","de forma simple, con ejemplo","Explica de forma simple, con un ejemplo cotidiano, cómo funciona "],
+         ["📝","Resume un texto","en puntos cortos","Resume el texto de abajo en puntos cortos:\n\n"],
+         ["🧑‍💻","Ayuda con código","revisa o explica","Revisa este código, señala problemas y sugiere mejoras:\n\n```\n\n```"],
+         ["🗂️","¿Qué recuerdas?","sobre mí y mis proyectos","¿Qué recuerdas sobre mí y mis proyectos?"]],
+    startingN:"Iniciando Ollama… {s}s",ollamaReady:"Ollama listo.",startFail:"No pude iniciar Ollama. Abre la aplicación de Ollama o inténtalo de nuevo.",
+    startNotInst:"No se encontró Ollama en este PC.",retry:"Reintentar",
+    modelDefault:"Predeterminado ({m})",modelChatT:"Modelo de esta conversación",modelSet:"Esta conversación usará {m}.",modelReset:"Esta conversación volvió al modelo predeterminado.",
+    noModel:"No hay modelos instalados. Abre ⚙ → Modelo y descarga uno."},
 };
-const t=(k,v)=>{let s=(I18N[LANG]&&I18N[LANG][k])||I18N.pt[k]||k; if(v)for(const x in v)s=s.replace('{'+x+'}',v[x]); return s;};
+const t=(k,v)=>{let s=(I18N[LANG]&&I18N[LANG][k])||I18N.pt[k]||k; if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]); return s;};
 const mdesc=n=>((I18N[LANG]||{}).mdesc||{})[n]||(I18N.pt.mdesc||{})[n]||'';
 window.mdesc=mdesc;
 const SKILLS={memoria:true,tela:true,grafo:true,iniciativa:true,wikipedia:true,documentos:true};
@@ -519,9 +635,7 @@ function aplicarTema(){ document.documentElement.setAttribute('data-tema',TEMA);
 
 // confirmação padrão (modal do Atlas) no lugar do confirm() do navegador
 const conf=(msg,o)=>AtlasUI.confirm({title:(o&&o.title)||t('confirmT'),message:msg,okText:(o&&o.ok)||t('confirmT'),cancelText:t('cancel'),danger:!!(o&&o.danger)});
-function semConexao(){
-  const b=$('#banner');b.style.display='flex';$('#bannerBtn').style.display='none';$('#bannerTxt').textContent=t('connErr');
-}
+function semConexao(){bannerUI(t('connErr'),{kind:'err'});}
 async function carregarEstado(){
   try{
     const r=await fetch('/api/estado');if(!r.ok)throw new Error('HTTP '+r.status);
@@ -544,36 +658,24 @@ function fixos(){
   $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
   $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr'); $('#h-api').textContent=t('apiHdr');
   $('#regenTxt').textContent=t('regen'); $('#attachBtn').title=t('attach');
+  $('#buscaChat').placeholder=t('search');$('#buscaChat').setAttribute('aria-label',t('search'));
+  $('#buscaLimpar').title=t('searchClear');$('#buscaLimpar').setAttribute('aria-label',t('searchClear'));
+  $('#descerTxt').textContent=t('jump');$('#modelSel').title=t('modelChatT');$('#modelSel').setAttribute('aria-label',t('modelChatT'));
+  AtlasMD.labels({copy:t('copy'),copied:t('copied')});
   AjustesUI.setLang(LANG);AjustesUI.titulos();
   if(_navLang!==LANG){_navLang=LANG;AtlasUI.labels({ok:t('confirmT'),cancel:t('cancel')});AtlasUI.nav('chat',{idioma:LANG,onConfig:abrirCfg});}
 }
 let _navLang=null;
 
-// ── markdown leve (seguro): escapa HTML e formata código, negrito, listas, links ──
-function _esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function md(src){
-  const blocos=[];
-  src=src.replace(/```(\w+)?\n?([\s\S]*?)```/g,(_m,_l,code)=>{
-    blocos.push('<pre><code>'+_esc(code.replace(/\n$/,''))+'</code></pre>');
-    return ''+(blocos.length-1)+'';});
-  src=_esc(src);
-  src=src.replace(/`([^`\n]+)`/g,(_m,c)=>'<code>'+c+'</code>');
-  src=src.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
-  src=src.replace(/^#{1,6}\s+(.*)$/gm,'<h3>$1</h3>');
-  src=src.replace(/(?:^|\n)((?:\s*[-*]\s+.*(?:\n|$))+)/g,(_m,lista)=>{
-    const its=lista.trim().split('\n').map(l=>'<li>'+l.replace(/^\s*[-*]\s+/,'')+'</li>').join('');
-    return '<ul>'+its+'</ul>';});
-  src=src.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-  src=src.replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
-  src=src.replace(/(\d+)/g,(_m,i)=>blocos[+i]!==undefined?blocos[+i]:_m);
-  return src;
-}
+// markdown seguro (md.js): escapa todo o HTML antes de formatar
+const md=s=>AtlasMD.render(s);
+AtlasMD.ligarCopiar(document);
 
 function render(){
   const cfg=estado.config; fixos();
   const pill=$('#pill');
   if(!estado.ollama_online){pill.className='pill off';pill.textContent=t('pillOff');}
-  else{pill.className='pill on';pill.textContent=estado.modelo_atual;}
+  else{pill.className='pill on';pill.textContent=modeloEfetivo();}
   // interruptor mestre
   const ativo=cfg.ativo!==false;
   $('#powerBtn').className='hbtn '+(ativo?'on':'off');
@@ -586,13 +688,8 @@ function render(){
   lb.textContent=co.desbloqueado?'🔓':'🔒';
   lb.title=co.desbloqueado?t('lockNow'):t('unlock');
   if(co.ligada&&!co.desbloqueado){if($('#cofreModal').style.display!=='flex')abrirCofreModal();}else{$('#cofreModal').style.display='none';}
-  // banner
-  const b=$('#banner'),bt=$('#bannerTxt'),bb=$('#bannerBtn'),mA=estado.catalogo.find(m=>m.ativo&&m.tipo!=='embed');
-  b.style.display='none';bb.style.display='none';
-  if(!estado.ollama_online){b.style.display='flex';bb.style.display='inline-block';bb.disabled=false;
-    if(estado.ollama_instalado){bt.textContent=t('ollamaOff');bb.textContent=t('startOllama');bb.onclick=iniciarOllama;}
-    else{bt.textContent=t('ollamaNotInst');bb.textContent=t('installOllama');bb.onclick=()=>instalarOllama(bb);}}
-  else if(mA&&!mA.instalado){b.style.display='flex';bt.textContent=t('bannerModel',{m:mA.nome});}
+  renderBanner();
+  renderModelSel();
   // seg idioma/tema
   seg('#langSeg',['pt','en','es'],LANG,l=>l.toUpperCase(),l=>salvarConfig({idioma:l}));
   seg('#themeSeg',['escuro','claro'],TEMA,l=>t(l==='escuro'?'dark':'light'),l=>{TEMA=l;aplicarTema();salvarConfig({tema:l});});
@@ -769,9 +866,72 @@ async function salvarConfig(patch){
 }
 let nomeT;document.addEventListener('input',e=>{if(e.target.id==='nome'){clearTimeout(nomeT);nomeT=setTimeout(()=>salvarConfig({nome:e.target.value||'você'}),500);}});
 
-// ── Ollama ──
-async function iniciarOllama(){const bb=$('#bannerBtn');bb.disabled=true;bb.textContent=t('starting');
-  try{await fetch('/api/ollama/start',{method:'POST'});}catch(e){}await carregarEstado();}
+// ── Ollama: banner de status e "Iniciar" com progresso ──
+let ollamaIniciando=false, modeloDoChat=null;
+const semLatest=n=>(n||'').replace(/:latest$/,'');
+const instaladoNome=n=>!!n&&(estado.instalados||[]).some(i=>semLatest(i)===semLatest(n));
+function modelosChatInstalados(){return (estado.instalados_info||[]).filter(m=>m.tipo!=='embed').map(m=>m.nome);}
+function modeloEfetivo(){return (modeloDoChat&&instaladoNome(modeloDoChat))?modeloDoChat:estado.modelo_atual;}
+function bannerUI(txt,o){
+  o=o||{};const b=$('#banner');b.hidden=false;b.style.display='flex';
+  b.className=(o.busy?'busy ':'')+(o.kind||'');$('#bannerTxt').textContent=txt;
+  [['#bannerBtn',o.btn],['#bannerBtn2',o.btn2]].forEach(([sel,cfg])=>{const el=$(sel);
+    if(!cfg){el.style.display='none';el.onclick=null;return;}
+    el.style.display='inline-block';el.textContent=cfg.txt;el.disabled=!!cfg.disabled;el.onclick=cfg.fn||null;});
+}
+function bannerFechar(){const b=$('#banner');b.style.display='none';b.className='';}
+function renderBanner(){
+  if(ollamaIniciando)return;
+  if(!estado.ollama_online){
+    if(estado.ollama_instalado)bannerUI(t('ollamaOff'),{btn:{txt:t('startOllama'),fn:iniciarOllama}});
+    else bannerUI(t('ollamaNotInst'),{btn:{txt:t('installOllama'),fn:()=>instalarOllama($('#bannerBtn'))}});
+    return;
+  }
+  if(!modelosChatInstalados().length){bannerUI(t('noModel'),{btn:{txt:'⚙ '+t('model'),fn:abrirCfgModelo}});return;}
+  if(!instaladoNome(modeloEfetivo())){bannerUI(t('bannerModel',{m:modeloEfetivo()}),{btn:{txt:'⚙ '+t('model'),fn:abrirCfgModelo}});return;}
+  bannerFechar();
+}
+function abrirCfgModelo(){abrirCfg();const s=$('#sec-modelo');if(s)s.open=true;}
+async function iniciarOllama(){
+  if(ollamaIniciando)return;ollamaIniciando=true;
+  const t0=Date.now(),seg=()=>Math.round((Date.now()-t0)/1000);
+  bannerUI(t('startingN',{s:0}),{busy:true,btn:{txt:t('starting'),disabled:true}});
+  const tick=setInterval(()=>{$('#bannerTxt').textContent=t('startingN',{s:seg()});},1000);
+  let r=null;
+  try{r=await(await fetch('/api/ollama/start',{method:'POST'})).json();}catch(e){r=null;}
+  let online=!!(r&&r.online);
+  if(r&&r.erro==='nao_instalado'){clearInterval(tick);ollamaIniciando=false;
+    bannerUI(t('startNotInst'),{kind:'err',btn:{txt:t('installOllama'),fn:()=>instalarOllama($('#bannerBtn'))}});return;}
+  // o servidor espera ~12 s; alguns PCs demoram mais para subir: continua acompanhando até ~40 s
+  while(!online&&seg()<40){
+    await new Promise(ok=>setTimeout(ok,1500));
+    try{online=!!(await(await fetch('/api/ollama/status')).json()).online;}catch(e){}
+  }
+  clearInterval(tick);ollamaIniciando=false;
+  if(!online){bannerUI(t('startFail'),{kind:'err',btn:{txt:t('retry'),fn:iniciarOllama}});return;}
+  await carregarEstado();
+  AtlasUI.toast(t('ollamaReady'),{kind:'ok'});
+}
+
+// ── modelo por conversa (seletor na barra do chat) ──
+function renderModelSel(){
+  const sel=$('#modelSel');if(!sel||!estado)return;
+  const inst=modelosChatInstalados();
+  sel.textContent='';
+  const pad=document.createElement('option');pad.value='';pad.textContent=t('modelDefault',{m:estado.modelo_atual});sel.appendChild(pad);
+  const nomes=inst.slice();if(modeloDoChat&&!nomes.some(n=>semLatest(n)===semLatest(modeloDoChat)))nomes.push(modeloDoChat);
+  for(const n of nomes){const o=document.createElement('option');o.value=n;o.textContent=n+(instaladoNome(n)?'':' ⚠');sel.appendChild(o);}
+  const atual=modeloDoChat?nomes.find(n=>semLatest(n)===semLatest(modeloDoChat)):'';
+  sel.value=atual||'';
+  sel.style.display=(estado.ollama_online&&inst.length>1)||modeloDoChat?'':'none';
+}
+$('#modelSel').onchange=async()=>{
+  if(!chatAtual)return;const v=$('#modelSel').value||null;
+  try{const r=await fetch('/api/chats/'+chatAtual+'/ctx',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelo:v})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    modeloDoChat=v;AtlasUI.toast(v?t('modelSet',{m:v}):t('modelReset'),{kind:'ok'});render();
+  }catch(e){AtlasUI.toast(t('connErr'),{kind:'err'});renderModelSel();}
+};
 async function instalarOllama(btn){btn.disabled=true;btn.textContent=t('installingOllama');
   try{const r=await fetch('/api/ollama/install',{method:'POST'});const rd=r.body.getReader();const dc=new TextDecoder();let bf='';
     while(true){const{done,value}=await rd.read();if(done)break;bf+=dc.decode(value,{stream:true});const ls=bf.split('\n');bf=ls.pop();
@@ -845,64 +1005,154 @@ async function baixar(nome,btn,pr){
 }
 
 // ── chats ──
+let buscaQ='', buscaT=null;
+function grupoData(ts){
+  const d=new Date((ts||0)*1000),hoje=new Date();hoje.setHours(0,0,0,0);
+  const dias=Math.floor((hoje-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000);
+  return dias<=0?'gHoje':dias===1?'gOntem':dias<7?'g7':dias<30?'g30':'gAntes';
+}
+// trecho da busca com o termo destacado (montado com nós de texto, sem HTML vindo de dados)
+function trechoMarcado(txt,q){
+  const box=document.createElement('span');box.className='tr';
+  const norm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const i=q?norm(txt).indexOf(norm(q)):-1;
+  if(i<0){box.textContent=txt;return box;}
+  const mk=document.createElement('mark');mk.textContent=txt.slice(i,i+q.length);
+  box.append(txt.slice(0,i),mk,txt.slice(i+q.length));return box;
+}
 async function carregarChats(){
   let d;
-  try{const r=await fetch('/api/chats');if(!r.ok)throw new Error('HTTP '+r.status);d=await r.json();}
+  try{const r=await fetch('/api/chats'+(buscaQ?'?q='+encodeURIComponent(buscaQ):''));if(!r.ok)throw new Error('HTTP '+r.status);d=await r.json();}
   catch(e){$('#lista').innerHTML='';$('#chat').innerHTML='';vazio();semConexao();return;}
   chatAtual=d.atual;
-  const cur=d.chats.find(c=>c.id===chatAtual);AjustesUI.chat.definirProjetoDoChat(cur&&cur.projeto);
+  const cur=(d.chats||[]).find(c=>c.id===chatAtual);
+  if(cur||!buscaQ){AjustesUI.chat.definirProjetoDoChat(cur&&cur.projeto);modeloDoChat=(cur&&cur.modelo)||null;}
+  if(estado){renderModelSel();renderBanner();const p=$('#pill');if(estado.ollama_online&&estado.config.ativo!==false)p.textContent=modeloEfetivo();}
+  desenharLista(d.chats||[]);
+  await abrirMensagens(chatAtual);
+}
+function desenharLista(lista){
   const L=$('#lista');L.innerHTML='';
-  for(const c of d.chats){
+  if(!lista.length&&buscaQ){const v=document.createElement('div');v.className='ui-empty';v.textContent=t('noResults');L.appendChild(v);return;}
+  let grupo=null;
+  for(const c of lista){
+    if(!buscaQ){const g=grupoData(c.atualizado);
+      if(g!==grupo){grupo=g;const gh=document.createElement('div');gh.className='grp';gh.textContent=t(g);L.appendChild(gh);}}
     const it=document.createElement('div');it.className='item'+(c.id===chatAtual?' sel':'');
-    it.innerHTML=`<span class="tit"></span><span class="acts">
+    it.innerHTML=`<span class="tx"><span class="tit"></span></span><span class="acts">
       <button class="ic ren" title="${t('ren')}" aria-label="${t('ren')}">✎</button><button class="ic del" title="${t('delBtn')}" aria-label="${t('delBtn')}">🗑</button></span>`;
     it.tabIndex=0;it.setAttribute('role','button');
-    it.onkeydown=e=>{if(e.target===it&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrirChat(c.id);}};
-    it.querySelector('.tit').textContent=c.titulo;
-    it.querySelector('.tit').onclick=it.onclick=e=>{if(e.target.closest('.acts'))return;abrirChat(c.id);};
+    if(c.id===chatAtual)it.setAttribute('aria-current','true');
+    it.onkeydown=e=>{if(e.target===it&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrirChat(c.id);}
+      if(e.target===it&&e.key==='F2'){e.preventDefault();renomearChat(it,c);}
+      if(e.target===it&&e.key==='Delete'){e.preventDefault();excluirChat(c.id);}};
+    it.querySelector('.tit').textContent=c.titulo;it.title=c.titulo;
+    if(buscaQ&&c.trecho)it.querySelector('.tx').appendChild(trechoMarcado(c.trecho,buscaQ));
+    if(c.modelo){const mb=document.createElement('span');mb.className='mdl';mb.textContent=semLatest(c.modelo).split(':')[0].slice(0,14);mb.title=c.modelo;it.insertBefore(mb,it.querySelector('.acts'));}
+    it.onclick=e=>{if(e.target.closest('.acts')||e.target.tagName==='INPUT')return;abrirChat(c.id);};
     it.querySelector('.ren').onclick=e=>{e.stopPropagation();renomearChat(it,c);};
     it.querySelector('.del').onclick=e=>{e.stopPropagation();excluirChat(c.id);};
     L.appendChild(it);
   }
-  await abrirMensagens(chatAtual);
 }
+$('#buscaChat').addEventListener('input',e=>{
+  clearTimeout(buscaT);const v=e.target.value.trim();$('#buscaBox').classList.toggle('tem',!!e.target.value);
+  buscaT=setTimeout(async()=>{if(v===buscaQ)return;buscaQ=v;
+    try{const r=await fetch('/api/chats'+(v?'?q='+encodeURIComponent(v):''));const d=await r.json();desenharLista(d.chats||[]);}catch(_){}
+  },220);
+});
+$('#buscaChat').addEventListener('keydown',e=>{if(e.key==='Escape'){limparBusca();}
+  if(e.key==='Enter'){const p=$('#lista .item');if(p)p.click();}});
+function limparBusca(){$('#buscaChat').value='';$('#buscaBox').classList.remove('tem');if(buscaQ){buscaQ='';carregarChats();}}
+$('#buscaLimpar').onclick=()=>{limparBusca();$('#buscaChat').focus();};
 async function abrirChat(id){fecharSideMobile();chatAtual=id;await fetch('/api/chats/'+id+'/atual',{method:'POST'});await carregarChats();}
 async function abrirMensagens(id){
   $('#chat').innerHTML='';$('#chatActions').style.display='none';if(!id){vazio();return;}
   let c;try{c=await(await fetch('/api/chats/'+id)).json();}catch(e){vazio();return;}
   if(!c.mensagens||!c.mensagens.length){vazio();return;}
-  for(const m of c.mensagens){addMsg('user',m.u);const el=addMsg('a',m.a,true);if(m.ctx&&m.ctx.length)AjustesUI.chat.usadas(el,m.ctx,null);}
+  for(const m of c.mensagens){addMsg('user',m.u);const r=addMsg('a',m.a,true);
+    if(m.ctx&&m.ctx.length)AjustesUI.chat.usadas(r.body,m.ctx,null);
+    acoesResposta(r,m.a,!!m.parcial);}
   ultimaPergunta=c.mensagens[c.mensagens.length-1].u;
   if(!ocupado)$('#chatActions').style.display='block';
+  rolarFim(true);
 }
 const ehMobile=()=>matchMedia('(max-width:680px)').matches;
 function fecharSideMobile(){if(ehMobile()){$('#side').classList.add('hide');document.body.classList.remove('side-open');}}
-function vazio(){$('#chat').innerHTML=`<div class="empty"><div class="big">◆</div><div style="font-weight:600;font-size:16px;color:var(--txt)">${t('emptyT')}</div><div>${t('emptyD')}</div></div>`;}
-async function novoChat(){const r=await(await fetch('/api/chats/novo',{method:'POST'})).json();await carregarChats();}
+function vazio(){
+  const ch=$('#chat');ch.innerHTML='';
+  const box=document.createElement('div');box.className='empty';
+  box.innerHTML='<div class="big">◆</div><div style="font-weight:600;font-size:17px;color:var(--txt)"></div><div class="ed"></div>';
+  box.children[1].textContent=t('emptyT');box.querySelector('.ed').textContent=t('emptyD');
+  const sug=t('sug');
+  if(Array.isArray(sug)){
+    const grid=document.createElement('div');grid.className='chips';grid.setAttribute('aria-label',t('emptyHint'));
+    for(const [em,tit,sub,prompt] of sug){
+      const b=document.createElement('button');b.type='button';b.className='chip';
+      const e=document.createElement('span');e.className='ce';e.textContent=em;
+      const tx=document.createElement('span');tx.textContent=tit;const sm=document.createElement('small');sm.textContent=sub;tx.appendChild(sm);
+      b.append(e,tx);
+      b.onclick=()=>{const inp=$('#input');inp.value=prompt;inp.focus();
+        const pos=prompt.indexOf('```\n\n```');const at=pos>=0?pos+4:prompt.length;inp.setSelectionRange(at,at);
+        inp.dispatchEvent(new Event('input'));
+        if(!/[\s:]$/.test(prompt)&&pos<0)enviar();};
+      grid.appendChild(b);
+    }
+    box.appendChild(grid);
+  }
+  ch.appendChild(box);
+}
+async function novoChat(){limparBuscaSilenciosa();await fetch('/api/chats/novo',{method:'POST'});await carregarChats();fecharSideMobile();$('#input').focus();}
+function limparBuscaSilenciosa(){$('#buscaChat').value='';$('#buscaBox').classList.remove('tem');buscaQ='';}
 async function excluirChat(id){if(!await conf(t('confDel'),{ok:t('delBtn'),danger:true}))return;await fetch('/api/chats/'+id,{method:'DELETE'});await carregarChats();}
 function renomearChat(it,c){
-  const tit=it.querySelector('.tit');const inp=document.createElement('input');inp.value=c.titulo;
-  tit.replaceWith(inp);inp.focus();inp.select();
-  const salvar=async()=>{await fetch('/api/chats/'+c.id+'/renomear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:inp.value})});await carregarChats();};
-  inp.onkeydown=e=>{if(e.key==='Enter')salvar();if(e.key==='Escape')carregarChats();};inp.onblur=salvar;
+  const tit=it.querySelector('.tit');const inp=document.createElement('input');inp.value=c.titulo;inp.maxLength=80;
+  tit.replaceWith(inp);inp.focus();inp.select();let feito=false;
+  const salvar=async()=>{if(feito)return;feito=true;
+    const v=inp.value.trim();
+    if(v&&v!==c.titulo)await fetch('/api/chats/'+c.id+'/renomear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titulo:v})});
+    await carregarChats();};
+  inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')salvar();if(e.key==='Escape'){feito=true;carregarChats();}};inp.onblur=salvar;
+  inp.onclick=e=>e.stopPropagation();
 }
 
 // ── mensagens ──
+// rolagem automática: segue o fim só enquanto o usuário não sobe a conversa
+let grudado=true;
+const chatEl=$('#chat');
+function pertoDoFim(){return chatEl.scrollHeight-chatEl.scrollTop-chatEl.clientHeight<80;}
+function rolarFim(forcar){if(forcar||grudado){chatEl.scrollTop=chatEl.scrollHeight;grudado=true;}$('#descer').classList.toggle('on',!grudado);}
+chatEl.addEventListener('scroll',()=>{grudado=pertoDoFim();$('#descer').classList.toggle('on',!grudado&&chatEl.scrollHeight>chatEl.clientHeight+40);},{passive:true});
+$('#descer').onclick=()=>{chatEl.scrollTo({top:chatEl.scrollHeight,behavior:'smooth'});grudado=true;$('#descer').classList.remove('on');};
+
+// devolve {msg, bubble, body}; o corpo é onde o texto/markdown vai
 function addMsg(role,texto,comMd,imgs){
   const e=$('#chat .empty');if(e)e.remove();
   const m=document.createElement('div');m.className='msg '+role;
-  m.innerHTML=`<div class="av ${role==='user'?'u':'a'}">${role==='user'?'eu':'◆'}</div><div class="bubble"></div>`;
+  m.innerHTML=`<div class="av ${role==='user'?'u':'a'}">${role==='user'?'eu':'◆'}</div><div class="mcol"><div class="bubble"></div></div>`;
   const bub=m.querySelector('.bubble');
   if(imgs&&imgs.length){const box=document.createElement('div');box.className='imgs';
-    for(const u of imgs){const im=document.createElement('img');im.src=u;box.appendChild(im);}bub.appendChild(box);}
-  if(comMd){bub.classList.add('md');const span=document.createElement('div');span.innerHTML=md(texto);bub.appendChild(span);}
-  else if(texto){const span=document.createElement('div');span.textContent=texto;bub.appendChild(span);}
-  $('#chat').appendChild(m);$('#chat').scrollTop=$('#chat').scrollHeight;
-  return comMd?bub.lastChild:bub;
+    for(const u of imgs){const im=document.createElement('img');im.src=u;im.alt='';box.appendChild(im);}bub.appendChild(box);}
+  const body=document.createElement('div');body.className='body';
+  if(comMd){bub.classList.add('md');body.innerHTML=md(texto||'');}
+  else body.textContent=texto||'';
+  bub.appendChild(body);
+  chatEl.appendChild(m);rolarFim();
+  return {msg:m,bubble:bub,body:body};
+}
+// ações sob a resposta: copiar + aviso de resposta interrompida
+function acoesResposta(r,texto,parcial){
+  const col=r.msg.querySelector('.mcol');let a=col.querySelector('.mact');if(a)a.remove();
+  a=document.createElement('div');a.className='mact';
+  if(texto){const cp=document.createElement('button');cp.type='button';cp.textContent='⧉ '+t('copy');cp.title=t('copyMsg');cp.setAttribute('aria-label',t('copyMsg'));
+    cp.onclick=()=>AtlasMD.copiar(texto).then(()=>{cp.textContent='✓ '+t('copied');setTimeout(()=>cp.textContent='⧉ '+t('copy'),1400);});
+    a.appendChild(cp);}
+  if(parcial){const tg=document.createElement('span');tg.className='tag parcial';tg.textContent='⏹ '+t('partial');a.appendChild(tg);}
+  if(a.children.length)col.appendChild(a);
 }
 function modoStop(on){const b=$('#send');b.disabled=false;
-  if(on){b.textContent='■';b.classList.add('stop');b.title=t('stop');b.onclick=pararGeracao;}
-  else{b.textContent='➤';b.classList.remove('stop');b.title=t('enviar');b.onclick=enviar;}}
+  if(on){b.textContent='■';b.classList.add('stop');b.title=t('stop');b.setAttribute('aria-label',t('stop'));b.onclick=pararGeracao;}
+  else{b.textContent='➤';b.classList.remove('stop');b.title=t('enviar');b.setAttribute('aria-label',t('enviar'));b.onclick=enviar;}}
 function pararGeracao(){if(ctrl)ctrl.abort();}
 async function enviar(){
   const inp=$('#input'),texto=inp.value.trim();if((!texto&&!anexos.length)||ocupado)return;
@@ -911,28 +1161,35 @@ async function enviar(){
 }
 async function enviarTexto(texto,envs){
   envs=envs||[];
-  if(!estado.ollama_online){addMsg('a',t('errOllama'),true);return;}
-  const mA=estado.catalogo.find(m=>m.ativo&&m.tipo!=='embed');
-  if(mA&&!mA.instalado){addMsg('a',t('errModel',{m:mA.nome}),true);return;}
+  if(!estado.ollama_online){const r=addMsg('a',t('errOllama'),true);renderBanner();return r;}
+  if(!instaladoNome(modeloEfetivo())){addMsg('a',modelosChatInstalados().length?t('errModel',{m:modeloEfetivo()}):t('noModel'),true);return;}
   ultimaPergunta=texto;ocupado=true;modoStop(true);$('#chatActions').style.display='none';
   const imgsURL=envs.filter(a=>a.tipo==='img').map(a=>a.dataURL);
   const arqNomes=envs.filter(a=>a.tipo==='arq').map(a=>a.nome);
   let disp=texto; if(arqNomes.length)disp=(disp?disp+'\n':'')+arqNomes.map(n=>'📄 '+n).join('\n');
-  addMsg('user',disp,false,imgsURL);
+  addMsg('user',disp,false,imgsURL);rolarFim(true);
   const corpo={texto,chat_id:chatAtual,
     imagens:envs.filter(a=>a.tipo==='img').map(a=>a.dataURL),
     anexos:envs.filter(a=>a.tipo==='arq').map(a=>({nome:a.nome,b64:a.dataURL}))};
-  const bub=addMsg('a','');let acc='';let infoCtx=null;ctrl=new AbortController();
-  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:ctrl.signal});
-    infoCtx=AjustesUI.chat.parseHeader(r.headers.get('X-Atlas-Contexto'));
-    const rd=r.body.getReader(),dc=new TextDecoder();
-    while(true){const{done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});bub.textContent=acc;$('#chat').scrollTop=$('#chat').scrollHeight;}
-  }catch(e){if(e.name!=='AbortError')acc+='\n'+t('errStream');}
-  bub.classList.add('md');bub.innerHTML=md(acc);
-  if(infoCtx&&infoCtx.mems&&infoCtx.mems.length)AjustesUI.chat.usadas(bub,infoCtx.mems,infoCtx);
+  const r=addMsg('a','',true);const body=r.body;
+  body.innerHTML='<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+  let acc='',infoCtx=null,abortado=false,pend=false;ctrl=new AbortController();
+  // markdown durante o streaming, no máximo uma vez por quadro
+  const pintar=()=>{pend=false;body.innerHTML=md(acc);rolarFim();};
+  try{const resp=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:ctrl.signal});
+    infoCtx=AjustesUI.chat.parseHeader(resp.headers.get('X-Atlas-Contexto'));
+    const rd=resp.body.getReader(),dc=new TextDecoder();
+    r.bubble.classList.add('streaming');
+    while(true){const{done,value}=await rd.read();if(done)break;acc+=dc.decode(value,{stream:true});
+      if(!pend){pend=true;requestAnimationFrame(pintar);}}
+  }catch(e){if(e.name==='AbortError')abortado=true;else acc+='\n\n'+t('errStream');}
+  r.bubble.classList.remove('streaming');
+  body.innerHTML=md(acc);
+  if(infoCtx&&infoCtx.mems&&infoCtx.mems.length)AjustesUI.chat.usadas(body,infoCtx.mems,infoCtx);
+  acoesResposta(r,acc,abortado&&!!acc.trim());
+  rolarFim();
   ocupado=false;ctrl=null;modoStop(false);$('#input').focus();$('#chatActions').style.display='block';
-  fetch('/api/chats').then(r=>r.json()).then(d=>{const L=$('#lista');
-    [...L.children].forEach((el,i)=>{if(d.chats[i])el.querySelector('.tit')&&(el.querySelector('.tit').textContent=d.chats[i].titulo);});});
+  if(!buscaQ)fetch('/api/chats').then(x=>x.json()).then(d=>desenharLista(d.chats||[])).catch(()=>{});
 }
 async function regenerar(){
   if(ocupado||!chatAtual)return;
