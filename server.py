@@ -27,6 +27,7 @@ import memstore
 import memapi
 import ajustes
 import contexto
+import ferramentas
 import urllib.parse
 
 WEB_DIR = os.path.join(core.BASE_DIR, "web")
@@ -790,6 +791,42 @@ def api_pull():
     return Response(stream(), mimetype="application/x-ndjson")
 
 
+# ── FERRAMENTAS DO MODELO: registro e desfazer ───────────────────────────────
+@app.route("/api/ferramentas")
+def api_ferramentas():
+    """Ferramentas disponíveis agora, ajustes e as últimas ações de escrita feitas pelo modelo."""
+    cfg = core.carregar_config()
+    cid = request.args.get("chat") or None
+    try:
+        acoes = ferramentas.listar_acoes(request.args.get("limite", 50), chat_id=cid)
+    except Exception:
+        acoes = []
+    return jsonify({"config": ferramentas.config(cfg), "disponiveis": ferramentas.disponiveis(cfg),
+                    "modelo": core.modelo_atual(cfg), "modelo_suporta": core.suporta_ferramentas(core.modelo_atual(cfg), cfg),
+                    "acoes": acoes})
+
+
+@app.route("/api/ferramentas/desfazer", methods=["POST"])
+def api_ferramentas_desfazer():
+    d = _corpo_json()
+    aid = d.get("id")
+    if not isinstance(aid, str) or not aid.startswith("act_") or len(aid) > 40:
+        return jsonify({"ok": False, "erro": "id inválido"}), 400
+    if cofre.ligada() and not cofre.desbloqueado():
+        return jsonify({"ok": False, "erro": "cofre_travado"}), 423
+    r = ferramentas.desfazer(aid, forcar=bool(d.get("forcar")))
+    return jsonify(r), (200 if r["ok"] else (404 if r.get("erro") == "nao_encontrada" else 409))
+
+
+@app.route("/api/hardware")
+def api_hardware():
+    """Hardware detectado, o efetivo (com o ajuste manual) e as recomendações de modelo."""
+    cfg = core.carregar_config()
+    hw = core.hardware()
+    return jsonify({"detectado": core.hardware_detectado(), "efetivo": hw,
+                    "manual": cfg.get("hardware_manual"), "recomendacoes": core.recomendacoes(hw, cfg.get("num_ctx") or 4096)})
+
+
 # ── CHAT ──────────────────────────────────────────────────────────────────────
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -911,6 +948,14 @@ def chat():
     info_ctx = {"mems": ctx_msg, "projeto": projeto, "orcamento": orc, "usado": sum(uso.values()),
                 "ctx": perfil["num_ctx"], "modelo": modelo}
 
+    # ferramentas: modelos que suportam tool calling podem consultar/gravar a memória durante a resposta
+    nomes_ferr = []
+    if not imgs_b64 and core.suporta_ferramentas(modelo, cfg):
+        nomes_ferr = ferramentas.disponiveis(cfg)
+    if nomes_ferr:
+        system += ferramentas.instrucoes(idioma, nomes_ferr)
+    info_ctx["ferramentas"] = bool(nomes_ferr)
+
     msgs = [{"role": "system", "content": system}]
     hist_n = int(cc.get("hist_msgs", 6))
     for m in (chat_atual.get("mensagens", [])[-hist_n:] if (chat_atual and hist_n > 0) else []):
@@ -931,6 +976,7 @@ def chat():
 
     def stream():
         full = ""
+        eventos = []                                 # ferramentas usadas nesta resposta (vão pro histórico)
         ka = -1 if cfg.get("ativo", True) else 0     # pausado: descarrega após responder
         opts = {"num_ctx": perfil["num_ctx"], "num_gpu": 99, "temperature": perfil["temperatura"]}
         if perfil.get("top_p") is not None:
@@ -939,32 +985,70 @@ def chat():
             opts["num_predict"] = perfil["max_tokens"]
         if perfil.get("seed") is not None:
             opts["seed"] = perfil["seed"]
-        body = {"model": modelo, "messages": msgs, "stream": True, "keep_alive": ka, "options": opts}
-        if core.info_modelo(modelo).get("think") is False or "qwen3" in modelo:
-            body["think"] = False
+        caps = core.capacidades(modelo)
+        desligar_think = core.info_modelo(modelo).get("think") is False or "qwen3" in modelo
+        if caps is not None and "thinking" not in caps:
+            desligar_think = False                   # o Ollama recusa think=false em modelo que não pensa
+        fc = ferramentas.config(cfg)
+        tools = ferramentas.esquemas(nomes_ferr)
+        ctx_ferr = {"chat_id": cid, "modelo": modelo, "projeto": projeto, "cfg": cfg, "permitidas": set(nomes_ferr)}
         filtro = contexto.FiltroPensamento()
         r = None
         interrompido = False
+        rodada = 0
         try:
-            r = requests.post(f"{core.OLLAMA}/api/chat", json=body, stream=True, timeout=300)
-            for line in r.iter_lines():
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line)
-                except Exception:
-                    continue
-                if data.get("error"):                     # ex.: modelo não encontrado no Ollama
-                    yield f"\n(erro do modelo: {data['error']})"
-                    break
-                tok = (data.get("message") or {}).get("content", "")
-                if tok:
-                    tok = filtro.push(tok)               # tira <think>...</think> dos modelos de raciocínio
+            while True:
+                usar_tools = bool(tools) and rodada < fc["max_rodadas"]
+                body = {"model": modelo, "messages": msgs, "stream": True, "keep_alive": ka, "options": opts}
+                if usar_tools:
+                    body["tools"] = tools
+                if desligar_think:
+                    body["think"] = False
+                chamadas, texto_rodada = [], ""
+                novo_paragrafo = rodada > 0
+                r = requests.post(f"{core.OLLAMA}/api/chat", json=body, stream=True, timeout=300)
+                for line in r.iter_lines():
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                    except Exception:
+                        continue
+                    if data.get("error"):                     # ex.: modelo não encontrado no Ollama
+                        yield f"\n(erro do modelo: {data['error']})"
+                        break
+                    msg = data.get("message") or {}
+                    if isinstance(msg.get("tool_calls"), list):
+                        chamadas += [c for c in msg["tool_calls"] if isinstance(c, dict)]
+                    tok = msg.get("content", "")
                     if tok:
-                        full += tok
-                        yield tok
-                if data.get("done"):
+                        texto_rodada += tok
+                        tok = filtro.push(tok)               # tira <think>...</think> dos modelos de raciocínio
+                        if tok:
+                            if novo_paragrafo and full.strip():
+                                tok = "\n\n" + tok.lstrip()    # texto depois de usar ferramentas começa em novo parágrafo
+                            novo_paragrafo = False
+                            full += tok
+                            yield tok
+                    if data.get("done"):
+                        break
+                try:
+                    r.close()
+                except Exception:
+                    pass
+                r = None
+                if not (usar_tools and chamadas):
                     break
+                # executa as ferramentas pedidas e devolve os resultados ao modelo
+                msgs.append({"role": "assistant", "content": texto_rodada, "tool_calls": chamadas})
+                for c in chamadas[:6]:
+                    fn = c.get("function") or {}
+                    nome_f = str(fn.get("name") or "")[:64]
+                    res = ferramentas.executar(nome_f, fn.get("arguments"), ctx_ferr)
+                    eventos.append(res["evento"])
+                    yield ferramentas.marcador(res["evento"])
+                    msgs.append({"role": "tool", "tool_name": nome_f, "content": ferramentas.resultado_texto(res["resultado"])})
+                rodada += 1
         except GeneratorExit:
             # o usuário clicou em parar (ou fechou a aba): guarda o que já saiu e não aprende nada
             interrompido = True
@@ -980,21 +1064,22 @@ def chat():
                     pass
             if interrompido:
                 parcial = (full + filtro.fim()).strip()
-                if parcial:
-                    chats.adicionar(cid, texto_salvar, parcial, ctx=ctx_msg, parcial=True)
+                if parcial or eventos:
+                    chats.adicionar(cid, texto_salvar, parcial, ctx=ctx_msg, parcial=True, ferramentas=eventos)
         resto = filtro.fim()
         if resto:
             full += resto
             yield resto
         full = full.strip()
+        if full or eventos:
+            chats.adicionar(cid, texto_salvar, full, ctx=ctx_msg, ferramentas=eventos)
         if full:
-            chats.adicionar(cid, texto_salvar, full, ctx=ctx_msg)
             def _pos():
                 if not core.carregar_config().get("ativo", True):     # sistema pausado: não aprende
                     return
                 if not texto:                                  # imagem/arquivo sozinho: nada a aprender
                     return
-                if core.habilidade("memoria"):
+                if core.habilidade("memoria") and not any(e.get("tool") == "save_memory" and e.get("ok") for e in eventos):
                     skills.extrair_fato(texto, full)          # pode descobrir/definir o nome
                 if core.habilidade("grafo"):
                     quem = core.carregar_config().get("nome", "você")   # nome já resolvido
