@@ -12,18 +12,24 @@
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);overflow:hidden}
   button,input,select,textarea{font-family:inherit;font-size:13px}
   canvas{position:fixed;inset:0;top:54px;display:block;touch-action:none}
-  #top{position:fixed;top:0;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 14px;
-    border-bottom:1px solid var(--line);background:rgba(7,9,13,.82);backdrop-filter:blur(8px);z-index:5}
-  #top h1{font-size:15px;margin:0 4px 0 0;white-space:nowrap} #stats{font-size:12px;color:var(--dim);white-space:nowrap}
-  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:22px;padding:3px}
-  .seg button{background:none;border:none;color:var(--dim);padding:5px 12px;border-radius:18px;cursor:pointer;white-space:nowrap}
-  .seg button.on{background:linear-gradient(135deg,#7c9bff,#b07cff);color:#fff;box-shadow:0 0 14px rgba(124,155,255,.45)}
-  .tbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:20px;padding:6px 12px;cursor:pointer;white-space:nowrap}
-  .tbtn:hover{border-color:var(--accent)} .tbtn.on{background:var(--accent);color:#07090d;border-color:var(--accent)}
+  #top{position:fixed;top:0;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 14px 0 18px;
+    border-bottom:1px solid var(--line);background:rgba(7,9,13,.82);backdrop-filter:blur(10px);z-index:5}
+  #top h1{display:flex;align-items:center;gap:9px;font-size:var(--fs-lg);font-weight:var(--fw-semi);letter-spacing:-.01em;margin:0 4px 0 0;white-space:nowrap}
+  #top h1 .ico{color:var(--accent)} #stats{font-size:var(--fs-xs);color:var(--dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .seg{display:flex;gap:2px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .seg button{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--dim);height:28px;padding:0 11px;border-radius:7px;cursor:pointer;
+    white-space:nowrap;font-weight:var(--fw-medium);transition:background var(--dur),color var(--dur)}
+  .seg button:hover{color:var(--txt)}
+  .seg button.on{background:var(--panel3);color:var(--txt);box-shadow:var(--shadow-1)} .seg button.on .ico{color:var(--accent)}
+  .tbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:var(--r-sm);padding:0 10px;cursor:pointer;white-space:nowrap;text-decoration:none;font-weight:var(--fw-medium);transition:background var(--dur),border-color var(--dur),color var(--dur)}
+  .tbtn:hover{border-color:var(--line2);background:var(--panel3)} .tbtn.on{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+  .tbtn.ico-only{padding:0;width:34px} .tbtn.danger{color:var(--danger)} .tbtn.danger:hover{background:color-mix(in srgb,var(--danger) 12%,transparent)}
   .sp{flex:1}
   #buscaW{position:relative}
-  #busca{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:20px;padding:6px 12px;width:190px;outline:none}
-  #busca:focus{border-color:var(--accent)}
+  #buscaW>.ico{position:absolute;left:10px;top:9px;color:var(--faint);pointer-events:none}
+  #busca{height:34px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:0 12px 0 32px;width:200px;outline:none;transition:border-color var(--dur),box-shadow var(--dur)}
+  #busca:focus{border-color:color-mix(in srgb,var(--accent) 60%,var(--line2));box-shadow:var(--ring)}
   #res{position:fixed;width:300px;max-height:min(360px,60vh);overflow:auto;background:rgba(14,18,26,.97);border:1px solid var(--line);
     border-radius:12px;padding:5px;z-index:9;display:none;box-shadow:0 12px 40px rgba(0,0,0,.55)}
   #res .r{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13px;color:#dfe4ee}
@@ -32,26 +38,33 @@
   #res .r .t{font-size:11px;color:var(--dim);flex:0 0 auto}
   #res .r.on,#res .r:hover{background:var(--panel2)} #res .r.on{outline:1px solid var(--accent)}
   #res .n{font-size:11px;color:var(--dim);padding:4px 9px 6px}
-  select.tbtn{padding-right:8px}
+  select.tbtn{padding:0 30px 0 10px;appearance:none;background-image:var(--chev);background-repeat:no-repeat;background-position:right 9px center}
   label.chk{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
   #painel{position:fixed;right:14px;top:66px;width:300px;max-height:calc(100% - 80px);overflow:auto;background:var(--panel);
     border:1px solid var(--line);border-radius:16px;padding:14px;z-index:6;display:none;backdrop-filter:blur(10px);
     box-shadow:0 12px 50px rgba(0,0,0,.55)}
-  #painel .x{position:absolute;top:8px;right:10px;color:var(--dim);cursor:pointer;background:none;border:none;font-size:16px}
+  #painel .x{position:absolute;top:10px;right:10px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;color:var(--dim);cursor:pointer;
+    background:none;border:none;border-radius:var(--r-sm);transition:background var(--dur),color var(--dur)} #painel .x:hover{background:var(--press);color:var(--txt)}
   #painel .lbl{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;margin:10px 0 4px}
   #painel input,#painel select,#painel textarea{width:100%;background:#0c1017;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;outline:none}
   #painel textarea{resize:vertical;min-height:58px;line-height:1.45}
   #painel input:focus,#painel select:focus,#painel textarea:focus{border-color:var(--accent)}
   #painel h3{margin:0 24px 2px 0;font-size:16px} #painel .sub{font-size:12px;color:var(--dim)}
   #painel .txt{font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-  .chip{display:inline-block;font-size:11.5px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:2px 8px;margin:2px 3px 2px 0;cursor:pointer;color:#cdd3dd}
-  .chip:hover{border-color:var(--accent)}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;background:color-mix(in srgb,var(--txt) 7%,transparent);border:1px solid transparent;border-radius:var(--r-pill);
+    padding:2px 9px;margin:2px 3px 2px 0;cursor:pointer;color:#cdd3dd;transition:border-color var(--dur)}
+  .chip:hover{border-color:var(--line2)} .chip .ico{color:var(--dim)}
   .conx{font-size:12.5px;color:#cdd3dd;display:flex;align-items:center;gap:6px;padding:3px 0}
-  .conx button{margin-left:auto;background:none;border:none;color:var(--danger);cursor:pointer}
+  .conx button{margin-left:auto;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;background:none;border:none;color:var(--dim);cursor:pointer;border-radius:var(--r-xs)}
+  .conx button:hover{color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent)}
+  .mem .pinx{display:inline-flex;vertical-align:-2px;margin-right:4px;color:var(--accent)}
   .mem{font-size:12.5px;color:#cdd3dd;border-left:2px solid var(--line);padding:3px 0 3px 8px;margin:4px 0;cursor:pointer}
   .mem:hover{border-color:var(--accent)} .mem .m{font-size:10.5px;color:var(--dim)}
-  .eb{width:100%;border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:9px;padding:8px;cursor:pointer;font-weight:600;margin-top:7px}
-  .eb:hover{border-color:var(--accent)} .eb.pri{color:var(--accent);border-color:var(--accent)} .eb.del{background:var(--danger);border-color:var(--danger);color:#fff}
+  .eb{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;height:36px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);
+    border-radius:10px;padding:0 10px;cursor:pointer;font-weight:var(--fw-medium);margin-top:7px;transition:background var(--dur),border-color var(--dur),filter var(--dur)}
+  .eb:hover{border-color:var(--line2);background:var(--panel3)} .eb.pri{background:var(--accent-solid);border-color:transparent;color:var(--accent-fg)} .eb.pri:hover{filter:brightness(1.1)}
+  .eb.del{background:color-mix(in srgb,var(--danger) 10%,transparent);border-color:color-mix(in srgb,var(--danger) 30%,transparent);color:var(--danger)}
+  .eb.del:hover{background:color-mix(in srgb,var(--danger) 18%,transparent)}
   #legenda{position:fixed;left:14px;bottom:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;
     font-size:11.5px;z-index:4;display:flex;flex-wrap:wrap;gap:4px 10px;max-width:60%;backdrop-filter:blur(8px)}
   #legenda span{display:flex;align-items:center;gap:5px;cursor:pointer;color:#cdd3dd;user-select:none}
@@ -59,14 +72,14 @@
   #legenda i.dia{border-radius:1px;transform:rotate(45deg);width:8px;height:8px}
   #legenda .nota{cursor:default;color:var(--dim);flex-basis:100%}
   #zoom{position:fixed;right:14px;bottom:40px;display:flex;flex-direction:column;gap:6px;z-index:4}
-  #zoom button{width:36px;height:36px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--txt);cursor:pointer;font-size:16px;backdrop-filter:blur(8px)}
-  #zoom button:hover{border-color:var(--accent)}
+  #zoom button{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--txt);cursor:pointer;backdrop-filter:blur(8px);transition:border-color var(--dur),background var(--dur)}
+  #zoom button:hover{border-color:var(--line2);background:var(--panel2)}
   #ajuda{position:fixed;right:60px;bottom:14px;font-size:11.5px;color:var(--dim);z-index:3;text-align:right;pointer-events:none}
   #tip{position:fixed;pointer-events:none;background:rgba(10,13,19,.94);border:1px solid var(--line);border-radius:10px;padding:7px 10px;
     font-size:12px;max-width:280px;z-index:8;display:none;box-shadow:0 6px 24px rgba(0,0,0,.5)}
-  #tip b{display:block;margin-bottom:2px} #tip .d{color:var(--dim)}
-  #hint{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);
-    color:var(--txt);border-radius:20px;padding:8px 16px;font-size:13px;display:none;z-index:7}
+  #tip b{display:block;margin-bottom:2px} #tip b .ico{display:inline-block;vertical-align:-1px;color:var(--accent)} #tip .d{color:var(--dim)}
+  #hint{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);
+    color:var(--txt);border-radius:var(--r-pill);padding:8px 16px;font-size:var(--fs-md);display:none;z-index:7;box-shadow:var(--shadow-2);backdrop-filter:blur(10px)}
   #vazio{position:fixed;inset:54px 0 0 0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--dim);text-align:center;padding:30px;pointer-events:none}
   #top{overflow-x:auto;overflow-y:hidden;scrollbar-width:none} #top::-webkit-scrollbar{display:none} #top>*{flex-shrink:0}
   #legenda #legStats{display:none}
@@ -75,7 +88,7 @@
   #carregando{position:fixed;inset:54px 0 0 0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;
     color:var(--dim);font-size:13px;z-index:2;pointer-events:none}
   #carregando .ui-skel{width:min(260px,70%);height:10px}
-  .tbtn,.eb,.seg button{min-height:34px}
+
   .tbtn:focus-visible,.seg button:focus-visible,.eb:focus-visible,#legenda span:focus-visible,#zoom button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   @media (max-width:680px){
     #top{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:6px;padding:0 10px}
@@ -93,41 +106,41 @@
 </head>
 <body>
 <div id="top">
-  <h1 data-i="h1">🕸️ Grafo</h1><span id="stats"></span>
+  <h1><span data-icon="graph" data-size="18"></span><span data-i="h1">Grafo</span></h1><span id="stats"></span>
   <div class="seg" id="modos">
-    <button data-m="rede" data-i="m_rede">🕸 Rede</button><button data-m="orbita" data-i="m_orbita">🌌 Órbita 3D</button><button data-m="hier" data-i="m_hier">🌳 Hierarquia</button>
+    <button data-m="rede" data-i="m_rede" data-ico="graph">Rede</button><button data-m="orbita" data-i="m_orbita" data-ico="orbit">Órbita 3D</button><button data-m="hier" data-i="m_hier" data-ico="network">Hierarquia</button>
   </div>
   <select class="tbtn" id="projSel" data-it="projTitle"></select>
   <label class="chk" id="subBox"><input type="checkbox" id="subChk" checked><span data-i="sub">subprojetos</span></label>
   <label class="chk" id="memBox" data-it="memsTitle"><input type="checkbox" id="memChk"><span data-i="mems">memórias</span></label>
-  <div id="buscaW"><input id="busca" data-ip="busca" placeholder="🔎 buscar…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="res" aria-autocomplete="list"></div>
+  <div id="buscaW"><span data-icon="search" data-size="15"></span><input id="busca" data-ip="busca" placeholder="buscar…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="res" aria-autocomplete="list"></div>
   <div class="sp"></div>
-  <button class="tbtn" id="novoNo" data-it="novo">➕</button>
-  <button class="tbtn" id="conectar" data-it="conectar">🔗</button>
-  <button class="tbtn" id="centrar" data-it="centrar">⊙</button>
-  <button class="tbtn" id="limpar" data-it="limpar" style="color:var(--danger)">🧹</button>
-  <a class="tbtn" href="/memorias" style="text-decoration:none" data-it="memLink">🗂️</a>
-  <a class="tbtn" href="/" style="text-decoration:none" data-i="voltar">← voltar</a>
+  <button class="tbtn ico-only" id="novoNo" data-it="novo"><span data-icon="plus"></span></button>
+  <button class="tbtn ico-only" id="conectar" data-it="conectar"><span data-icon="link"></span></button>
+  <button class="tbtn ico-only" id="centrar" data-it="centrar"><span data-icon="locate"></span></button>
+  <button class="tbtn ico-only danger" id="limpar" data-it="limpar"><span data-icon="eraser"></span></button>
+  <a class="tbtn" href="/memorias" data-it="memLink"><span data-icon="brain" data-size="15"></span><span data-i="memLink">Memórias</span></a>
+  <a class="tbtn" href="/" data-i="voltar" data-ico="arrow-left">Voltar</a>
 </div>
 <canvas id="cv"></canvas>
 <div id="res" role="listbox"></div>
 <div id="painel"></div>
 <div id="legenda"></div>
-<div id="zoom"><button id="zIn" data-it="zoomIn">+</button><button id="zOut" data-it="zoomOut">−</button></div>
+<div id="zoom"><button id="zIn" data-it="zoomIn"><span data-icon="plus"></span></button><button id="zOut" data-it="zoomOut"><span data-icon="minus"></span></button></div>
 <div id="ajuda"></div>
 <div id="tip"></div>
 <div id="hint"></div>
-<div id="vazio"><div style="font-size:38px">🧠</div><div id="vazioTxt"></div></div>
+<div id="vazio"><span data-icon="brain" data-size="40" style="color:var(--faint)"></span><div id="vazioTxt"></div></div>
 <div id="carregando" role="status"><span class="ui-skel"></span><span class="ui-skel" style="width:min(180px,50%)"></span><span data-i="carregando">Carregando o grafo…</span></div>
 <script src="/static/icons.js"></script>
 <script src="/static/ui.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const GI={
-pt:{h1:'🕸️ Grafo',title:'Grafo',m_rede:'🕸 Rede',m_orbita:'🌌 Órbita 3D',m_hier:'🌳 Hierarquia',projTitle:'Projeto',sub:'subprojetos',
-  mems:'memórias',memsTitle:'Mostrar memórias ligadas aos conceitos',busca:'🔎 buscar…',novo:'Novo conceito',conectar:'Conectar conceitos',
-  centrar:'Centralizar',limpar:'Limpar o grafo',memLink:'Memórias',voltar:'← voltar',zoomIn:'Aproximar',zoomOut:'Afastar',carregando:'Carregando o grafo…',
-  todosProj:'📁 todos os projetos',nadaFiltro:'Nada neste filtro.',
+pt:{h1:'Grafo',title:'Grafo',m_rede:'Rede',m_orbita:'Órbita 3D',m_hier:'Hierarquia',projTitle:'Projeto',sub:'subprojetos',
+  mems:'memórias',memsTitle:'Mostrar memórias ligadas aos conceitos',busca:'buscar…',novo:'Novo conceito',conectar:'Conectar conceitos',
+  centrar:'Centralizar',limpar:'Limpar o grafo',memLink:'Memórias',voltar:'Voltar',zoomIn:'Aproximar',zoomOut:'Afastar',carregando:'Carregando o grafo…',
+  todosProj:'Todos os projetos',nadaFiltro:'Nada neste filtro.',
   vazio:'O grafo ainda está vazio.<br>Ative <b>Grafo</b> nas configurações ou conecte uma IA pela API de memória.',
   statsHier:'{p} projetos · {m} memórias',statsRede:'{n} conceitos · {a} conexões',statsMem:' · {m} memórias',
   memGeral:'Memória geral',maisMem:'+{n} memórias',clique2:'clique no segundo conceito',novaRel:'Nova relação',
@@ -135,12 +148,12 @@ pt:{h1:'🕸️ Grafo',title:'Grafo',m_rede:'🕸 Rede',m_orbita:'🌌 Órbita 3
   projTip:'{a} memórias próprias · {b} no total',dblAbrir:'duplo clique: abrir na rede',cliqueVer:'clique para ver',fechar:'Fechar',
   conceito:'Conceito',tipo:'Tipo',projetos:'Projetos',descricao:'Descrição',descPh:'Do que se trata este conceito?',conexoes:'Conexões',
   memRel:'Memórias relacionadas',carregandoP:'carregando…',nenhumaAinda:'nenhuma ainda',nenhuma:'nenhuma',
-  conectarOutro:'🔗 conectar a outro',ligarA:'clique em outro conceito para ligar a “{n}”',excluirNo:'🗑 excluir conceito',
+  conectarOutro:'Conectar a outro',ligarA:'clique em outro conceito para ligar a “{n}”',excluirNo:'Excluir conceito',
   excluirTit:'Excluir conceito',excluirMsg:'Excluir “{n}”? Isso também remove as ligações dele (e fatos da memória que o mencionam).',
   excluir:'Excluir',conteudo:'Conteúdo',tags:'Tags',entidades:'Entidades no grafo',atualizada:'atualizada em {d}',
-  abrirMem:'🗂️ abrir em Memórias',fixada:'📌 fixada',semMemProp:'nenhuma memória própria',
+  abrirMem:'Abrir em Memórias',fixada:'fixada',semMemProp:'nenhuma memória própria',
   projInfo:'{a} memórias próprias · {b} com subprojetos · {c} conceitos',herda:'herda a memória de: {c}',geral:'Geral',memorias:'Memórias',
-  verRede:'🕸 ver conceitos na rede',novoSub:'➕ novo subprojeto',novoSubT:'Novo subprojeto',novoProjT:'Novo projeto',
+  verRede:'Ver conceitos na rede',novoSub:'Novo subprojeto',novoSubT:'Novo subprojeto',novoProjT:'Novo projeto',
   nomeSub:'Nome do subprojeto',nomeProj:'Nome do projeto',criar:'Criar',erro:'Erro: {e}',salvarErr:'Não foi possível salvar a alteração.',
   descOk:'Descrição salva.',clique2conc:'clique em dois conceitos para ligá-los',novoT:'Novo conceito',nomeConc:'Nome do conceito',
   limparT:'Limpar o grafo',limparMsg:'Todos os conceitos e ligações serão removidos. Esta ação não pode ser desfeita.',
@@ -151,10 +164,10 @@ pt:{h1:'🕸️ Grafo',title:'Grafo',m_rede:'🕸 Rede',m_orbita:'🌌 Órbita 3
   nRes:'{n} resultados',umRes:'1 resultado',semRes:'Nada encontrado',ok:'Confirmar',cancel:'Cancelar',
   tipos:{pessoa:'pessoa',projeto:'projeto',tecnologia:'tecnologia',tema:'tema',ferramenta:'ferramenta',jogo:'jogo',lugar:'lugar',anime:'anime',empresa:'empresa'},
   memT:{note:'nota',fact:'fato',preference:'preferência',decision:'decisão',task:'tarefa',event:'evento'}},
-en:{h1:'🕸️ Graph',title:'Graph',m_rede:'🕸 Network',m_orbita:'🌌 3D Orbit',m_hier:'🌳 Hierarchy',projTitle:'Project',sub:'subprojects',
-  mems:'memories',memsTitle:'Show memories linked to concepts',busca:'🔎 search…',novo:'New concept',conectar:'Connect concepts',
-  centrar:'Center',limpar:'Clear the graph',memLink:'Memories',voltar:'← back',zoomIn:'Zoom in',zoomOut:'Zoom out',carregando:'Loading the graph…',
-  todosProj:'📁 all projects',nadaFiltro:'Nothing in this filter.',
+en:{h1:'Graph',title:'Graph',m_rede:'Network',m_orbita:'3D Orbit',m_hier:'Hierarchy',projTitle:'Project',sub:'subprojects',
+  mems:'memories',memsTitle:'Show memories linked to concepts',busca:'search…',novo:'New concept',conectar:'Connect concepts',
+  centrar:'Center',limpar:'Clear the graph',memLink:'Memories',voltar:'Back',zoomIn:'Zoom in',zoomOut:'Zoom out',carregando:'Loading the graph…',
+  todosProj:'All projects',nadaFiltro:'Nothing in this filter.',
   vazio:'The graph is still empty.<br>Turn on <b>Graph</b> in settings or connect an AI through the memory API.',
   statsHier:'{p} projects · {m} memories',statsRede:'{n} concepts · {a} links',statsMem:' · {m} memories',
   memGeral:'General memory',maisMem:'+{n} memories',clique2:'click the second concept',novaRel:'New relation',
@@ -162,12 +175,12 @@ en:{h1:'🕸️ Graph',title:'Graph',m_rede:'🕸 Network',m_orbita:'🌌 3D Orb
   projTip:'{a} own memories · {b} in total',dblAbrir:'double-click: open in network',cliqueVer:'click to view',fechar:'Close',
   conceito:'Concept',tipo:'Type',projetos:'Projects',descricao:'Description',descPh:'What is this concept about?',conexoes:'Links',
   memRel:'Related memories',carregandoP:'loading…',nenhumaAinda:'none yet',nenhuma:'none',
-  conectarOutro:'🔗 connect to another',ligarA:'click another concept to link to “{n}”',excluirNo:'🗑 delete concept',
+  conectarOutro:'Connect to another',ligarA:'click another concept to link to “{n}”',excluirNo:'Delete concept',
   excluirTit:'Delete concept',excluirMsg:'Delete “{n}”? This also removes its links (and memory facts that mention it).',
   excluir:'Delete',conteudo:'Content',tags:'Tags',entidades:'Entities in the graph',atualizada:'updated {d}',
-  abrirMem:'🗂️ open in Memories',fixada:'📌 pinned',semMemProp:'no own memories',
+  abrirMem:'Open in Memories',fixada:'pinned',semMemProp:'no own memories',
   projInfo:'{a} own memories · {b} with subprojects · {c} concepts',herda:'inherits memory from: {c}',geral:'General',memorias:'Memories',
-  verRede:'🕸 see concepts in network',novoSub:'➕ new subproject',novoSubT:'New subproject',novoProjT:'New project',
+  verRede:'See concepts in network',novoSub:'New subproject',novoSubT:'New subproject',novoProjT:'New project',
   nomeSub:'Subproject name',nomeProj:'Project name',criar:'Create',erro:'Error: {e}',salvarErr:'Could not save the change.',
   descOk:'Description saved.',clique2conc:'click two concepts to link them',novoT:'New concept',nomeConc:'Concept name',
   limparT:'Clear the graph',limparMsg:'All concepts and links will be removed. This cannot be undone.',
@@ -178,10 +191,10 @@ en:{h1:'🕸️ Graph',title:'Graph',m_rede:'🕸 Network',m_orbita:'🌌 3D Orb
   nRes:'{n} results',umRes:'1 result',semRes:'Nothing found',ok:'OK',cancel:'Cancel',
   tipos:{pessoa:'person',projeto:'project',tecnologia:'technology',tema:'topic',ferramenta:'tool',jogo:'game',lugar:'place',anime:'anime',empresa:'company'},
   memT:{note:'note',fact:'fact',preference:'preference',decision:'decision',task:'task',event:'event'}},
-es:{h1:'🕸️ Grafo',title:'Grafo',m_rede:'🕸 Red',m_orbita:'🌌 Órbita 3D',m_hier:'🌳 Jerarquía',projTitle:'Proyecto',sub:'subproyectos',
-  mems:'memorias',memsTitle:'Mostrar memorias vinculadas a los conceptos',busca:'🔎 buscar…',novo:'Nuevo concepto',conectar:'Conectar conceptos',
-  centrar:'Centrar',limpar:'Limpiar el grafo',memLink:'Memorias',voltar:'← volver',zoomIn:'Acercar',zoomOut:'Alejar',carregando:'Cargando el grafo…',
-  todosProj:'📁 todos los proyectos',nadaFiltro:'Nada en este filtro.',
+es:{h1:'Grafo',title:'Grafo',m_rede:'Red',m_orbita:'Órbita 3D',m_hier:'Jerarquía',projTitle:'Proyecto',sub:'subproyectos',
+  mems:'memorias',memsTitle:'Mostrar memorias vinculadas a los conceptos',busca:'buscar…',novo:'Nuevo concepto',conectar:'Conectar conceptos',
+  centrar:'Centrar',limpar:'Limpiar el grafo',memLink:'Memorias',voltar:'Volver',zoomIn:'Acercar',zoomOut:'Alejar',carregando:'Cargando el grafo…',
+  todosProj:'Todos los proyectos',nadaFiltro:'Nada en este filtro.',
   vazio:'El grafo todavía está vacío.<br>Activa <b>Grafo</b> en los ajustes o conecta una IA por la API de memoria.',
   statsHier:'{p} proyectos · {m} memorias',statsRede:'{n} conceptos · {a} conexiones',statsMem:' · {m} memorias',
   memGeral:'Memoria general',maisMem:'+{n} memorias',clique2:'haz clic en el segundo concepto',novaRel:'Nueva relación',
@@ -189,12 +202,12 @@ es:{h1:'🕸️ Grafo',title:'Grafo',m_rede:'🕸 Red',m_orbita:'🌌 Órbita 3D
   projTip:'{a} memorias propias · {b} en total',dblAbrir:'doble clic: abrir en la red',cliqueVer:'haz clic para ver',fechar:'Cerrar',
   conceito:'Concepto',tipo:'Tipo',projetos:'Proyectos',descricao:'Descripción',descPh:'¿De qué trata este concepto?',conexoes:'Conexiones',
   memRel:'Memorias relacionadas',carregandoP:'cargando…',nenhumaAinda:'ninguna todavía',nenhuma:'ninguna',
-  conectarOutro:'🔗 conectar a otro',ligarA:'haz clic en otro concepto para unirlo a “{n}”',excluirNo:'🗑 eliminar concepto',
+  conectarOutro:'Conectar a otro',ligarA:'haz clic en otro concepto para unirlo a “{n}”',excluirNo:'Eliminar concepto',
   excluirTit:'Eliminar concepto',excluirMsg:'¿Eliminar “{n}”? También se eliminan sus conexiones (y los hechos de memoria que lo mencionan).',
   excluir:'Eliminar',conteudo:'Contenido',tags:'Etiquetas',entidades:'Entidades en el grafo',atualizada:'actualizada {d}',
-  abrirMem:'🗂️ abrir en Memorias',fixada:'📌 fijada',semMemProp:'ninguna memoria propia',
+  abrirMem:'Abrir en Memorias',fixada:'fijada',semMemProp:'ninguna memoria propia',
   projInfo:'{a} memorias propias · {b} con subproyectos · {c} conceptos',herda:'hereda la memoria de: {c}',geral:'General',memorias:'Memorias',
-  verRede:'🕸 ver conceptos en la red',novoSub:'➕ nuevo subproyecto',novoSubT:'Nuevo subproyecto',novoProjT:'Nuevo proyecto',
+  verRede:'Ver conceptos en la red',novoSub:'Nuevo subproyecto',novoSubT:'Nuevo subproyecto',novoProjT:'Nuevo proyecto',
   nomeSub:'Nombre del subproyecto',nomeProj:'Nombre del proyecto',criar:'Crear',erro:'Error: {e}',salvarErr:'No se pudo guardar el cambio.',
   descOk:'Descripción guardada.',clique2conc:'haz clic en dos conceptos para unirlos',novoT:'Nuevo concepto',nomeConc:'Nombre del concepto',
   limparT:'Limpiar el grafo',limparMsg:'Se eliminarán todos los conceptos y conexiones. No se puede deshacer.',
@@ -212,7 +225,8 @@ const nomeTipo=t=>(GI[LANGG]||GI.pt).tipos[t]||t;
 const nomeMem=t=>(GI[LANGG]||GI.pt).memT[t]||t;
 function aplicarI18n(){
   document.documentElement.lang=LANGG==='en'?'en':LANGG==='es'?'es':'pt-BR';document.title=tr('title');
-  for(const e of document.querySelectorAll('[data-i]'))e.textContent=tr(e.dataset.i);
+  for(const e of document.querySelectorAll('[data-i]')){const s=tr(e.dataset.i);
+    if(e.dataset.ico&&window.AtlasIcons)AtlasIcons.label(e,e.dataset.ico,s,15);else e.textContent=s;}
   for(const e of document.querySelectorAll('[data-it]')){e.title=tr(e.dataset.it);e.setAttribute('aria-label',tr(e.dataset.it));}
   for(const e of document.querySelectorAll('[data-ip]'))e.placeholder=tr(e.dataset.ip);
   if(window.AtlasUI)AtlasUI.labels({ok:tr('ok'),cancel:tr('cancel'),close:tr('fechar')});
@@ -225,6 +239,8 @@ const MAX_MEM_NOS=300;
 function corTipo(t){if(CORES[t])return CORES[t];let h=0;for(const c of (t||''))h=(h*31+c.charCodeAt(0))%360;return `hsl(${h},70%,65%)`;}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function el(tag,props,...f){const e=document.createElement(tag);Object.assign(e,props||{});for(const x of f)if(x!=null)e.append(x);return e;}
+const ico=(n,sz)=>window.AtlasIcons?AtlasIcons.el(n,sz||14):null;
+const eb=(n,txt,props)=>{const b=el('button',props);if(window.AtlasIcons)AtlasIcons.label(b,n,txt,15);else b.textContent=txt;return b;};
 const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const curto=(s,n)=>{s=String(s||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n-1)+'…':s;};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -266,7 +282,7 @@ async function carregar(){
 function montarSeletor(){
   const s=$('#projSel'),atual=PROJ;s.innerHTML='';
   s.append(el('option',{value:'',textContent:tr('todosProj')}));
-  for(const p of PROJETOS){if(p.id==='geral')continue;s.append(el('option',{value:p.id,textContent:'  '.repeat(Math.max(0,p.depth-1))+'📁 '+p.name}));}
+  for(const p of PROJETOS){if(p.id==='geral')continue;s.append(el('option',{value:p.id,textContent:'\u00A0\u00A0'.repeat(Math.max(0,p.depth-1))+p.name}));}
   s.value=PROJETOS.some(p=>p.id===atual)?atual:'';PROJ=s.value;
   s.style.display=PROJETOS.length>1?'':'none';
   $('#subBox').style.display=PROJETOS.length>1&&MODO!=='hier'?'':'none';
@@ -576,8 +592,8 @@ cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!down&&hover)
 cv.addEventListener('wheel',e=>{e.preventDefault();zoomPor(e.deltaY<0?1.12:.89,e.clientX,e.clientY-54);},{passive:false});
 function dica(it,x,y){const t=$('#tip');if(!it){t.style.display='none';return;}
   let h='';
-  if(it.mem){const m=it.mem;h=`<b>${esc(nomeMem(m.type))} · ${'●'.repeat(m.importance||0)}${m.pinned?' 📌':''}</b><div>${esc(curto(m.content,240))}</div><span class="d">📁 ${esc(nomeProj(m.project))}</span>`;}
-  else if(it.k)h=`<b>${esc(it.disp)}</b><span class="d">${esc(nomeTipo(it.tipo))}${it.projetos.length?' · 📁 '+esc(it.projetos.map(nomeProj).join(', ')):''}</span>${it.desc?'<div>'+esc(it.desc)+'</div>':''}`;
+  if(it.mem){const m=it.mem;h=`<b>${esc(nomeMem(m.type))} · ${'●'.repeat(m.importance||0)}${m.pinned?' '+AtlasIcons.svg('pin',12):''}</b><div>${esc(curto(m.content,240))}</div><span class="d">${esc(nomeProj(m.project))}</span>`;}
+  else if(it.k)h=`<b>${esc(it.disp)}</b><span class="d">${esc(nomeTipo(it.tipo))}${it.projetos.length?' · '+esc(it.projetos.map(nomeProj).join(', ')):''}</span>${it.desc?'<div>'+esc(it.desc)+'</div>':''}`;
   else if(it.kind==='mem')h=`<b>${esc(nomeMem(it.data.type))} · ${'●'.repeat(it.data.importance||0)}</b><div>${esc(it.data.content)}</div><span class="d">${esc(tr('por',{s:it.data.source}))}</span>`;
   else if(it.kind==='proj'||it.kind==='root')h=`<b>${esc(it.label)}</b><span class="d">${esc(tr('projTip',{a:it.data.memories,b:it.data.total_memories}))}</span>${it.data.description?'<div>'+esc(it.data.description)+'</div>':''}<span class="d">${esc(tr('dblAbrir'))}</span>`;
   else h=`<b>${esc(it.label)}</b><span class="d">${esc(tr('cliqueVer'))}</span>`;
@@ -620,7 +636,7 @@ function focarItem(it){
 
 // ── painel de detalhes ──
 function fecharPainel(){if(sel)sujo=true;sel=null;$('#painel').style.display='none';}
-function painel(...filhos){const p=$('#painel');p.innerHTML='';p.append(el('button',{className:'x',textContent:'✕',ariaLabel:tr('fechar'),onclick:fecharPainel}),...filhos);p.style.display='block';sujo=true;}
+function painel(...filhos){const p=$('#painel');p.innerHTML='';p.append(el('button',{className:'x',ariaLabel:tr('fechar'),title:tr('fechar'),onclick:fecharPainel},ico('x',16)),...filhos);p.style.display='block';sujo=true;}
 const lbl=t=>el('div',{className:'lbl',textContent:t});
 function selecionar(it){
   if(it.mem)return painelMem(it.mem,'m:'+it.mem.id);
@@ -644,19 +660,19 @@ async function painelNo(k){
   if(!cs.length)conx.append(el('div',{className:'sub',textContent:tr('nenhumaAinda')}));
   for(const a of cs){const o=a.de===k?a.para:a.de,seta=a.de===k?'→':'←';
     const r=el('div',{className:'conx'},el('span',{textContent:`${a.rel} ${seta} ${(porK[o]||{}).disp||o}`,style:'cursor:pointer',onclick:()=>painelNo(o)}));
-    if(!a.hier)r.append(el('button',{textContent:'✕',ariaLabel:tr('excluir'),onclick:()=>editar({acao:'excluir_aresta',de:a.de,para:a.para})}));conx.append(r);}
-  const projs=el('div');for(const p of n.projetos)projs.append(el('span',{className:'chip',textContent:'📁 '+nomeProj(p),onclick:()=>{PROJ=p;$('#projSel').value=p;window._centrou=false;reconstruir();}}));
+    if(!a.hier)r.append(el('button',{ariaLabel:tr('excluir'),title:tr('excluir'),onclick:()=>editar({acao:'excluir_aresta',de:a.de,para:a.para})},ico('x',14)));conx.append(r);}
+  const projs=el('div');for(const p of n.projetos)projs.append(el('span',{className:'chip',onclick:()=>{PROJ=p;$('#projSel').value=p;window._centrou=false;reconstruir();}},ico('folder',12),el('span',{textContent:nomeProj(p)})));
   const mems=el('div',{className:'sub',textContent:TK?tr('carregandoP'):''});
   painel(lbl(tr('conceito')),nome,lbl(tr('tipo')),tipo,n.projetos.length?lbl(tr('projetos')):null,n.projetos.length?projs:null,
     desc?lbl(tr('descricao')):null,desc,
     lbl(tr('conexoes')+(n.grau?` (${n.grau})`:'')),conx,TK?lbl(tr('memRel')):null,TK?mems:null,
-    el('button',{className:'eb pri',textContent:tr('conectarOutro'),onclick:()=>{if(MODO==='hier')trocarModo('rede');connectMode=true;connectFrom=n;$('#conectar').classList.add('on');hint(tr('ligarA',{n:n.disp}));fecharPainel();}}),
-    el('button',{className:'eb del',textContent:tr('excluirNo'),onclick:async()=>{if(await AtlasUI.confirm({title:tr('excluirTit'),message:tr('excluirMsg',{n:n.disp}),okText:tr('excluir'),danger:true})){editar({acao:'excluir_no',chave:k});fecharPainel();}}}));
+    eb('link',tr('conectarOutro'),{className:'eb pri',onclick:()=>{if(MODO==='hier')trocarModo('rede');connectMode=true;connectFrom=n;$('#conectar').classList.add('on');hint(tr('ligarA',{n:n.disp}));fecharPainel();}}),
+    eb('trash',tr('excluirNo'),{className:'eb del',onclick:async()=>{if(await AtlasUI.confirm({title:tr('excluirTit'),message:tr('excluirMsg',{n:n.disp}),okText:tr('excluir'),danger:true})){editar({acao:'excluir_no',chave:k});fecharPainel();}}}));
   if(TK){try{const d=await api('GET','/graph/nodes/'+encodeURIComponent(k));mems.textContent='';
     if(!d.memories.length)mems.textContent=tr('nenhuma');for(const m of d.memories.slice(0,12))mems.append(cartaoMem(m));}catch(e){mems.textContent='';}}
 }
 function cartaoMem(m){return el('div',{className:'mem',onclick:()=>painelMem(m,'m:'+m.id)},
-  el('div',{textContent:(m.pinned?'📌 ':'')+m.content}),el('div',{className:'m',textContent:`${nomeMem(m.type)} · ${nomeProj(m.project)} · ${'●'.repeat(m.importance||0)}`}));}
+  el('div',{},m.pinned?el('span',{className:'pinx'},ico('pin',12)):null,m.content),el('div',{className:'m',textContent:`${nomeMem(m.type)} · ${nomeProj(m.project)} · ${'●'.repeat(m.importance||0)}`}));}
 function painelMem(m,hid){
   sel={kind:'mem',id:m.id,hid};
   const ents=el('div');for(const e of (m.entities||[])){const ck=chaveNo(e);ents.append(el('span',{className:'chip',textContent:(ck&&porK[ck].disp)||e,
@@ -669,7 +685,7 @@ function painelMem(m,hid){
     (m.tags||[]).length?lbl(tr('tags')):null,(m.tags||[]).length?tags:null,
     (m.entities||[]).length?lbl(tr('entidades')):null,(m.entities||[]).length?ents:null,
     el('div',{className:'sub',style:'margin-top:10px',textContent:tr('atualizada',{d:(m.updated||'').replace('T',' ').slice(0,16)})}),
-    el('button',{className:'eb',textContent:tr('abrirMem'),onclick:()=>location.href='/memorias#'+encodeURIComponent(m.project)}));
+    eb('brain',tr('abrirMem'),{className:'eb',onclick:()=>location.href='/memorias#'+encodeURIComponent(m.project)}));
 }
 function painelProj(p,hid){
   sel={kind:'proj',id:p.id,hid};
@@ -683,9 +699,9 @@ function painelProj(p,hid){
     el('div',{className:'sub',style:'margin-top:8px',textContent:tr('projInfo',{a:p.memories,b:p.total_memories,c:p.nodes})}),
     p.id!=='geral'?el('div',{className:'sub',textContent:tr('herda',{c:(full.path||[]).slice(0,-1).map(x=>x.name).reverse().join(' → ')||tr('geral')})}):null,
     lbl(tr('memorias')),mems,
-    p.id!=='geral'?el('button',{className:'eb pri',textContent:tr('verRede'),onclick:()=>{PROJ=p.id;$('#projSel').value=p.id;window._centrou=false;trocarModo('rede');}}):null,
-    el('button',{className:'eb',textContent:tr('novoSub'),onclick:()=>novoProjeto(p.id==='geral'?null:p.id)}),
-    el('button',{className:'eb',textContent:tr('abrirMem'),onclick:()=>location.href='/memorias#'+encodeURIComponent(p.id)}));
+    p.id!=='geral'?eb('graph',tr('verRede'),{className:'eb pri',onclick:()=>{PROJ=p.id;$('#projSel').value=p.id;window._centrou=false;trocarModo('rede');}}):null,
+    eb('plus',tr('novoSub'),{className:'eb',onclick:()=>novoProjeto(p.id==='geral'?null:p.id)}),
+    eb('brain',tr('abrirMem'),{className:'eb',onclick:()=>location.href='/memorias#'+encodeURIComponent(p.id)}));
 }
 async function novoProjeto(pai){
   if(!TK)return;

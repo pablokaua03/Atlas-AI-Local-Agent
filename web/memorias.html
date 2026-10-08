@@ -8,89 +8,96 @@
 <link rel="stylesheet" href="/static/ui.css">
 <style>
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt)}
-  button,input,select,textarea{font-family:inherit;font-size:13px}
-  #top{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--bg2)}
-  #top h1{font-size:15px;margin:0} #top .s{font-size:13px;color:var(--dim)}
-  #top .links{margin-left:auto;display:flex;gap:8px}
-  .pill{color:var(--dim);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:6px 12px;border-radius:20px;background:none;cursor:pointer}
-  .pill:hover{color:var(--txt);border-color:var(--accent)}
-  #wrap{display:flex;height:calc(100% - 52px)}
-  #side{width:250px;flex-shrink:0;border-right:1px solid var(--line);background:var(--bg2);padding:12px;overflow:auto}
-  #side h2,#main h2{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;margin:6px 4px 8px}
-  .proj{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:9px;cursor:pointer;color:var(--dim)}
-  .proj:hover{background:var(--panel);color:var(--txt)} .proj.on{background:var(--panel2);color:var(--txt)}
-  .proj .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
-  .proj .n{font-size:11px;color:var(--dim)}
-  .proj .ac{display:none;background:none;border:none;color:var(--dim);cursor:pointer;padding:0 2px}
-  .proj:hover .ac{display:inline} .proj .ac:hover{color:var(--txt)} .proj .ac.del:hover{color:var(--danger)}
-  .pdesc{font-size:12px;color:var(--dim);margin:2px 4px 12px;white-space:pre-wrap}
-  #main{flex:1;min-width:0;overflow:auto;padding:16px 20px}
-  .bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .in{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;outline:none}
-  .in:focus{border-color:var(--accent)}
-  #q{flex:1;min-width:200px}
-  .btn{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;cursor:pointer}
-  .btn:hover{border-color:var(--accent)} .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
-  #novo{display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px}
-  #novo textarea{width:100%;min-height:70px;resize:vertical;margin-bottom:8px}
-  #novo .row{display:flex;gap:8px;flex-wrap:wrap}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px}
-  .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--dim);margin-bottom:6px}
-  .tipo{border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:var(--txt)}
-  .imp{letter-spacing:1px;cursor:pointer;color:var(--warn);user-select:none}
-  .imp span{opacity:.25} .imp span.on{opacity:1}
-  .card .ct{font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-  .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
-  .herd{font-size:11px;border:1px dashed var(--accent);color:var(--accent);border-radius:6px;padding:1px 7px}
-  .card.herdada{opacity:.82;border-style:dashed}
-  .proj .ac.sub{font-size:12px}
-  .tag{font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:1px 8px;color:var(--dim)}
-  .ops{margin-left:auto;display:flex;gap:4px}
-  .ops button{background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:6px}
-  .ops button:hover{color:var(--txt);background:var(--panel2)} .ops button.del:hover{color:var(--danger)}
+  button,input,select,textarea{font-family:inherit;font-size:var(--fs-md)}
+  #top{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px 0 20px;border-bottom:1px solid var(--line);background:var(--bg2)}
+  #top h1{display:flex;align-items:center;gap:9px;font-size:var(--fs-lg);font-weight:var(--fw-semi);letter-spacing:-.01em;margin:0}
+  #top h1 .ico{color:var(--accent)}
+  #top .s{font-size:var(--fs-sm);color:var(--dim);font-variant-numeric:tabular-nums}
+  #top .links{margin-left:auto;display:flex;gap:6px}
+  .pill{display:inline-flex;align-items:center;gap:6px;height:32px;color:var(--dim);text-decoration:none;font-size:var(--fs-sm);font-weight:var(--fw-medium);
+    border:1px solid var(--line);padding:0 12px;border-radius:var(--r-sm);background:none;cursor:pointer;transition:background var(--dur),color var(--dur),border-color var(--dur)}
+  .pill:hover{color:var(--txt);background:var(--hover);border-color:var(--line2)}
+  #wrap{display:flex;height:calc(100% - 56px)}
+  #side{width:260px;flex-shrink:0;border-right:1px solid var(--line);background:var(--bg2);padding:14px 10px;overflow:auto}
+  #side h2,#main h2{font-size:var(--fs-xs);font-weight:var(--fw-semi);color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:4px 8px 8px}
+  .proj{display:flex;align-items:center;gap:8px;height:34px;padding:0 6px 0 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--dim);transition:background var(--dur),color var(--dur)}
+  .proj>.ico{color:var(--faint);flex-shrink:0}
+  .proj:hover{background:var(--hover);color:var(--txt)} .proj.on{background:var(--panel2);color:var(--txt)} .proj.on>.ico{color:var(--accent)}
+  .proj .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-md)}
+  .proj .n{font-size:var(--fs-xs);color:var(--faint);font-variant-numeric:tabular-nums}
+  .proj .ac{display:none;align-items:center;justify-content:center;width:26px;height:26px;background:none;border:none;color:var(--dim);cursor:pointer;padding:0;border-radius:var(--r-xs)}
+  .proj:hover .ac{display:inline-flex} .proj .ac:hover{color:var(--txt);background:var(--press)} .proj .ac.del:hover{color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent)}
+  .pdesc{font-size:var(--fs-xs);color:var(--dim);margin:8px 8px 12px;white-space:pre-wrap;line-height:1.5}
+  #main{flex:1;min-width:0;overflow:auto;padding:18px 24px}
+  #conteudo{max-width:900px;margin:0 auto}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .in{height:36px;background:var(--panel2);border:1px solid var(--line2);color:var(--txt);border-radius:10px;padding:0 12px;outline:none;transition:border-color var(--dur),box-shadow var(--dur)}
+  textarea.in{height:auto;padding:9px 12px;line-height:1.5}
+  select.in{padding-right:30px;appearance:none;background-image:var(--chev);background-repeat:no-repeat;background-position:right 9px center}
+  .in:focus{border-color:color-mix(in srgb,var(--accent) 60%,var(--line2));box-shadow:var(--ring)}
+  #qw{position:relative;flex:1;min-width:200px;display:flex}
+  #qw>.ico{position:absolute;left:11px;top:10px;color:var(--faint);pointer-events:none}
+  #q{flex:1;padding-left:34px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;background:var(--panel2);border:1px solid var(--line2);color:var(--txt);
+    border-radius:10px;padding:0 13px;cursor:pointer;font-weight:var(--fw-medium);white-space:nowrap;transition:background var(--dur),border-color var(--dur),filter var(--dur)}
+  .btn:hover{background:var(--panel3)} .btn.pri{background:var(--accent-solid);border-color:transparent;color:var(--accent-fg)} .btn.pri:hover{filter:brightness(1.1)}
+  .btn .ico{opacity:.9}
+  #novo{display:none;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-md);padding:12px;margin-bottom:14px;box-shadow:var(--shadow-1)}
+  #novo textarea{width:100%;min-height:76px;resize:vertical;margin-bottom:8px}
+  #novo .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;margin-bottom:8px;transition:border-color var(--dur)}
+  .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--dim);margin-bottom:6px}
+  .meta .src{display:inline-flex;align-items:center;gap:4px}
+  .tipo{display:inline-flex;align-items:center;height:20px;border-radius:var(--r-pill);padding:0 8px;color:var(--txt);font-weight:var(--fw-medium);background:color-mix(in srgb,var(--txt) 8%,transparent)}
+  .imp{display:inline-flex;gap:3px;cursor:pointer;user-select:none}
+  .imp span{width:7px;height:7px;border-radius:50%;background:var(--warn);opacity:.22;font-size:0} .imp span.on{opacity:1}
+  .card .ct{font-size:var(--fs-base);line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+  .herd{display:inline-flex;align-items:center;gap:4px;height:20px;font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:var(--r-pill);padding:0 8px}
+  .card.herdada{opacity:.85;border-style:dashed}
+  .tag{display:inline-flex;align-items:center;height:20px;font-size:11px;background:color-mix(in srgb,var(--txt) 7%,transparent);border:none;border-radius:var(--r-pill);padding:0 8px;color:var(--dim)}
+  .ops{margin-left:auto;display:flex;gap:2px}
+  .ops button{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:none;border:none;color:var(--dim);cursor:pointer;padding:0;border-radius:var(--r-sm);transition:background var(--dur),color var(--dur)}
+  .ops button:hover{color:var(--txt);background:var(--press)} .ops button.del:hover{color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent)}
   .card textarea{width:100%;min-height:60px;margin-top:4px}
-  #vazio,#aviso{color:var(--dim);text-align:center;padding:40px 10px;font-size:14px}
+  #vazio,#aviso{color:var(--dim);text-align:center;padding:48px 10px;font-size:var(--fs-md);line-height:1.6}
   @media (max-width:720px){#wrap{flex-direction:column;height:auto}#side{width:auto;border-right:none;border-bottom:1px solid var(--line)}}
   /* ── refinamentos (teclado, toque, celular, skeleton) ── */
-  .proj:hover .ac,.proj.on .ac,.proj:focus-within .ac{display:inline}
+  .proj:hover .ac,.proj.on .ac,.proj:focus-within .ac{display:inline-flex}
   .proj:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-  .proj .ac,.ops button{min-width:28px;min-height:28px}
-  .imp span:focus-visible{outline:2px solid var(--accent);border-radius:4px}
-  .btn{min-height:38px;font-weight:600}
-  .btn:not(.pri){font-weight:500}
-  .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
-  #lista .ui-skel.card{margin-bottom:9px}
-  #vazio,#aviso{line-height:1.6}
-  .btn.tog[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
-  .card{transition:border-color .15s}
-  .card:hover{border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
-  .card.fixada{border-left:3px solid #ff7ab6}
-  .fixtag{font-size:11px;color:#ff7ab6;border:1px solid color-mix(in srgb,#ff7ab6 45%,transparent);border-radius:6px;padding:1px 7px}
-  .ops button.pin:not(.on){filter:grayscale(1);opacity:.5} .ops button.pin:not(.on):hover{opacity:.9}
-  .ent{font-size:11px;background:none;border:1px solid var(--line);border-radius:10px;padding:1px 8px;color:var(--accent)}
+  .imp span:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn.danger{background:var(--danger);border-color:transparent;color:#fff}
+  #lista .ui-skel.card{margin-bottom:8px}
+  .btn.tog[aria-pressed="true"]{border-color:transparent;color:var(--accent);background:var(--accent-soft)}
+  .card:hover{border-color:var(--line2)}
+  .card.fixada{border-color:color-mix(in srgb,var(--accent) 30%,var(--line));background:color-mix(in srgb,var(--accent) 4%,var(--panel))}
+  .fixtag{display:inline-flex;align-items:center;gap:4px;height:20px;font-size:11px;font-weight:var(--fw-medium);color:var(--accent);background:var(--accent-soft);border-radius:var(--r-pill);padding:0 8px}
+  .ops button.pin.on{color:var(--accent)}
+  .ent{display:inline-flex;align-items:center;gap:4px;height:20px;font-size:11px;background:none;border:1px solid var(--line2);border-radius:var(--r-pill);padding:0 8px;color:var(--accent)}
   .card mark{background:color-mix(in srgb,var(--warn) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
-  .edit{margin-top:6px} .edit .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
-  .edit .row .in{padding:7px 9px} .edit .row .grow{flex:1;min-width:140px}
-  .edit .hint{font-size:11px;color:var(--dim);margin-top:5px}
-  #novo label.fx{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);cursor:pointer}
+  .edit{margin-top:6px} .edit .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  .edit .row .grow{flex:1;min-width:140px}
+  .edit .hint{font-size:var(--fs-xs);color:var(--faint);margin-top:6px}
+  #novo label.fx,#herdarBox{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-md);color:var(--dim);cursor:pointer}
   @media (max-width:720px){
     #top{padding:0 12px}#top .links{display:none}#top .s{margin-left:auto}
-    #wrap{flex-direction:column;height:auto;min-height:calc(100% - 52px)}
+    #wrap{flex-direction:column;height:auto;min-height:calc(100% - 56px)}
     #side{width:auto;border-right:none;border-bottom:1px solid var(--line);padding:10px 12px}
     #projs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
-    #projs .proj{flex:0 0 auto;border:1px solid var(--line);border-radius:20px;padding:6px 12px;white-space:nowrap}
-    #projs .proj.on{border-color:var(--accent)}
+    #projs .proj{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r-pill);padding:0 12px;white-space:nowrap}
+    #projs .proj.on{border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
     #projs .proj .nm{overflow:visible}
     #novoProj{width:auto !important}
     #main{padding:12px}
-    .bar .in,.bar .btn{flex:1 1 100%}
+    .bar .in,.bar .btn,#qw{flex:1 1 100%}
     .bar select.in{flex:1 1 40%}
+    .proj .ac,.ops button{width:36px;height:36px}
   }
 </style>
 </head>
 <body>
-<div id="top"><h1 id="tt">🗂️ Memórias</h1><span class="s" id="s"></span>
-  <div class="links"><a class="pill" href="/grafo" id="lkG">🕸️ grafo</a><a class="pill" href="/" id="lkV">← voltar</a></div></div>
+<div id="top"><h1><span data-icon="brain" data-size="18"></span><span id="tt">Memórias</span></h1><span class="s" id="s"></span>
+  <div class="links"><a class="pill" href="/grafo" id="lkG">grafo</a><a class="pill" href="/" id="lkV">voltar</a></div></div>
 <div id="wrap">
   <div id="side">
     <h2 id="hP">Projetos</h2>
@@ -102,11 +109,11 @@
     <div id="aviso" role="status" style="display:none"></div>
     <div id="conteudo">
       <div class="bar">
-        <input class="in" id="q" autocomplete="off">
+        <div id="qw"><span data-icon="search" data-size="16"></span><input class="in" id="q" type="search" autocomplete="off"></div>
         <select class="in" id="fTipo"></select>
         <select class="in" id="ordem"></select>
         <button class="btn tog" id="fFix" type="button" aria-pressed="false"></button>
-        <label class="in" id="herdarBox" style="display:none;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+        <label class="in" id="herdarBox" style="display:none">
           <input type="checkbox" id="herdar"><span id="herdarTxt"></span></label>
         <button class="btn pri" id="abrirNovo"></button>
       </div>
@@ -115,7 +122,7 @@
         <div class="row">
           <select class="in" id="nTipo"></select>
           <input class="in" id="nTags" style="flex:1;min-width:150px">
-          <select class="in" id="nImp"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+          <select class="in" id="nImp" aria-label="importância"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
           <label class="fx" id="nFixBox"><input type="checkbox" id="nFix"><span id="nFixTxt"></span></label>
           <button class="btn pri" id="salvarNovo"></button>
         </div>
@@ -131,10 +138,10 @@
 const $=s=>document.querySelector(s);
 const TIPOS=['note','fact','preference','decision','task','event'];
 const I18N={
- pt:{title:"Memórias",back:"← voltar",graph:"🕸️ grafo",projects:"Projetos",all:"Todos",newProj:"➕ Novo projeto",
+ pt:{title:"Memórias",back:"Voltar",graph:"Grafo",projects:"Projetos",all:"Todos",newProj:"Novo projeto",
    projName:"Nome do projeto:",projDesc:"Descrição (opcional):",projDel:"Excluir o projeto \"{p}\"?",projDelMem:"Ele tem {n} memória(s). Excluir também?",
    search:"Buscar nas memórias…",allTypes:"Todos os tipos",recent:"Mais recentes",important:"Mais importantes",
-   add:"➕ Nova memória",save:"Salvar",cancel:"Cancelar",content:"O que lembrar? (uma afirmação clara)",tags:"tags, separadas por vírgula",
+   add:"Nova memória",save:"Salvar",cancel:"Cancelar",content:"O que lembrar? (uma afirmação clara)",tags:"tags, separadas por vírgula",
    empty:"Nenhuma memória aqui ainda. As IAs conectadas (API/MCP) e você podem adicionar.",noResult:"Nada encontrado.",
    count:"{n} memória(s)",del:"Esquecer esta memória?",edit:"editar",remove:"esquecer",by:"por",
    locked:"O cofre está bloqueado. Volte à tela principal e desbloqueie.",err:"Erro: ",
@@ -143,14 +150,14 @@ const I18N={
    projDelMemAll:"O projeto \"{p}\" tem {n} memória(s). Excluir o projeto e todas as memórias?",importance:"importância",
    noauth:"Não foi possível autenticar na API de memória. Recarregue a página ou ative a API em Ajustes.",loadErr:"Não foi possível carregar agora. Tente novamente.",retry:"Tentar de novo",
    inherit:"incluir herdadas",inheritedFrom:"herdada de {p}",subNew:"Nome do subprojeto de \"{p}\":",subBtn:"novo subprojeto",
-   pin:"Fixar",unpin:"Desafixar",pinnedTag:"📌 fixada",fPinned:"📌 Fixadas",pinHint:"Memórias fixadas entram sempre no contexto dos chats do projeto delas (até 8).",
+   pin:"Fixar",unpin:"Desafixar",pinnedTag:"fixada",fPinned:"Fixadas",pinHint:"Memórias fixadas entram sempre no contexto dos chats do projeto delas (até 8).",
    pinnedOk:"Memória fixada: vai sempre no contexto.",unpinnedOk:"Memória desafixada.",countPinned:" · {p} fixada(s)",pinNew:"fixar",
    typeL:"Tipo",projL:"Projeto",impL:"Importância",editHint:"Ctrl+Enter salva · Esc cancela",noPinned:"Nenhuma memória fixada aqui.",
    t_note:"nota",t_fact:"fato",t_preference:"preferência",t_decision:"decisão",t_task:"tarefa",t_event:"evento"},
- en:{title:"Memories",back:"← back",graph:"🕸️ graph",projects:"Projects",all:"All",newProj:"➕ New project",
+ en:{title:"Memories",back:"Back",graph:"Graph",projects:"Projects",all:"All",newProj:"New project",
    projName:"Project name:",projDesc:"Description (optional):",projDel:"Delete project \"{p}\"?",projDelMem:"It has {n} memory(ies). Delete them too?",
    search:"Search memories…",allTypes:"All types",recent:"Most recent",important:"Most important",
-   add:"➕ New memory",save:"Save",cancel:"Cancel",content:"What to remember? (one clear statement)",tags:"tags, comma separated",
+   add:"New memory",save:"Save",cancel:"Cancel",content:"What to remember? (one clear statement)",tags:"tags, comma separated",
    empty:"No memories here yet. Connected AIs (API/MCP) and you can add them.",noResult:"Nothing found.",
    count:"{n} memory(ies)",del:"Forget this memory?",edit:"edit",remove:"forget",by:"by",
    locked:"The vault is locked. Go back to the main screen and unlock it.",err:"Error: ",
@@ -159,14 +166,14 @@ const I18N={
    projDelMemAll:"Project \"{p}\" has {n} memory(ies). Delete the project and all its memories?",importance:"importance",
    noauth:"Could not authenticate with the memory API. Reload the page or enable the API in Settings.",loadErr:"Could not load right now. Try again.",retry:"Try again",
    inherit:"include inherited",inheritedFrom:"inherited from {p}",subNew:"Name of the subproject of \"{p}\":",subBtn:"new subproject",
-   pin:"Pin",unpin:"Unpin",pinnedTag:"📌 pinned",fPinned:"📌 Pinned",pinHint:"Pinned memories always go into the context of chats in their project (up to 8).",
+   pin:"Pin",unpin:"Unpin",pinnedTag:"pinned",fPinned:"Pinned",pinHint:"Pinned memories always go into the context of chats in their project (up to 8).",
    pinnedOk:"Memory pinned: it always goes into the context.",unpinnedOk:"Memory unpinned.",countPinned:" · {p} pinned",pinNew:"pin",
    typeL:"Type",projL:"Project",impL:"Importance",editHint:"Ctrl+Enter saves · Esc cancels",noPinned:"No pinned memories here.",
    t_note:"note",t_fact:"fact",t_preference:"preference",t_decision:"decision",t_task:"task",t_event:"event"},
- es:{title:"Memorias",back:"← volver",graph:"🕸️ grafo",projects:"Proyectos",all:"Todos",newProj:"➕ Nuevo proyecto",
+ es:{title:"Memorias",back:"Volver",graph:"Grafo",projects:"Proyectos",all:"Todos",newProj:"Nuevo proyecto",
    projName:"Nombre del proyecto:",projDesc:"Descripción (opcional):",projDel:"¿Eliminar el proyecto \"{p}\"?",projDelMem:"Tiene {n} memoria(s). ¿Eliminarlas también?",
    search:"Buscar en las memorias…",allTypes:"Todos los tipos",recent:"Más recientes",important:"Más importantes",
-   add:"➕ Nueva memoria",save:"Guardar",cancel:"Cancelar",content:"¿Qué recordar? (una afirmación clara)",tags:"etiquetas, separadas por coma",
+   add:"Nueva memoria",save:"Guardar",cancel:"Cancelar",content:"¿Qué recordar? (una afirmación clara)",tags:"etiquetas, separadas por coma",
    empty:"Aún no hay memorias aquí. Las IAs conectadas (API/MCP) y tú pueden añadirlas.",noResult:"Nada encontrado.",
    count:"{n} memoria(s)",del:"¿Olvidar esta memoria?",edit:"editar",remove:"olvidar",by:"por",
    locked:"La caja fuerte está bloqueada. Vuelve a la pantalla principal y desbloquéala.",err:"Error: ",
@@ -175,7 +182,7 @@ const I18N={
    projDelMemAll:"El proyecto \"{p}\" tiene {n} memoria(s). ¿Eliminar el proyecto y todas sus memorias?",importance:"importancia",
    noauth:"No se pudo autenticar con la API de memoria. Recarga la página o activa la API en Ajustes.",loadErr:"No se pudo cargar ahora. Inténtalo de nuevo.",retry:"Reintentar",
    inherit:"incluir heredadas",inheritedFrom:"heredada de {p}",subNew:"Nombre del subproyecto de \"{p}\":",subBtn:"nuevo subproyecto",
-   pin:"Fijar",unpin:"Desfijar",pinnedTag:"📌 fijada",fPinned:"📌 Fijadas",pinHint:"Las memorias fijadas siempre entran en el contexto de los chats de su proyecto (hasta 8).",
+   pin:"Fijar",unpin:"Desfijar",pinnedTag:"fijada",fPinned:"Fijadas",pinHint:"Las memorias fijadas siempre entran en el contexto de los chats de su proyecto (hasta 8).",
    pinnedOk:"Memoria fijada: siempre irá en el contexto.",unpinnedOk:"Memoria desfijada.",countPinned:" · {p} fijada(s)",pinNew:"fijar",
    typeL:"Tipo",projL:"Proyecto",impL:"Importancia",editHint:"Ctrl+Enter guarda · Esc cancela",noPinned:"No hay memorias fijadas aquí.",
    t_note:"nota",t_fact:"hecho",t_preference:"preferencia",t_decision:"decisión",t_task:"tarea",t_event:"evento"},
@@ -184,6 +191,10 @@ let LANG='pt', TK='', PROJ='', projetos=[];
 const t=(k,v)=>{let s=(I18N[LANG]||I18N.pt)[k]||I18N.pt[k]||k;if(v)for(const x in v)s=s.replace('{'+x+'}',v[x]);return s;};
 const tipoLbl=x=>I18N[LANG]['t_'+x]||x;
 function el(tag,props,...filhos){const e=document.createElement(tag);Object.assign(e,props||{});for(const f of filhos)if(f!=null)e.append(f);return e;}
+const ico=(n,sz)=>window.AtlasIcons?AtlasIcons.el(n,sz||15):null;
+const lbl=(no,n,txt,sz)=>{if(window.AtlasIcons)AtlasIcons.label(no,n,txt,sz||15);else no.textContent=txt;return no;};
+const ib=(n,props)=>{const b=el('button',Object.assign({type:'button'},props));const i=ico(n,15);if(i)b.append(i);else b.textContent=props.title||'';return b;};
+const chip=(cls,n,txt,props)=>el('span',Object.assign({className:cls},props||{}),ico(n,12),el('span',{textContent:txt}));
 
 async function api(m,path,body){
   const r=await fetch('/v1'+path,{method:m,headers:{'Authorization':'Bearer '+TK,'X-Atlas-UI':'1','Content-Type':'application/json'},
@@ -204,14 +215,14 @@ async function tentar(fn,silencioso){
 }
 
 function textos(){
-  document.title=t('title');$('#tt').textContent='🗂️ '+t('title');$('#lkV').textContent=t('back');$('#lkG').textContent=t('graph');
-  $('#hP').textContent=t('projects');$('#novoProj').textContent=t('newProj');$('#q').placeholder=t('search');
-  $('#abrirNovo').textContent=t('add');$('#salvarNovo').textContent=t('save');$('#nConteudo').placeholder=t('content');$('#nTags').placeholder=t('tags');
+  document.title=t('title');$('#tt').textContent=t('title');lbl($('#lkV'),'arrow-left',t('back'),14);lbl($('#lkG'),'graph',t('graph'),14);
+  $('#hP').textContent=t('projects');lbl($('#novoProj'),'plus',t('newProj'));$('#q').placeholder=t('search');$('#q').setAttribute('aria-label',t('search'));
+  lbl($('#abrirNovo'),'plus',t('add'));lbl($('#salvarNovo'),'check',t('save'));$('#nImp').setAttribute('aria-label',t('importance'));$('#nConteudo').placeholder=t('content');$('#nTags').placeholder=t('tags');
   $('#fTipo').innerHTML='';$('#fTipo').append(el('option',{value:'',textContent:t('allTypes')}));
   for(const x of TIPOS){$('#fTipo').append(el('option',{value:x,textContent:tipoLbl(x)}));$('#nTipo').append(el('option',{value:x,textContent:tipoLbl(x)}));}
   $('#ordem').append(el('option',{value:'recent',textContent:t('recent')}),el('option',{value:'importance',textContent:t('important')}));
   $('#herdarTxt').textContent=t('inherit');
-  $('#fFix').textContent=t('fPinned');$('#fFix').title=t('pinHint');
+  lbl($('#fFix'),'pin',t('fPinned'));$('#fFix').title=t('pinHint');
   $('#nFixTxt').textContent=t('pinNew');$('#nFixBox').title=t('pinHint');
 }
 const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -236,12 +247,12 @@ async function carregarProjetos(){
   projetos=d.items;const box=$('#projs');box.innerHTML='';
   const total=projetos.reduce((a,p)=>a+p.memories,0);
   const linha=(id,nome,n,p)=>{
-    const r=el('div',{className:'proj'+(PROJ===id?' on':'')},el('span',{className:'nm',textContent:(p&&p.depth>1?'└ ':'')+nome}),el('span',{className:'n',textContent:n}));
-    if(p&&p.depth>1)r.style.paddingLeft=(10+(p.depth-1)*14)+'px';
+    const r=el('div',{className:'proj'+(PROJ===id?' on':'')},ico(p?(p.depth>1?'chevron-right':'folder'):'archive',15),el('span',{className:'nm',textContent:nome}),el('span',{className:'n',textContent:n}));
+    if(p&&p.depth>1)r.style.paddingLeft=(10+(p.depth-1)*16)+'px';
     if(p){
-      r.append(el('button',{className:'ac sub',textContent:'➕',title:t('subBtn'),ariaLabel:t('subBtn'),onclick:e=>{e.stopPropagation();novoProjeto(p.id==='geral'?null:p);}}));
-      r.append(el('button',{className:'ac',textContent:'✎',title:t('edit'),ariaLabel:t('edit'),onclick:e=>{e.stopPropagation();editarProjeto(p);}}));
-      if(p.id!=='geral')r.append(el('button',{className:'ac del',textContent:'✕',title:t('delBtn'),ariaLabel:t('delBtn'),onclick:e=>{e.stopPropagation();excluirProjeto(p);}}));
+      r.append(ib('plus',{className:'ac sub',title:t('subBtn'),ariaLabel:t('subBtn'),onclick:e=>{e.stopPropagation();novoProjeto(p.id==='geral'?null:p);}}));
+      r.append(ib('pencil',{className:'ac',title:t('edit'),ariaLabel:t('edit'),onclick:e=>{e.stopPropagation();editarProjeto(p);}}));
+      if(p.id!=='geral')r.append(ib('trash',{className:'ac del',title:t('delBtn'),ariaLabel:t('delBtn'),onclick:e=>{e.stopPropagation();excluirProjeto(p);}}));
     }
     r.onclick=()=>{PROJ=id;carregarProjetos();carregarMemorias();};
     r.tabIndex=0;r.setAttribute('role','button');r.onkeydown=e=>{if(e.target===r&&(e.key==='Enter'||e.key===' ')){e.preventDefault();r.click();}};
@@ -301,22 +312,22 @@ function cartao(m,q){
   const nomeProj=(projetos.find(p=>p.id===m.project)||{}).name||m.project;
   if(m.inherited)c.classList.add('herdada');
   const meta=el('div',{className:'meta'},el('span',{className:'tipo',textContent:tipoLbl(m.type)}),imp,
-    m.pinned?el('span',{className:'fixtag',textContent:t('pinnedTag'),title:t('pinHint')}):null,
-    m.inherited?el('span',{className:'herd',textContent:t('inheritedFrom',{p:nomeProj})}):(PROJ?null:el('span',{textContent:'📁 '+nomeProj})),
+    m.pinned?chip('fixtag','pin',t('pinnedTag'),{title:t('pinHint')}):null,
+    m.inherited?chip('herd','arrow-up',t('inheritedFrom',{p:nomeProj})):(PROJ?null:chip('src','folder',nomeProj)),
     el('span',{textContent:t('by')+' '+m.source}),el('span',{textContent:(m.updated||'').replace('T',' ').slice(0,16)}));
   const ct=el('div',{className:'ct'});ct.append(q?marcado(m.content,q):m.content);
-  const pin=el('button',{className:'pin'+(m.pinned?' on':''),textContent:'📌',title:(m.pinned?t('unpin'):t('pin'))+' · '+t('pinHint'),
+  const pin=ib('pin',{className:'pin'+(m.pinned?' on':''),title:(m.pinned?t('unpin'):t('pin'))+' · '+t('pinHint'),
     ariaLabel:m.pinned?t('unpin'):t('pin'),onclick:async()=>{
       if(await tentar(()=>api('PATCH','/memories/'+m.id,{pinned:!m.pinned}))){AtlasUI.toast(m.pinned?t('unpinnedOk'):t('pinnedOk'),{kind:'ok'});carregarMemorias();}}});
   pin.setAttribute('aria-pressed',String(!!m.pinned));
   const ops=el('div',{className:'ops'},pin,
-    el('button',{textContent:'✎',title:t('edit'),ariaLabel:t('edit'),onclick:()=>editar(c,m,ct)}),
-    el('button',{className:'del',textContent:'🗑',title:t('remove'),ariaLabel:t('remove'),onclick:async()=>{
+    ib('pencil',{title:t('edit'),ariaLabel:t('edit'),onclick:()=>editar(c,m,ct)}),
+    ib('trash',{className:'del',title:t('remove'),ariaLabel:t('remove'),onclick:async()=>{
       if(await AtlasUI.confirm({title:t('delMemT'),message:t('del')+'\n\n“'+(m.content.length>140?m.content.slice(0,140)+'…':m.content)+'”',
         okText:t('forgetBtn'),cancelText:t('cancel'),danger:true})&&await tentar(()=>api('DELETE','/memories/'+m.id))){carregarMemorias();carregarProjetos();}}}));
   meta.append(ops);c.append(meta,ct);
   const chips=[...(m.tags||[]).map(x=>el('span',{className:'tag',textContent:'#'+x})),
-    ...(m.entities||[]).slice(0,8).map(x=>el('span',{className:'ent',textContent:'◆ '+x}))];
+    ...(m.entities||[]).slice(0,8).map(x=>chip('ent','graph',x))];
   if(chips.length)c.append(el('div',{className:'tags'},...chips));
   return c;
 }
@@ -326,7 +337,7 @@ function editar(c,m,ct){
   const tipo=el('select',{className:'in',ariaLabel:t('typeL'),title:t('typeL')});
   for(const x of [...new Set([...TIPOS,m.type])])tipo.append(el('option',{value:x,textContent:tipoLbl(x),selected:x===m.type}));
   const proj=el('select',{className:'in grow',ariaLabel:t('projL'),title:t('projL')});
-  for(const p of projetos)proj.append(el('option',{value:p.id,textContent:'  '.repeat(Math.max(0,(p.depth||1)-1))+'📁 '+p.name,selected:p.id===m.project}));
+  for(const p of projetos)proj.append(el('option',{value:p.id,textContent:'\u00A0\u00A0'.repeat(Math.max(0,(p.depth||1)-1))+p.name,selected:p.id===m.project}));
   const imp=el('select',{className:'in',ariaLabel:t('impL'),title:t('impL')});
   for(let i=1;i<=5;i++)imp.append(el('option',{value:i,textContent:'●'.repeat(i),selected:i===m.importance}));
   const tg=el('input',{className:'in grow',value:(m.tags||[]).join(', '),placeholder:t('tags'),ariaLabel:t('tags')});
@@ -336,7 +347,7 @@ function editar(c,m,ct){
     if(!body.content){ta.focus();return;}
     const mudouProj=proj.value&&proj.value!==m.project;if(mudouProj)body.project=proj.value;
     if(await tentar(()=>api('PATCH','/memories/'+m.id,body))){carregarMemorias();if(mudouProj)carregarProjetos();}};
-  const ok=el('button',{className:'btn pri',textContent:t('save'),onclick:salvar});
+  const ok=lbl(el('button',{className:'btn pri',onclick:salvar}),'check',t('save'));
   const no=el('button',{className:'btn',textContent:t('cancel'),onclick:fechar});
   const ed=el('div',{className:'edit'},ta,el('div',{className:'row'},tipo,proj,imp),el('div',{className:'row'},tg,no,ok),
     el('div',{className:'hint',textContent:t('editHint')}));
