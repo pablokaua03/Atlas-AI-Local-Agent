@@ -239,7 +239,7 @@ function titulos(){
     sm.textContent='';sm.append(h('span',{class:'stt',text:t('s_'+s)}),h('span',{class:'std',text:t('s_'+s+'_d')}));
     var r=$('#sec-'+s+' .rest');if(r)r.textContent='↺ '+t('restaurar');
   });
-  var b=$('#ctxBtn');if(b){b.textContent='🧠 '+t('ctxBtn');b.title=t('ctxTitle');}
+  var b=$('#ctxBtn');if(b){AtlasIcons.label(b,'brain',t('ctxBtn'),15);b.title=t('ctxTitle');}
   var pl=$('#projLabel');if(pl)pl.textContent=t('projLabel');
 }
 

@@ -7,171 +7,223 @@
 <link rel="stylesheet" href="/static/ui.css">
 <title>Agente Local</title>
 <style>
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);transition:background .2s,color .2s}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-size:var(--fs-base);transition:background var(--dur-slow),color var(--dur-slow)}
   button{font-family:inherit}
   #wrap{display:flex;height:100%}
+  :root{
+    --ico-folder:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b92a1' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E");
+    --ico-cpu:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b92a1' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Crect x='9' y='9' width='6' height='6' rx='1'/%3E%3Cpath d='M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2'/%3E%3C/svg%3E");
+  }
+  :root[data-tema="claro"]{
+    --ico-folder:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235d6676' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E");
+    --ico-cpu:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235d6676' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='2'/%3E%3Crect x='9' y='9' width='6' height='6' rx='1'/%3E%3Cpath d='M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2'/%3E%3C/svg%3E");
+  }
+  .mark{display:inline-flex;align-items:center;justify-content:center;color:#fff;
+    background:linear-gradient(140deg,var(--accent-solid),var(--accent2));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 2px 10px color-mix(in srgb,var(--accent-solid) 30%,transparent)}
 
   /* ── SIDEBAR ── */
-  #side{width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
-    display:flex;flex-direction:column;transition:margin-left .2s}
-  #side.hide{margin-left:-260px}
-  .sbtop{display:flex;align-items:center;gap:8px;padding:14px}
-  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;flex:1}
-  .brand .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
-    display:flex;align-items:center;justify-content:center;color:#fff}
-  .novo{margin:0 12px 8px;display:flex;align-items:center;justify-content:center;gap:8px;
-    background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:11px;
-    padding:11px;cursor:pointer;font-size:14px;font-weight:600}
-  .novo:hover{border-color:var(--accent)}
-  .lista{flex:1;overflow-y:auto;padding:6px 8px;display:flex;flex-direction:column;gap:2px}
-  .item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;cursor:pointer;color:var(--dim)}
-  .item:hover{background:var(--panel);color:var(--txt)}
-  .item.sel{background:var(--panel);color:var(--txt)}
-  .item .tit{flex:1;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .item .acts{display:none;gap:2px}
+  #side{width:264px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;transition:margin-left var(--dur-slow) var(--ease)}
+  #side.hide{margin-left:-264px}
+  .sbtop{display:flex;align-items:center;gap:var(--sp-2);height:56px;padding:0 14px 0 16px;flex-shrink:0}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:var(--fw-semi);font-size:var(--fs-base);letter-spacing:-.01em;flex:1;min-width:0}
+  .brand .logo{width:26px;height:26px;border-radius:var(--r-sm)}
+  .novo{margin:2px 12px 10px;display:flex;align-items:center;gap:var(--sp-2);height:36px;padding:0 12px;
+    background:var(--panel);border:1px solid var(--line2);color:var(--txt);border-radius:var(--r-sm);box-shadow:var(--shadow-1);
+    cursor:pointer;font-size:var(--fs-md);font-weight:var(--fw-medium);transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+  .novo:hover{background:var(--panel2)}
+  .novo .ico{color:var(--dim)}
+  .lista{flex:1;overflow-y:auto;padding:4px 8px 10px;display:flex;flex-direction:column;gap:1px}
+  .item{display:flex;align-items:center;gap:var(--sp-2);min-height:34px;padding:5px 5px 5px 10px;border-radius:var(--r-sm);cursor:pointer;
+    color:var(--dim);transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+  .item:hover{background:var(--hover);color:var(--txt)}
+  .item.sel{background:var(--panel2);color:var(--txt)}
+  :root[data-tema="claro"] .item.sel{background:var(--panel);box-shadow:var(--shadow-1),0 0 0 1px var(--line)}
+  .item .tit{flex:1;font-size:var(--fs-md);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .acts{display:none;gap:0}
   .item:hover .acts{display:flex}
-  .ic{background:none;border:none;color:var(--dim);cursor:pointer;padding:3px;border-radius:6px;display:flex}
-  .ic:hover{color:var(--txt);background:var(--panel2)}
+  .ic{background:none;border:none;color:var(--dim);cursor:pointer;width:26px;height:26px;padding:0;border-radius:var(--r-xs);
+    display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+  .ic:hover{color:var(--txt);background:var(--press)}
   .ic.del:hover{color:var(--danger)}
-  .item input{flex:1;background:var(--bg);border:1px solid var(--accent);color:var(--txt);
-    border-radius:6px;padding:4px 6px;font-size:13px;font-family:inherit;outline:none}
-  .sbfoot{padding:10px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--dim)}
+  .item input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--accent);color:var(--txt);
+    border-radius:var(--r-xs);padding:4px 7px;font-size:var(--fs-md);font-family:inherit;outline:none}
+  .sbfoot{display:flex;align-items:center;gap:var(--sp-2);padding:12px 16px 14px 18px;border-top:1px solid var(--line);
+    font-size:var(--fs-xs);color:var(--faint);line-height:1.4;flex-shrink:0}
+  .sbfoot>[data-icon]{color:var(--good);opacity:.8}
 
   /* ── MAIN ── */
   #main{flex:1;display:flex;flex-direction:column;min-width:0}
-  header{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line)}
-  .hbtn{cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--txt);
-    border-radius:9px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;
-    text-decoration:none;padding:0}
-  .hbtn:hover{border-color:var(--accent);color:var(--accent)}
-  #powerBtn.on{color:var(--good);border-color:color-mix(in srgb,var(--good) 50%,transparent)}
-  #powerBtn.off{color:var(--danger);border-color:var(--danger);background:color-mix(in srgb,var(--danger) 14%,transparent)}
-  header .pill{font-size:12px;color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:5px 12px;margin-left:auto}
-  header .pill.on{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
-  header .pill.off{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
+  header{display:flex;align-items:center;gap:4px;height:56px;flex-shrink:0;padding:0 12px;border-bottom:1px solid var(--line)}
+  .hsp{flex:1;min-width:8px}
+  .hsep{width:1px;height:20px;background:var(--line2);margin:0 6px;flex-shrink:0}
+  .hbtn{cursor:pointer;background:transparent;border:1px solid transparent;color:var(--dim);
+    border-radius:var(--r-sm);width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+    text-decoration:none;padding:0;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+  .hbtn:hover{background:var(--hover);color:var(--txt)}
+  .hbtn:active{background:var(--press)}
+  #powerBtn.on{color:var(--good)}
+  #powerBtn.off{color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent)}
+  header .pill{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 11px;margin:0 2px;font-size:var(--fs-sm);font-weight:var(--fw-medium);
+    color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:var(--r-pill);white-space:nowrap;flex-shrink:0;
+    transition:background var(--dur),color var(--dur),border-color var(--dur)}
+  #pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--faint);flex-shrink:0}
+  header .pill.on{color:var(--txt)}
+  #pill.on::before{background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 18%,transparent)}
+  header .pill.off{color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,transparent);border-color:color-mix(in srgb,var(--danger) 22%,transparent)}
+  #pill.off::before{background:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 18%,transparent)}
+  #sysPill{gap:12px;font-family:var(--mono);font-size:11.5px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--dim)}
+  #sysPill:empty{display:none}
+  #sysPill b{font-weight:500;color:var(--faint);margin-right:5px}
 
-  #banner{margin:12px 16px 0;padding:11px 14px;border-radius:12px;
-    background:color-mix(in srgb,var(--warn) 14%,var(--bg));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);
-    color:var(--txt);font-size:13.5px;display:none;align-items:center;gap:10px}
-  #banner .bbtn{margin-left:auto;background:var(--accent);color:#fff;border:none;border-radius:9px;
-    padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+  #banner{max-width:780px;width:calc(100% - 32px);margin:12px auto 0;padding:9px 9px 9px 14px;border-radius:var(--r-md);
+    background:color-mix(in srgb,var(--warn) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--warn) 22%,var(--line));
+    color:var(--txt);font-size:var(--fs-md);display:none;align-items:center;gap:10px;box-shadow:var(--shadow-1)}
+  #banner .bico{display:none;color:var(--warn)}
+  #banner:not(.busy):not(.ok):not(.err) .bico-warn{display:inline-flex}
+  #banner.ok:not(.busy) .bico-ok{display:inline-flex;color:var(--good)}
+  #banner.err:not(.busy) .bico-err{display:inline-flex;color:var(--danger)}
+  #bannerTxt{flex:1;min-width:0;line-height:1.45}
+  .bbtn{background:var(--accent-solid);color:var(--accent-fg);border:none;border-radius:var(--r-sm);height:32px;padding:0 14px;
+    font-size:var(--fs-sm);font-weight:var(--fw-semi);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:filter var(--dur) var(--ease)}
+  .bbtn:hover{filter:brightness(1.1)}
 
-  #chat{flex:1;overflow-y:auto;padding:22px 16px;display:flex;flex-direction:column;gap:16px}
-  .msg{display:flex;gap:11px;max-width:780px;width:100%;margin:0 auto}
+  #chat{flex:1;overflow-y:auto;padding:28px 16px;display:flex;flex-direction:column;gap:22px}
+  .msg{display:flex;gap:12px;max-width:780px;width:100%;margin:0 auto}
   .msg.user{flex-direction:row-reverse}
-  .av{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-  .av.a{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
-  .av.u{background:var(--panel2);color:var(--dim)}
-  .bubble{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 15px;
-    font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;max-width:calc(100% - 42px)}
-  .msg.user .bubble{background:var(--userbg)}
-  .empty{margin:auto;text-align:center;color:var(--dim);font-size:14.5px;line-height:1.7}
-  .empty .big{font-size:42px;margin-bottom:6px}
+  .av{width:28px;height:28px;border-radius:var(--r-sm);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px}
+  .av.a{background:linear-gradient(140deg,var(--accent-solid),var(--accent2));color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+  .av.u{background:var(--panel2);color:var(--dim);border:1px solid var(--line)}
+  .bubble{background:transparent;border:1px solid transparent;border-radius:var(--r-lg);padding:4px 2px;
+    font-size:var(--fs-base);line-height:1.6;white-space:pre-wrap;word-wrap:break-word;max-width:calc(100% - 40px)}
+  .msg.user .bubble{background:var(--userbg);border-color:var(--line);padding:9px 14px;border-radius:var(--r-lg) var(--r-lg) 6px var(--r-lg)}
+  .empty{margin:auto;text-align:center;color:var(--dim);font-size:var(--fs-base);line-height:1.6;width:100%;max-width:600px;padding:0 4px}
+  .empty .big{width:52px;height:52px;border-radius:var(--r-lg);margin:0 auto 18px}
+  .empty .et{font-size:24px;font-weight:var(--fw-semi);color:var(--txt);letter-spacing:-.02em;line-height:1.25}
+  .empty .ed{margin-top:6px;font-size:var(--fs-md);color:var(--dim)}
 
-  #bar{padding:12px 16px 16px;border-top:1px solid var(--line)}
-  .barin{max-width:780px;margin:0 auto;display:flex;gap:9px;align-items:flex-end;
-    background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 14px}
-  .barin:focus-within{border-color:var(--accent)}
-  #input{flex:1;background:transparent;border:none;color:var(--txt);font-size:14.5px;font-family:inherit;
-    outline:none;resize:none;max-height:180px;padding:6px 0;line-height:1.5}
-  #send{background:var(--accent);color:#fff;border:none;border-radius:11px;width:38px;height:38px;
-    cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  #bar{padding:6px 16px 18px}
+  .barin{max-width:780px;margin:0 auto;display:flex;gap:4px;align-items:flex-end;
+    background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-lg);padding:7px;box-shadow:var(--shadow-2);
+    transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+  .barin:focus-within{border-color:color-mix(in srgb,var(--accent) 50%,var(--line2));box-shadow:var(--shadow-2),var(--ring)}
+  #input{flex:1;background:transparent;border:none;color:var(--txt);font-size:var(--fs-base);font-family:inherit;
+    outline:none;resize:none;max-height:180px;min-height:36px;padding:7px 4px;line-height:1.5}
+  #input:focus-visible{box-shadow:none}
+  #input::placeholder{color:var(--faint)}
+  #send{background:var(--accent-solid);color:var(--accent-fg);border:none;border-radius:50%;width:36px;height:36px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:filter var(--dur) var(--ease),background var(--dur) var(--ease),transform var(--dur) var(--ease)}
+  #send:hover:not(:disabled){filter:brightness(1.12)}
+  #send:active:not(:disabled){transform:scale(.95)}
   #send:disabled{opacity:.4;cursor:default}
-  #send.stop{background:var(--danger)}
-  #attachBtn{background:transparent;border:none;color:var(--dim);font-size:18px;width:34px;height:38px;
-    cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-  #attachBtn:hover{color:var(--txt)}
-  #anexosBar{max-width:780px;margin:0 auto 7px;display:none;gap:7px;flex-wrap:wrap}
-  .anexo{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);
-    border-radius:9px;padding:4px 8px;font-size:12px;color:var(--txt);max-width:200px}
-  .anexo img{width:30px;height:30px;object-fit:cover;border-radius:5px}
+  #send.stop{background:var(--txt);color:var(--bg)}
+  #attachBtn{background:transparent;border:none;color:var(--dim);width:36px;height:36px;border-radius:50%;
+    cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+  #attachBtn:hover{color:var(--txt);background:var(--hover)}
+  #anexosBar{max-width:780px;margin:0 auto 8px;display:none;gap:6px;flex-wrap:wrap}
+  .anexo{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);
+    border-radius:10px;padding:4px 4px 4px 8px;font-size:var(--fs-sm);color:var(--txt);max-width:220px}
+  .anexo img{width:28px;height:28px;object-fit:cover;border-radius:6px;margin-left:-4px}
+  .anexo>[data-icon]{color:var(--dim)}
   .anexo .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .anexo .x{cursor:pointer;color:var(--dim);font-weight:700}.anexo .x:hover{color:var(--danger)}
+  .anexo .x{cursor:pointer;color:var(--dim);width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+  .anexo .x:hover{color:var(--danger);background:var(--hover)}
   .bubble .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
-  .bubble .imgs img{max-width:200px;max-height:200px;border-radius:9px;border:1px solid var(--line)}
+  .bubble .imgs img{max-width:200px;max-height:200px;border-radius:10px;border:1px solid var(--line)}
   #chat.drag{outline:2px dashed var(--accent);outline-offset:-8px}
-  #chatActions{max-width:780px;margin:0 auto;text-align:center;padding:2px 16px 10px}
-  #regenBtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:999px;
-    padding:7px 16px;cursor:pointer;font-size:12.5px;font-family:inherit;
-    display:inline-flex;align-items:center;gap:6px;transition:color .15s,border-color .15s,background .15s}
-  #regenBtn:hover{color:var(--txt);border-color:var(--accent);background:var(--panel2)}
+  #chatActions{max-width:780px;margin:0 auto;text-align:center;padding:2px 16px 8px}
+  #regenBtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:var(--r-pill);
+    height:30px;padding:0 14px 0 11px;cursor:pointer;font-size:var(--fs-sm);font-family:inherit;
+    display:inline-flex;align-items:center;gap:6px;transition:color var(--dur),border-color var(--dur),background var(--dur)}
+  #regenBtn:hover{color:var(--txt);border-color:var(--line2);background:var(--panel2)}
   #regenBtn span{line-height:1}
   /* markdown das respostas (md.js) */
   .bubble.md{white-space:normal}
   .bubble .body>:first-child{margin-top:0} .bubble .body>:last-child{margin-bottom:0}
-  .bubble p{margin:0 0 9px}
-  .bubble h3,.bubble h4,.bubble h5,.bubble h6{margin:14px 0 6px;line-height:1.3}
+  .bubble p{margin:0 0 10px}
+  .bubble h3,.bubble h4,.bubble h5,.bubble h6{margin:16px 0 6px;line-height:1.3;font-weight:var(--fw-semi);letter-spacing:-.01em}
   .bubble h3{font-size:16.5px} .bubble h4{font-size:15.5px} .bubble h5,.bubble h6{font-size:14.5px;color:var(--dim)}
   .bubble ul,.bubble ol{margin:6px 0 10px;padding-left:22px} .bubble li{margin:3px 0} .bubble li>ul,.bubble li>ol{margin:3px 0}
   .bubble li input[type=checkbox]{margin:0 5px 0 -2px;vertical-align:-1px}
-  .bubble a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;word-break:break-word}
-  .bubble blockquote{margin:8px 0;padding:4px 12px;border-left:3px solid var(--accent);color:var(--dim);background:color-mix(in srgb,var(--accent) 6%,transparent);border-radius:0 8px 8px 0}
-  .bubble hr{border:none;border-top:1px solid var(--line);margin:12px 0}
+  .bubble a{color:var(--accent);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 45%,transparent);text-underline-offset:2px;word-break:break-word}
+  .bubble blockquote{margin:8px 0;padding:4px 12px;border-left:3px solid var(--accent);color:var(--dim);background:var(--accent-soft);border-radius:0 8px 8px 0}
+  .bubble hr{border:none;border-top:1px solid var(--line);margin:14px 0}
   .bubble del{opacity:.7}
-  .bubble code{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.88em}
-  .md-code{margin:9px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg2)}
+  .bubble code{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-family:var(--mono);font-size:.88em}
+  .md-code{margin:10px 0;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;background:var(--bg2)}
   .md-codebar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px 4px 12px;
-    background:var(--panel2);border-bottom:1px solid var(--line);font-size:11.5px;color:var(--dim);font-family:ui-monospace,Consolas,monospace}
-  .md-copy{background:transparent;border:1px solid transparent;color:var(--dim);border-radius:7px;padding:3px 9px;font-size:11.5px;cursor:pointer;min-height:26px}
-  .md-copy:hover{color:var(--txt);border-color:var(--line)} .md-copy.ok{color:var(--good)}
-  .md-code pre{margin:0;padding:11px 13px;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.8px;line-height:1.5;white-space:pre}
+    background:var(--panel);border-bottom:1px solid var(--line);font-size:var(--fs-xs);color:var(--dim);font-family:var(--mono)}
+  .md-copy{background:transparent;border:1px solid transparent;color:var(--dim);border-radius:7px;padding:3px 9px;font-size:var(--fs-xs);cursor:pointer;min-height:26px;transition:color var(--dur),background var(--dur)}
+  .md-copy:hover{color:var(--txt);background:var(--hover)} .md-copy.ok{color:var(--good)}
+  .md-code pre{margin:0;padding:12px 14px;overflow-x:auto;font-family:var(--mono);font-size:12.8px;line-height:1.55;white-space:pre}
   .md-code pre code{background:none;border:none;padding:0;font-size:inherit}
-  .md-table{overflow-x:auto;margin:9px 0;border:1px solid var(--line);border-radius:10px}
-  .md-table table{border-collapse:collapse;width:100%;font-size:13.5px}
-  .md-table th,.md-table td{padding:7px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-  .md-table th{background:var(--panel2);font-weight:600} .md-table tr:last-child td{border-bottom:none}
+  .md-table{overflow-x:auto;margin:10px 0;border:1px solid var(--line);border-radius:var(--r-md)}
+  .md-table table{border-collapse:collapse;width:100%;font-size:var(--fs-md)}
+  .md-table th,.md-table td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  .md-table th{background:var(--panel2);font-weight:var(--fw-semi)} .md-table tr:last-child td{border-bottom:none}
   .md-table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--panel2) 45%,transparent)}
   /* coluna da mensagem: balão + ações */
-  .mcol{display:flex;flex-direction:column;gap:4px;min-width:0;max-width:calc(100% - 42px)}
+  .mcol{display:flex;flex-direction:column;gap:4px;min-width:0;max-width:calc(100% - 40px)}
   .msg.user .mcol{align-items:flex-end}
   .mcol .bubble{max-width:100%}
-  .mact{display:flex;gap:2px;opacity:0;transition:opacity .15s;min-height:26px;align-items:center}
+  .mact{display:flex;gap:2px;opacity:0;transition:opacity var(--dur);min-height:26px;align-items:center}
   .msg:hover .mact,.msg:focus-within .mact{opacity:1}
-  .mact button{background:none;border:none;color:var(--dim);cursor:pointer;border-radius:7px;padding:3px 8px;font-size:12px;min-height:26px}
-  .mact button:hover{color:var(--txt);background:var(--panel2)}
+  .mact button{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--dim);cursor:pointer;border-radius:7px;padding:3px 8px;font-size:var(--fs-xs);min-height:26px;transition:color var(--dur),background var(--dur)}
+  .mact button:hover{color:var(--txt);background:var(--hover)}
   .mact .tag{margin-left:4px}
-  .tag.parcial{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
-  .bubble.streaming{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
-  .dots{display:inline-flex;gap:4px;padding:4px 0} .dots i{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:dot 1.2s infinite ease-in-out}
+  .tag.parcial{display:inline-flex;align-items:center;gap:4px;color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:transparent}
+  .bubble.streaming{border-color:transparent}
+  .dots{display:inline-flex;gap:4px;padding:6px 0} .dots i{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:dot 1.2s infinite ease-in-out}
   .dots i:nth-child(2){animation-delay:.15s} .dots i:nth-child(3){animation-delay:.3s}
   @keyframes dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
   #chatWrap{flex:1;position:relative;display:flex;flex-direction:column;min-height:0}
   #descer{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;align-items:center;gap:6px;
-    background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:7px 14px;font-size:12.5px;
-    cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:2}
-  #descer:hover{border-color:var(--accent)} #descer.on{display:inline-flex}
+    background:var(--panel2);border:1px solid var(--line2);color:var(--txt);border-radius:var(--r-pill);height:32px;padding:0 14px 0 11px;font-size:var(--fs-sm);
+    cursor:pointer;box-shadow:var(--shadow-2);z-index:2;transition:background var(--dur)}
+  #descer:hover{background:var(--panel3)} #descer.on{display:inline-flex}
   /* estado vazio com sugestões */
-  .empty .chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:22px auto 0;max-width:560px;text-align:left}
-  .chip{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:11px 13px;cursor:pointer;
-    font-size:13.5px;line-height:1.4;display:flex;gap:9px;align-items:flex-start;transition:border-color .15s,background .15s}
-  .chip:hover,.chip:focus-visible{border-color:var(--accent);background:var(--panel2);outline:none}
-  .chip .ce{font-size:16px;line-height:1.2}
-  .chip small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
+  .empty .chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:30px auto 0;text-align:left}
+  .chip{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:12px;cursor:pointer;text-align:left;
+    font-size:var(--fs-md);font-weight:var(--fw-medium);line-height:1.35;display:flex;gap:12px;align-items:center;
+    transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease),transform var(--dur) var(--ease)}
+  .chip:hover{border-color:var(--line2);background:var(--panel2);transform:translateY(-1px)}
+  .chip:active{transform:none}
+  .chip .ce{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+  .chip .ctx{min-width:0}
+  .chip small{display:block;color:var(--dim);font-size:var(--fs-sm);font-weight:400;margin-top:2px}
   /* barra lateral: busca e grupos por data */
-  .busca{margin:0 12px 6px;position:relative}
-  .busca input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;
-    padding:8px 30px 8px 32px;font-size:13px;outline:none}
-  .busca input:focus{border-color:var(--accent)}
-  .busca .lupa{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:13px;pointer-events:none}
-  .busca .lim{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:none}
+  .busca{margin:0 12px 8px;position:relative}
+  .busca input{width:100%;height:34px;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);
+    padding:0 32px 0 32px;font-size:var(--fs-md);outline:none;transition:border-color var(--dur),box-shadow var(--dur),background var(--dur)}
+  .busca input::placeholder{color:var(--faint)}
+  .busca input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+  .busca input:hover{border-color:var(--line2)}
+  .busca input:focus{border-color:color-mix(in srgb,var(--accent) 55%,var(--line2))}
+  .busca .lupa{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint);pointer-events:none;display:flex}
+  .busca .lim{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:none}
   .busca.tem .lim{display:flex}
-  .grp{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);padding:12px 10px 4px;font-weight:700}
+  .grp{font-size:var(--fs-xs);color:var(--faint);padding:14px 10px 4px;font-weight:var(--fw-medium)}
   .grp:first-child{padding-top:4px}
   .item .tx{flex:1;min-width:0;display:flex;flex-direction:column}
-  .item .tr{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .item .tr{font-size:var(--fs-xs);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
   .item .tr mark{background:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--txt);border-radius:3px;padding:0 1px}
-  .item .mdl{font-size:10px;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:5px;padding:0 4px;flex-shrink:0}
-  .lista .ui-empty{padding:14px 10px;font-size:12.5px}
+  .item .mdl{font-size:10.5px;color:var(--accent);background:var(--accent-soft);border-radius:var(--r-pill);padding:1px 7px;flex-shrink:0}
+  .lista .ui-empty{padding:14px 10px;font-size:var(--fs-sm)}
   /* banner do Ollama */
-  .spin{width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--txt) 25%,transparent);border-top-color:var(--accent);
+  .spin{width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--txt) 20%,transparent);border-top-color:var(--accent);
     animation:gira .8s linear infinite;flex-shrink:0}
   @keyframes gira{to{transform:rotate(360deg)}}
-  #banner.ok{background:color-mix(in srgb,var(--good) 14%,var(--bg));border-color:color-mix(in srgb,var(--good) 40%,transparent)}
-  #banner.err{background:color-mix(in srgb,var(--danger) 12%,var(--bg));border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
-  #banner .bbtn.sec{background:transparent;border:1px solid var(--line);color:var(--txt);margin-left:0}
-  #banner .bbtn:disabled{opacity:.7;cursor:default}
+  #banner.ok{background:color-mix(in srgb,var(--good) 7%,var(--panel));border-color:color-mix(in srgb,var(--good) 22%,var(--line))}
+  #banner.err{background:color-mix(in srgb,var(--danger) 7%,var(--panel));border-color:color-mix(in srgb,var(--danger) 22%,var(--line))}
+  #banner .bbtn.sec{background:transparent;border:1px solid var(--line2);color:var(--txt)}
+  #banner .bbtn.sec:hover{background:var(--hover);filter:none}
+  #banner .bbtn:disabled{opacity:.7;cursor:default;filter:none}
   #bannerSpin{display:none} #banner.busy #bannerSpin{display:block}
-  #ctxBar #modelSel{max-width:200px}
+  #ctxBar #modelSel{max-width:220px}
+  /* cofre */
+  .cofre-ico{width:48px;height:48px;border-radius:var(--r-md);margin:0 auto 12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
 
   /* ── DRAWER CONFIG ── */
   #scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:9}
@@ -225,9 +277,9 @@
   .skill.col{flex-direction:column;align-items:stretch;gap:8px}
   .numbox{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
   .num{width:84px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px;font-family:inherit;text-align:center}
-  .num:focus,.ta:focus,.sel:focus{border-color:var(--accent)}
+  .num:focus,textarea.ta:focus,select.sel:focus{border-color:var(--accent)}
   .rg{font-size:10.5px;color:var(--dim)}
-  .ta,.sel{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font:inherit;font-size:13.5px;margin:6px 0;resize:vertical}
+  textarea.ta,select.sel,input.sel{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font:inherit;font-size:13.5px;margin:6px 0;resize:vertical}
   .d.warn,.warn{color:var(--warn)} .d.note{margin-top:10px;line-height:1.5}
   .budget{margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:9px}
   .nm.sp{margin-top:16px}
@@ -260,14 +312,21 @@
   .preset.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--bg))}
   .preset .top{display:flex;align-items:center;gap:6px} .preset .rot{font-weight:600;font-size:14px}
   .preset .d{font-size:12px;color:var(--dim);margin-top:3px}
-  .preset:focus-visible,.sel:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .preset:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   /* ── CONTEXTO NO CHAT ── */
-  #ctxBar{max-width:780px;margin:0 auto 7px;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim)}
-  #ctxBar select{flex:1;min-width:0;max-width:260px;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:6px 8px;font:inherit;font-size:12.5px}
-  #ctxBar button{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:9px;padding:6px 11px;font-size:12.5px;cursor:pointer;min-height:32px;white-space:nowrap}
-  #ctxBar button:hover{color:var(--txt);border-color:var(--accent)}
-  #fatoBar{max-width:780px;margin:0 auto 8px;padding:9px 12px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 10%,var(--panel));
-    border-radius:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+  #ctxBar{max-width:780px;margin:0 auto 8px;display:flex;gap:6px;align-items:center;font-size:var(--fs-sm);color:var(--dim)}
+  #projLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  #ctxBar select{flex:0 1 auto;min-width:0;max-width:240px;height:30px;margin:0;background-color:var(--panel);
+    background-image:var(--ico-folder),var(--chev);background-repeat:no-repeat;background-position:left 10px center,right 9px center;background-size:14px,13px;
+    border:1px solid var(--line);color:var(--txt);border-radius:var(--r-pill);padding:0 30px 0 30px;font:inherit;font-size:var(--fs-sm);
+    transition:background-color var(--dur),border-color var(--dur)}
+  #ctxBar #modelSel{background-image:var(--ico-cpu),var(--chev)}
+  #ctxBar button{display:inline-flex;align-items:center;gap:6px;height:30px;background:var(--panel);border:1px solid var(--line);color:var(--dim);
+    border-radius:var(--r-pill);padding:0 12px 0 10px;font-size:var(--fs-sm);cursor:pointer;white-space:nowrap;
+    transition:background var(--dur),border-color var(--dur),color var(--dur)}
+  #ctxBar select:hover,#ctxBar button:hover{background-color:var(--panel2);border-color:var(--line2);color:var(--txt)}
+  #fatoBar{max-width:780px;margin:0 auto 8px;padding:8px 8px 8px 12px;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));background:color-mix(in srgb,var(--accent) 7%,var(--panel));
+    border-radius:var(--r-md);display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:var(--fs-md);box-shadow:var(--shadow-1)}
   #fatoBar[hidden]{display:none} #fatoBar .ft{flex:1;min-width:180px}
   details.usadas{margin-top:9px;border-top:1px dashed var(--line);padding-top:7px;font-size:12.5px;color:var(--dim);white-space:normal}
   details.usadas>summary{cursor:pointer;user-select:none} details.usadas>summary:hover{color:var(--txt)}
@@ -292,8 +351,8 @@
   .sw{border:none;padding:0}
   .baixar{min-height:34px}
   #chat .ld{display:flex;flex-direction:column;gap:14px;width:100%;max-width:780px;margin:0 auto}
-  #chat .ld .ui-skel:nth-child(odd){width:62%;height:54px;border-radius:14px}
-  #chat .ld .ui-skel:nth-child(even){width:78%;height:78px;border-radius:14px;align-self:flex-end}
+  #chat .ld .ui-skel:nth-child(odd){width:62%;height:54px;border-radius:var(--r-lg)}
+  #chat .ld .ui-skel:nth-child(even){width:78%;height:78px;border-radius:var(--r-lg);align-self:flex-end}
   #sideScrim{display:none}
   #banner[hidden]{display:none}
   @media (hover:none){.item .acts{display:flex}}
@@ -301,18 +360,19 @@
     #side{box-shadow:0 0 40px rgba(0,0,0,.4)}
     #side.hide{visibility:hidden}
     body.side-open #sideScrim{display:block;position:fixed;inset:0;z-index:7;background:rgba(0,0,0,.45)}
-    header{padding:8px 10px;gap:8px}
+    header{padding:0 8px;gap:2px}
     .hbtn{width:40px;height:40px}
-    #memBtn,#grafoBtn,#gear,#sysPill{display:none}
+    #memBtn,#grafoBtn,#gear,#sysPill,.hsep{display:none}
     header .pill{max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    #chat{padding:16px 10px}
-    #bar{padding:8px 10px 10px}
+    #chat{padding:18px 12px}
+    #bar{padding:6px 10px 10px}
     #cfg{width:100%;max-width:100%;padding-bottom:calc(var(--ui-nav-h) + 24px)}
-    #banner{margin:8px 10px 0;flex-wrap:wrap}
+    #banner{width:calc(100% - 20px);margin:8px auto 0;flex-wrap:wrap}
     .empty .chips{grid-template-columns:1fr}
-    #ctxBar{flex-wrap:wrap} #ctxBar label{display:none} #ctxBar select,#ctxBar #modelSel{flex:1 1 40%;max-width:none}
+    .empty .et{font-size:21px}
+    #ctxBar{flex-wrap:wrap} #ctxBar select,#ctxBar #modelSel{flex:1 1 40%;max-width:none}
     .mact{opacity:1}
-    .msg{gap:8px} .av{width:26px;height:26px;font-size:12px} .mcol{max-width:calc(100% - 34px)}
+    .msg{gap:8px} .av{width:26px;height:26px} .mcol{max-width:calc(100% - 34px)}
   }
   @media(max-width:1000px){#sysPill{display:none}}
 </style>
@@ -321,40 +381,42 @@
 <div id="wrap">
   <aside id="side">
     <div class="sbtop">
-      <div class="brand"><span class="logo">◆</span><span id="brandTxt">Agente Local</span></div>
+      <div class="brand"><span class="mark logo" data-icon="spark" data-size="15"></span><span id="brandTxt">Agente Local</span></div>
     </div>
-    <button class="novo" id="novoChat">＋ <span id="novoTxt">Novo chat</span></button>
-    <div class="busca" id="buscaBox"><span class="lupa" aria-hidden="true">⌕</span><input type="search" id="buscaChat" autocomplete="off"><button type="button" class="ic lim" id="buscaLimpar">✕</button></div>
+    <button class="novo" id="novoChat"><span data-icon="plus"></span><span id="novoTxt">Novo chat</span></button>
+    <div class="busca" id="buscaBox"><span class="lupa" data-icon="search" data-size="15"></span><input type="search" id="buscaChat" autocomplete="off"><button type="button" class="ic lim" id="buscaLimpar"><span data-icon="x" data-size="14"></span></button></div>
     <div class="lista" id="lista" aria-label="Conversas"><span class="ui-skel pill"></span><span class="ui-skel pill"></span><span class="ui-skel pill"></span></div>
-    <div class="sbfoot" id="sbfoot"></div>
+    <div class="sbfoot"><span data-icon="shield-check" data-size="14"></span><span id="sbfoot"></span></div>
   </aside>
 
   <main id="main">
     <header>
-      <button class="hbtn" id="toggleSide" title="menu">☰</button>
-      <button class="hbtn" id="powerBtn" title="ligar/desligar">⏻</button>
-      <button class="hbtn" id="lockBtn" title="cofre" style="display:none">🔒</button>
-      <span class="pill" id="sysPill" style="font-family:ui-monospace,monospace;font-size:11.5px"></span>
+      <button class="hbtn" id="toggleSide" title="menu"><span data-icon="panel-left" data-size="18"></span></button>
+      <button class="hbtn" id="powerBtn" title="ligar/desligar"><span data-icon="power" data-size="18"></span></button>
+      <button class="hbtn" id="lockBtn" title="cofre" style="display:none"><span data-icon="lock" data-size="18"></span></button>
+      <div class="hsp"></div>
+      <span class="pill" id="sysPill"></span>
       <span class="pill" id="pill">…</span>
-      <button class="hbtn" id="themeBtn" title="tema">🌙</button>
-      <a class="hbtn" id="memBtn" href="/memorias" title="Memórias">🗂️</a>
-      <a class="hbtn" id="grafoBtn" href="/grafo" title="Grafo">🕸️</a>
-      <button class="hbtn" id="gear" title="config">⚙</button>
+      <div class="hsep"></div>
+      <button class="hbtn" id="themeBtn" title="tema"><span data-icon="moon" data-size="18"></span></button>
+      <a class="hbtn" id="memBtn" href="/memorias" title="Memórias"><span data-icon="folder" data-size="18"></span></a>
+      <a class="hbtn" id="grafoBtn" href="/grafo" title="Grafo"><span data-icon="graph" data-size="18"></span></a>
+      <button class="hbtn" id="gear" title="config"><span data-icon="settings" data-size="18"></span></button>
     </header>
-    <div id="banner" role="status"><span class="spin" id="bannerSpin"></span><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button><button class="bbtn sec" id="bannerBtn2" style="display:none"></button></div>
+    <div id="banner" role="status"><span class="spin" id="bannerSpin"></span><span class="bico bico-warn" data-icon="alert-circle" data-size="18"></span><span class="bico bico-ok" data-icon="check-circle" data-size="18"></span><span class="bico bico-err" data-icon="alert-triangle" data-size="18"></span><span id="bannerTxt"></span><button class="bbtn" id="bannerBtn" style="display:none"></button><button class="bbtn sec" id="bannerBtn2" style="display:none"></button></div>
     <div id="chatWrap">
       <div id="chat" aria-live="polite"><div class="ld"><span class="ui-skel"></span><span class="ui-skel"></span><span class="ui-skel"></span></div></div>
-      <button type="button" id="descer">↓ <span id="descerTxt"></span></button>
+      <button type="button" id="descer"><span data-icon="arrow-down" data-size="15"></span><span id="descerTxt"></span></button>
     </div>
-    <div id="chatActions" style="display:none"><button id="regenBtn"><span>↻</span><span id="regenTxt"></span></button></div>
+    <div id="chatActions" style="display:none"><button id="regenBtn"><span data-icon="refresh" data-size="14"></span><span id="regenTxt"></span></button></div>
     <div id="fatoBar" hidden role="status"></div>
     <div id="bar">
-      <div id="ctxBar"><label for="projSel" id="projLabel">Projeto</label><select id="projSel"></select><select id="modelSel"></select><button type="button" id="ctxBtn">🧠</button></div>
+      <div id="ctxBar"><label for="projSel" id="projLabel">Projeto</label><select id="projSel"></select><select id="modelSel"></select><button type="button" id="ctxBtn"><span data-icon="brain" data-size="15"></span></button></div>
       <div id="anexosBar"></div>
       <div class="barin">
-        <button id="attachBtn" title="anexar">📎</button>
+        <button id="attachBtn" title="anexar"><span data-icon="paperclip" data-size="19"></span></button>
         <textarea id="input" rows="1"></textarea>
-        <button id="send" title="enviar">➤</button>
+        <button id="send" title="enviar"><span data-icon="arrow-up" data-size="19"></span></button>
       </div>
     </div>
     <input type="file" id="anexoFile" accept="image/*,.txt,.md,.pdf,.json,.js,.py,.csv,.log,.html,.css,.ts" multiple style="display:none">
@@ -363,11 +425,11 @@
 
 <div id="cofreModal" role="dialog" aria-modal="true" aria-label="Cofre" style="position:fixed;inset:0;z-index:30;background:var(--bg);align-items:center;justify-content:center;display:none">
   <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;width:min(340px,90%);text-align:center">
-    <div style="font-size:38px;margin-bottom:6px">🔒</div>
+    <div class="cofre-ico" data-icon="lock" data-size="22"></div>
     <div id="cofreTitle" style="font-size:15px;margin-bottom:14px;color:var(--dim)"></div>
     <input type="password" id="cofreSenha" style="width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px;font-family:inherit;font-size:14px">
     <div id="cofreErr" style="color:var(--danger);font-size:12px;min-height:15px;margin:7px 0"></div>
-    <button id="cofreOk" class="bbtn" style="width:100%;padding:11px"></button>
+    <button id="cofreOk" class="bbtn" style="width:100%;height:40px"></button>
   </div>
 </div>
 
@@ -456,8 +518,8 @@ const I18N={
    pillOff:"Ollama desligado",ollamaOff:"O Ollama está instalado, mas parado.",
    ollamaNotInst:"O Ollama (motor dos modelos) não está instalado.",
    startOllama:"Iniciar Ollama",installOllama:"Instalar Ollama",starting:"iniciando…",installingOllama:"baixando…",
-   bannerModel:"O modelo {m} ainda não foi baixado. Abra ⚙ e clique em Baixar.",
-   installed:"✓ instalado",notInstalled:"não baixado",download:"Baixar",downloading:"baixando…",ready:"✓ pronto",soon:"em breve",
+   bannerModel:"O modelo {m} ainda não foi baixado. Abra os Ajustes e clique em Baixar.",
+   installed:"instalado",notInstalled:"não baixado",download:"Baixar",downloading:"baixando…",ready:"pronto",soon:"em breve",
    mdesc:{"qwen2.5:1.5b":"leve e melhor em português","llama3.2:3b":"leve, mais capaz",
      "qwen2.5:3b":"ótimo para o tamanho","qwen3:4b":"esperto, ainda econômico","qwen3:8b":"nível cheio, usa a placa","llama3.1:8b":"completo",
      "moondream":"vê imagens, bem leve","llava:7b":"vê imagens, mais capaz"},
@@ -467,21 +529,21 @@ const I18N={
    sk_iniciativa:"Iniciativa",sk_iniciativa_d:"fala sozinho quando faz sentido",
    sk_wikipedia:"Wikipédia",sk_wikipedia_d:"consulta a Wikipédia offline",
    sk_documentos:"Documentos",sk_documentos_d:"responde com base nos seus arquivos",
-   docsOpen:"📁 Abrir pasta de documentos",docsReindex:"🔄 Reindexar",docsIndexing:"indexando…",
+   docsOpen:"Abrir pasta de documentos",docsReindex:"Reindexar",docsIndexing:"indexando…",
    docsEmpty:"Coloque .txt, .md ou .pdf na pasta e clique em Reindexar.",
    docsStat:"{n} arquivo(s) · {c} trecho(s) indexado(s)",
-   bkExport:"⬇ Exportar tudo (backup)",bkImport:"⬆ Restaurar backup",bkExporting:"gerando…",
-   bkImporting:"restaurando…",bkDone:"✓ restaurado",bkConfirm:"Restaurar o backup vai sobrescrever memória, grafo e conversas atuais. Continuar?",
+   bkExport:"Exportar tudo (backup)",bkImport:"Restaurar backup",bkExporting:"gerando…",
+   bkImporting:"restaurando…",bkDone:"restaurado",bkConfirm:"Restaurar o backup vai sobrescrever memória, grafo e conversas atuais. Continuar?",
    secHdr:"Segurança",secOff:"Seus dados estão em texto puro no disco. Defina uma senha para cifrá-los.",
    secOn:"Memória, conversas, grafo e lembretes ficam cifrados no disco.",
-   secPwPh:"crie uma senha (mín. 4)",secEnable:"🔒 Ativar criptografia",secLock:"🔒 Bloquear agora",
+   secPwPh:"crie uma senha (mín. 4)",secEnable:"Ativar criptografia",secLock:"Bloquear agora",
    secDisable:"Desativar criptografia",secDisPh:"senha atual para desativar",secMin:"Use ao menos 4 caracteres.",secBad:"Senha incorreta.",
    unlockTitle:"Cofre bloqueado. Digite sua senha para continuar.",unlock:"Desbloquear",lockNow:"bloquear o cofre",
    apiHdr:"API de memória",apiName:"Deixar outras IAs usarem a memória",apiD:"Claude, ChatGPT, scripts e agentes acessam projetos, memórias e o grafo via API local (com token).",
-   apiToken:"Token",apiCopy:"copiar",apiCopied:"✓ copiado",apiShow:"mostrar",apiRotate:"🔄 Gerar novo token",apiRotateConfirm:"Gerar um novo token? As IAs conectadas precisarão do novo.",
+   apiToken:"Token",apiCopy:"copiar",apiCopied:"copiado",apiShow:"mostrar",apiRotate:"Gerar novo token",apiRotateConfirm:"Gerar um novo token? As IAs conectadas precisarão do novo.",
    apiMcp:"Configuração MCP (Claude Desktop, Claude Code, Cursor…)",apiDocs:"Especificação OpenAPI",
    remHdr:"Lembretes",remEmpty:'Nenhum lembrete. Diga ao agente: "me lembra disso amanhã".',remDel:"excluir",
-   ocrReady:"✓ Tesseract instalado",ocrInstall:"⬇ Instalar Tesseract (OCR)",ocrUninstall:"🗑 Desinstalar Tesseract",
+   ocrReady:"Tesseract instalado",ocrInstall:"Instalar Tesseract (OCR)",ocrUninstall:"Desinstalar Tesseract",
    ocrInstalling:"instalando…",ocrNeed:"Necessário para ler a tela. Instala pelo Windows (winget).",
    ocrConfirm:"Desinstalar o Tesseract? A leitura de tela será desativada.",
    tooBig:"Arquivo grande demais (máx. 16 MB).",attach:"anexar imagem ou arquivo",
@@ -489,11 +551,11 @@ const I18N={
    obsFreq:"Frequência das prints (s)",obsFreq_d:"de quanto em quanto tempo ele olha a tela",
    iniMode:"Iniciativa — quando falar",iniDinamico:"Dinâmico",iniIntervalo:"A cada X min",iniMin:"minutos:",
    delModel:"excluir",confDelModel:"Excluir o modelo {m}?",
-   wikiDl:"⬇ Baixar Wikipédia offline",wikiReady:"✓ Wikipédia offline pronta",wikiBaixando:"baixando…",
+   wikiDl:"Baixar Wikipédia offline",wikiReady:"Wikipédia offline pronta",wikiBaixando:"baixando…",
    paused:"Pausado",pause:"sistema ativo — clique pra pausar",activate:"sistema pausado — clique pra ativar",
-   folderHdr:"Arquivos",openFolder:"📂 Abrir pasta do agente",
+   folderHdr:"Arquivos",openFolder:"Abrir pasta do agente",
    btnGrafo:"Grafo de conhecimento",btnMem:"Memórias e projetos",foot:"Tudo roda local. Nada sai da sua máquina.",
-   errOllama:"O Ollama não está rodando.",errModel:"Baixe o modelo {m} primeiro (⚙ → Baixar).",
+   errOllama:"O Ollama não está rodando.",errModel:"Baixe o modelo {m} primeiro (Ajustes › Baixar).",
    confDel:"Excluir esta conversa?",
     cancel:"Cancelar",confirmT:"Confirmar",delBtn:"Excluir",ren:"Renomear",restoreBtn:"Restaurar",uninstBtn:"Desinstalar",rotateBtn:"Gerar novo token",
     connErr:"Sem conexão com o Atlas. Tentando novamente…",errStream:"(não foi possível concluir a resposta)",menu:"menu",
@@ -501,14 +563,14 @@ const I18N={
     search:"Buscar conversas",searchClear:"Limpar busca",noResults:"Nenhuma conversa encontrada.",
     gHoje:"Hoje",gOntem:"Ontem",g7:"Últimos 7 dias",g30:"Últimos 30 dias",gAntes:"Mais antigas",
     emptyHint:"Experimente:",
-    sug:[["💡","Explique um conceito","de forma simples, com exemplo","Explique de forma simples, com um exemplo do dia a dia, como funciona "],
-         ["📝","Resuma um texto","em tópicos curtos","Resuma o texto abaixo em tópicos curtos:\n\n"],
-         ["🧑‍💻","Ajude com código","revise ou explique","Revise este código, aponte problemas e sugira melhorias:\n\n```\n\n```"],
-         ["🗂️","O que você lembra?","sobre mim e meus projetos","O que você lembra sobre mim e sobre os meus projetos?"]],
+    sug:[["lightbulb","Explique um conceito","de forma simples, com exemplo","Explique de forma simples, com um exemplo do dia a dia, como funciona "],
+         ["file-text","Resuma um texto","em tópicos curtos","Resuma o texto abaixo em tópicos curtos:\n\n"],
+         ["code","Ajude com código","revise ou explique","Revise este código, aponte problemas e sugira melhorias:\n\n```\n\n```"],
+         ["brain","O que você lembra?","sobre mim e meus projetos","O que você lembra sobre mim e sobre os meus projetos?"]],
     startingN:"Iniciando o Ollama… {s}s",ollamaReady:"Ollama pronto.",startFail:"Não consegui iniciar o Ollama. Abra o aplicativo do Ollama ou tente de novo.",
     startNotInst:"O Ollama não foi encontrado neste PC.",retry:"Tentar de novo",
     modelDefault:"Padrão ({m})",modelChatT:"Modelo desta conversa",modelSet:"Esta conversa usará {m}.",modelReset:"Esta conversa voltou ao modelo padrão.",
-    noModel:"Nenhum modelo instalado. Abra ⚙ → Modelo e baixe um."},
+    noModel:"Nenhum modelo instalado. Abra Ajustes › Modelo e baixe um."},
  en:{title:"Local Agent",novo:"New chat",enviar:"Send",stop:"stop",regen:"Regenerate",ph:"Talk to the agent…",
    emptyT:"Start a conversation",emptyD:"Your assistant runs 100% on your machine.",
    lang:"Language",theme:"Theme",dark:"Dark",light:"Light",name:"Your name",namePh:"what the agent calls you",
@@ -516,8 +578,8 @@ const I18N={
    pillOff:"Ollama off",ollamaOff:"Ollama is installed but stopped.",
    ollamaNotInst:"Ollama (the model engine) isn't installed.",
    startOllama:"Start Ollama",installOllama:"Install Ollama",starting:"starting…",installingOllama:"downloading…",
-   bannerModel:"The model {m} hasn't been downloaded yet. Open ⚙ and click Download.",
-   installed:"✓ installed",notInstalled:"not downloaded",download:"Download",downloading:"downloading…",ready:"✓ ready",soon:"soon",
+   bannerModel:"The model {m} hasn't been downloaded yet. Open Settings and click Download.",
+   installed:"installed",notInstalled:"not downloaded",download:"Download",downloading:"downloading…",ready:"ready",soon:"soon",
    mdesc:{"qwen2.5:1.5b":"light, better in English","llama3.2:3b":"light, more capable",
      "qwen2.5:3b":"great for its size","qwen3:4b":"smart, still economical","qwen3:8b":"full quality, uses the GPU","llama3.1:8b":"full-size",
      "moondream":"sees images, very light","llava:7b":"sees images, more capable"},
@@ -527,21 +589,21 @@ const I18N={
    sk_iniciativa:"Initiative",sk_iniciativa_d:"speaks up when it makes sense",
    sk_wikipedia:"Wikipedia",sk_wikipedia_d:"queries offline Wikipedia",
    sk_documentos:"Documents",sk_documentos_d:"answers based on your files",
-   docsOpen:"📁 Open documents folder",docsReindex:"🔄 Reindex",docsIndexing:"indexing…",
+   docsOpen:"Open documents folder",docsReindex:"Reindex",docsIndexing:"indexing…",
    docsEmpty:"Drop .txt, .md or .pdf in the folder and click Reindex.",
    docsStat:"{n} file(s) · {c} chunk(s) indexed",
-   bkExport:"⬇ Export everything (backup)",bkImport:"⬆ Restore backup",bkExporting:"building…",
-   bkImporting:"restoring…",bkDone:"✓ restored",bkConfirm:"Restoring will overwrite your current memory, graph and conversations. Continue?",
+   bkExport:"Export everything (backup)",bkImport:"Restore backup",bkExporting:"building…",
+   bkImporting:"restoring…",bkDone:"restored",bkConfirm:"Restoring will overwrite your current memory, graph and conversations. Continue?",
    secHdr:"Security",secOff:"Your data is plain text on disk. Set a password to encrypt it.",
    secOn:"Memory, conversations, graph and reminders are encrypted on disk.",
-   secPwPh:"create a password (min. 4)",secEnable:"🔒 Enable encryption",secLock:"🔒 Lock now",
+   secPwPh:"create a password (min. 4)",secEnable:"Enable encryption",secLock:"Lock now",
    secDisable:"Disable encryption",secDisPh:"current password to disable",secMin:"Use at least 4 characters.",secBad:"Wrong password.",
    unlockTitle:"Vault locked. Enter your password to continue.",unlock:"Unlock",lockNow:"lock the vault",
    apiHdr:"Memory API",apiName:"Let other AIs use the memory",apiD:"Claude, ChatGPT, scripts and agents reach projects, memories and the graph through a local API (with a token).",
-   apiToken:"Token",apiCopy:"copy",apiCopied:"✓ copied",apiShow:"show",apiRotate:"🔄 Generate new token",apiRotateConfirm:"Generate a new token? Connected AIs will need the new one.",
+   apiToken:"Token",apiCopy:"copy",apiCopied:"copied",apiShow:"show",apiRotate:"Generate new token",apiRotateConfirm:"Generate a new token? Connected AIs will need the new one.",
    apiMcp:"MCP configuration (Claude Desktop, Claude Code, Cursor…)",apiDocs:"OpenAPI specification",
    remHdr:"Reminders",remEmpty:'No reminders. Tell the agent: "remind me of this tomorrow".',remDel:"delete",
-   ocrReady:"✓ Tesseract installed",ocrInstall:"⬇ Install Tesseract (OCR)",ocrUninstall:"🗑 Uninstall Tesseract",
+   ocrReady:"Tesseract installed",ocrInstall:"Install Tesseract (OCR)",ocrUninstall:"Uninstall Tesseract",
    ocrInstalling:"installing…",ocrNeed:"Needed to read the screen. Installs via Windows (winget).",
    ocrConfirm:"Uninstall Tesseract? Screen reading will be disabled.",
    tooBig:"File too large (max 16 MB).",attach:"attach image or file",
@@ -549,11 +611,11 @@ const I18N={
    obsFreq:"Screen check (s)",obsFreq_d:"how often it looks at the screen",
    iniMode:"Initiative — when to speak",iniDinamico:"Dynamic",iniIntervalo:"Every X min",iniMin:"minutes:",
    delModel:"delete",confDelModel:"Delete model {m}?",
-   wikiDl:"⬇ Download offline Wikipedia",wikiReady:"✓ offline Wikipedia ready",wikiBaixando:"downloading…",
+   wikiDl:"Download offline Wikipedia",wikiReady:"offline Wikipedia ready",wikiBaixando:"downloading…",
    paused:"Paused",pause:"system active — click to pause",activate:"system paused — click to activate",
-   folderHdr:"Files",openFolder:"📂 Open agent folder",
+   folderHdr:"Files",openFolder:"Open agent folder",
    btnGrafo:"Knowledge graph",btnMem:"Memories and projects",foot:"Everything runs locally. Nothing leaves your machine.",
-   errOllama:"Ollama isn't running.",errModel:"Download the model {m} first (⚙ → Download).",
+   errOllama:"Ollama isn't running.",errModel:"Download the model {m} first (Settings › Download).",
    confDel:"Delete this conversation?",
     cancel:"Cancel",confirmT:"Confirm",delBtn:"Delete",ren:"Rename",restoreBtn:"Restore",uninstBtn:"Uninstall",rotateBtn:"Generate new token",
     connErr:"Can't reach Atlas. Retrying…",errStream:"(the reply could not be completed)",menu:"menu",
@@ -561,14 +623,14 @@ const I18N={
     search:"Search chats",searchClear:"Clear search",noResults:"No chats found.",
     gHoje:"Today",gOntem:"Yesterday",g7:"Last 7 days",g30:"Last 30 days",gAntes:"Older",
     emptyHint:"Try:",
-    sug:[["💡","Explain a concept","simply, with an example","Explain simply, with an everyday example, how this works: "],
-         ["📝","Summarize a text","in short bullet points","Summarize the text below in short bullet points:\n\n"],
-         ["🧑‍💻","Help with code","review or explain","Review this code, point out problems and suggest improvements:\n\n```\n\n```"],
-         ["🗂️","What do you remember?","about me and my projects","What do you remember about me and my projects?"]],
+    sug:[["lightbulb","Explain a concept","simply, with an example","Explain simply, with an everyday example, how this works: "],
+         ["file-text","Summarize a text","in short bullet points","Summarize the text below in short bullet points:\n\n"],
+         ["code","Help with code","review or explain","Review this code, point out problems and suggest improvements:\n\n```\n\n```"],
+         ["brain","What do you remember?","about me and my projects","What do you remember about me and my projects?"]],
     startingN:"Starting Ollama… {s}s",ollamaReady:"Ollama is ready.",startFail:"Couldn't start Ollama. Open the Ollama app or try again.",
     startNotInst:"Ollama wasn't found on this PC.",retry:"Try again",
     modelDefault:"Default ({m})",modelChatT:"Model for this chat",modelSet:"This chat will use {m}.",modelReset:"This chat is back to the default model.",
-    noModel:"No model installed. Open ⚙ → Model and download one."},
+    noModel:"No model installed. Open Settings › Model and download one."},
  es:{title:"Agente Local",novo:"Nuevo chat",enviar:"Enviar",stop:"detener",regen:"Regenerar",ph:"Habla con el agente…",
    emptyT:"Empieza una conversación",emptyD:"Tu asistente corre 100% en tu máquina.",
    lang:"Idioma",theme:"Tema",dark:"Oscuro",light:"Claro",name:"Tu nombre",namePh:"cómo te llama el agente",
@@ -576,8 +638,8 @@ const I18N={
    pillOff:"Ollama apagado",ollamaOff:"Ollama está instalado pero detenido.",
    ollamaNotInst:"Ollama (el motor de modelos) no está instalado.",
    startOllama:"Iniciar Ollama",installOllama:"Instalar Ollama",starting:"iniciando…",installingOllama:"descargando…",
-   bannerModel:"El modelo {m} aún no se descargó. Abre ⚙ y haz clic en Descargar.",
-   installed:"✓ instalado",notInstalled:"no descargado",download:"Descargar",downloading:"descargando…",ready:"✓ listo",soon:"pronto",
+   bannerModel:"El modelo {m} aún no se descargó. Abre los Ajustes y haz clic en Descargar.",
+   installed:"instalado",notInstalled:"no descargado",download:"Descargar",downloading:"descargando…",ready:"listo",soon:"pronto",
    mdesc:{"qwen2.5:1.5b":"ligero y mejor en español","llama3.2:3b":"ligero, más capaz",
      "qwen2.5:3b":"óptimo para su tamaño","qwen3:4b":"listo, aún económico","qwen3:8b":"calidad completa, usa la placa","llama3.1:8b":"completo",
      "moondream":"ve imágenes, muy ligero","llava:7b":"ve imágenes, más capaz"},
@@ -587,21 +649,21 @@ const I18N={
    sk_iniciativa:"Iniciativa",sk_iniciativa_d:"habla solo cuando tiene sentido",
    sk_wikipedia:"Wikipedia",sk_wikipedia_d:"consulta la Wikipedia offline",
    sk_documentos:"Documentos",sk_documentos_d:"responde según tus archivos",
-   docsOpen:"📁 Abrir carpeta de documentos",docsReindex:"🔄 Reindexar",docsIndexing:"indexando…",
+   docsOpen:"Abrir carpeta de documentos",docsReindex:"Reindexar",docsIndexing:"indexando…",
    docsEmpty:"Pon .txt, .md o .pdf en la carpeta y haz clic en Reindexar.",
    docsStat:"{n} archivo(s) · {c} fragmento(s) indexado(s)",
-   bkExport:"⬇ Exportar todo (copia)",bkImport:"⬆ Restaurar copia",bkExporting:"generando…",
-   bkImporting:"restaurando…",bkDone:"✓ restaurado",bkConfirm:"Restaurar sobrescribirá tu memoria, grafo y conversaciones actuales. ¿Continuar?",
+   bkExport:"Exportar todo (copia)",bkImport:"Restaurar copia",bkExporting:"generando…",
+   bkImporting:"restaurando…",bkDone:"restaurado",bkConfirm:"Restaurar sobrescribirá tu memoria, grafo y conversaciones actuales. ¿Continuar?",
    secHdr:"Seguridad",secOff:"Tus datos están en texto plano en el disco. Define una contraseña para cifrarlos.",
    secOn:"Memoria, conversaciones, grafo y recordatorios quedan cifrados en el disco.",
-   secPwPh:"crea una contraseña (mín. 4)",secEnable:"🔒 Activar cifrado",secLock:"🔒 Bloquear ahora",
+   secPwPh:"crea una contraseña (mín. 4)",secEnable:"Activar cifrado",secLock:"Bloquear ahora",
    secDisable:"Desactivar cifrado",secDisPh:"contraseña actual para desactivar",secMin:"Usa al menos 4 caracteres.",secBad:"Contraseña incorrecta.",
    unlockTitle:"Caja fuerte bloqueada. Escribe tu contraseña para continuar.",unlock:"Desbloquear",lockNow:"bloquear la caja",
    apiHdr:"API de memoria",apiName:"Dejar que otras IAs usen la memoria",apiD:"Claude, ChatGPT, scripts y agentes acceden a proyectos, memorias y al grafo por una API local (con token).",
-   apiToken:"Token",apiCopy:"copiar",apiCopied:"✓ copiado",apiShow:"mostrar",apiRotate:"🔄 Generar nuevo token",apiRotateConfirm:"¿Generar un nuevo token? Las IAs conectadas necesitarán el nuevo.",
+   apiToken:"Token",apiCopy:"copiar",apiCopied:"copiado",apiShow:"mostrar",apiRotate:"Generar nuevo token",apiRotateConfirm:"¿Generar un nuevo token? Las IAs conectadas necesitarán el nuevo.",
    apiMcp:"Configuración MCP (Claude Desktop, Claude Code, Cursor…)",apiDocs:"Especificación OpenAPI",
    remHdr:"Recordatorios",remEmpty:'Sin recordatorios. Dile al agente: "recuérdame esto mañana".',remDel:"eliminar",
-   ocrReady:"✓ Tesseract instalado",ocrInstall:"⬇ Instalar Tesseract (OCR)",ocrUninstall:"🗑 Desinstalar Tesseract",
+   ocrReady:"Tesseract instalado",ocrInstall:"Instalar Tesseract (OCR)",ocrUninstall:"Desinstalar Tesseract",
    ocrInstalling:"instalando…",ocrNeed:"Necesario para leer la pantalla. Se instala por Windows (winget).",
    ocrConfirm:"¿Desinstalar Tesseract? Se desactivará la lectura de pantalla.",
    tooBig:"Archivo demasiado grande (máx. 16 MB).",attach:"adjuntar imagen o archivo",
@@ -609,11 +671,11 @@ const I18N={
    obsFreq:"Frecuencia de pantalla (s)",obsFreq_d:"cada cuánto mira la pantalla",
    iniMode:"Iniciativa — cuándo hablar",iniDinamico:"Dinámico",iniIntervalo:"Cada X min",iniMin:"minutos:",
    delModel:"eliminar",confDelModel:"¿Eliminar el modelo {m}?",
-   wikiDl:"⬇ Descargar Wikipedia offline",wikiReady:"✓ Wikipedia offline lista",wikiBaixando:"descargando…",
+   wikiDl:"Descargar Wikipedia offline",wikiReady:"Wikipedia offline lista",wikiBaixando:"descargando…",
    paused:"Pausado",pause:"sistema activo — clic para pausar",activate:"sistema pausado — clic para activar",
-   folderHdr:"Archivos",openFolder:"📂 Abrir carpeta del agente",
+   folderHdr:"Archivos",openFolder:"Abrir carpeta del agente",
    btnGrafo:"Grafo de conocimiento",btnMem:"Memorias y proyectos",foot:"Todo corre local. Nada sale de tu máquina.",
-   errOllama:"Ollama no está corriendo.",errModel:"Descarga el modelo {m} primero (⚙ → Descargar).",
+   errOllama:"Ollama no está corriendo.",errModel:"Descarga el modelo {m} primero (Ajustes › Descargar).",
    confDel:"¿Eliminar esta conversación?",
     cancel:"Cancelar",confirmT:"Confirmar",delBtn:"Eliminar",ren:"Renombrar",restoreBtn:"Restaurar",uninstBtn:"Desinstalar",rotateBtn:"Generar nuevo token",
     connErr:"Sin conexión con Atlas. Reintentando…",errStream:"(no se pudo completar la respuesta)",menu:"menú",
@@ -621,14 +683,14 @@ const I18N={
     search:"Buscar conversaciones",searchClear:"Limpiar búsqueda",noResults:"No se encontraron conversaciones.",
     gHoje:"Hoy",gOntem:"Ayer",g7:"Últimos 7 días",g30:"Últimos 30 días",gAntes:"Anteriores",
     emptyHint:"Prueba:",
-    sug:[["💡","Explica un concepto","de forma simple, con ejemplo","Explica de forma simple, con un ejemplo cotidiano, cómo funciona "],
-         ["📝","Resume un texto","en puntos cortos","Resume el texto de abajo en puntos cortos:\n\n"],
-         ["🧑‍💻","Ayuda con código","revisa o explica","Revisa este código, señala problemas y sugiere mejoras:\n\n```\n\n```"],
-         ["🗂️","¿Qué recuerdas?","sobre mí y mis proyectos","¿Qué recuerdas sobre mí y mis proyectos?"]],
+    sug:[["lightbulb","Explica un concepto","de forma simple, con ejemplo","Explica de forma simple, con un ejemplo cotidiano, cómo funciona "],
+         ["file-text","Resume un texto","en puntos cortos","Resume el texto de abajo en puntos cortos:\n\n"],
+         ["code","Ayuda con código","revisa o explica","Revisa este código, señala problemas y sugiere mejoras:\n\n```\n\n```"],
+         ["brain","¿Qué recuerdas?","sobre mí y mis proyectos","¿Qué recuerdas sobre mí y mis proyectos?"]],
     startingN:"Iniciando Ollama… {s}s",ollamaReady:"Ollama listo.",startFail:"No pude iniciar Ollama. Abre la aplicación de Ollama o inténtalo de nuevo.",
     startNotInst:"No se encontró Ollama en este PC.",retry:"Reintentar",
     modelDefault:"Predeterminado ({m})",modelChatT:"Modelo de esta conversación",modelSet:"Esta conversación usará {m}.",modelReset:"Esta conversación volvió al modelo predeterminado.",
-    noModel:"No hay modelos instalados. Abre ⚙ → Modelo y descarga uno."},
+    noModel:"No hay modelos instalados. Abre Ajustes › Modelo y descarga uno."},
 };
 const t=(k,v)=>{let s=(I18N[LANG]&&I18N[LANG][k])||I18N.pt[k]||k; if(v)for(const x in v)s=s.split('{'+x+'}').join(v[x]); return s;};
 const mdesc=n=>((I18N[LANG]||{}).mdesc||{})[n]||(I18N.pt.mdesc||{})[n]||'';
@@ -636,7 +698,7 @@ window.mdesc=mdesc;
 const SKILLS={memoria:true,tela:true,grafo:true,iniciativa:true,wikipedia:true,documentos:true};
 
 function aplicarTema(){ document.documentElement.setAttribute('data-tema',TEMA);
-  $('#themeBtn').textContent = TEMA==='escuro'?'☀️':'🌙'; }
+  $('#themeBtn').innerHTML = AtlasIcons.svg(TEMA==='escuro'?'sun':'moon',18); }
 
 // confirmação padrão (modal do Atlas) no lugar do confirm() do navegador
 const conf=(msg,o)=>AtlasUI.confirm({title:(o&&o.title)||t('confirmT'),message:msg,okText:(o&&o.ok)||t('confirmT'),cancelText:t('cancel'),danger:!!(o&&o.danger)});
@@ -659,8 +721,8 @@ function fixos(){
   $('#h-name').textContent=t('name'); $('#nome').placeholder=t('namePh');
   $('#h-skills').textContent=t('skills');
   $('#h-init').textContent=t('initHdr'); $('#grafoBtn').title=t('btnGrafo'); $('#memBtn').title=t('btnMem'); $('#foot').textContent=t('foot');
-  $('#h-folder').textContent=t('folderHdr'); $('#abrirPasta').textContent=t('openFolder');
-  $('#btnExport').textContent=t('bkExport'); $('#btnImport').textContent=t('bkImport');
+  $('#h-folder').textContent=t('folderHdr'); AtlasIcons.label($('#abrirPasta'),'folder-open',t('openFolder'));
+  AtlasIcons.label($('#btnExport'),'download',t('bkExport')); if(!$('#btnImport').disabled)AtlasIcons.label($('#btnImport'),'upload',t('bkImport'));
   $('#h-sec').textContent=t('secHdr'); $('#h-rem').textContent=t('remHdr'); $('#h-api').textContent=t('apiHdr');
   $('#regenTxt').textContent=t('regen'); $('#attachBtn').title=t('attach');
   $('#buscaChat').placeholder=t('search');$('#buscaChat').setAttribute('aria-label',t('search'));
@@ -685,12 +747,12 @@ function render(){
   const ativo=cfg.ativo!==false;
   $('#powerBtn').className='hbtn '+(ativo?'on':'off');
   $('#powerBtn').title=ativo?t('pause'):t('activate');
-  if(!ativo){pill.className='pill off';pill.textContent='⏸ '+t('paused');}
+  if(!ativo){pill.className='pill off';pill.textContent=t('paused');}
   // cofre (cadeado no header + modal de desbloqueio)
   const co=estado.cofre||{ligada:false,desbloqueado:true};
   const lb=$('#lockBtn');
   lb.style.display=co.ligada?'inline-flex':'none';
-  lb.textContent=co.desbloqueado?'🔓':'🔒';
+  lb.innerHTML=AtlasIcons.svg(co.desbloqueado?'unlock':'lock',18);
   lb.title=co.desbloqueado?t('lockNow'):t('unlock');
   if(co.ligada&&!co.desbloqueado){if($('#cofreModal').style.display!=='flex')abrirCofreModal();}else{$('#cofreModal').style.display='none';}
   renderBanner();
@@ -892,8 +954,8 @@ function renderBanner(){
     else bannerUI(t('ollamaNotInst'),{btn:{txt:t('installOllama'),fn:()=>instalarOllama($('#bannerBtn'))}});
     return;
   }
-  if(!modelosChatInstalados().length){bannerUI(t('noModel'),{btn:{txt:'⚙ '+t('model'),fn:abrirCfgModelo}});return;}
-  if(!instaladoNome(modeloEfetivo())){bannerUI(t('bannerModel',{m:modeloEfetivo()}),{btn:{txt:'⚙ '+t('model'),fn:abrirCfgModelo}});return;}
+  if(!modelosChatInstalados().length){bannerUI(t('noModel'),{btn:{txt:t('model'),fn:abrirCfgModelo}});return;}
+  if(!instaladoNome(modeloEfetivo())){bannerUI(t('bannerModel',{m:modeloEfetivo()}),{btn:{txt:t('model'),fn:abrirCfgModelo}});return;}
   bannerFechar();
 }
 function abrirCfgModelo(){abrirCfg();const s=$('#sec-modelo');if(s)s.open=true;}
@@ -986,7 +1048,7 @@ async function importarBackup(file){
     b.textContent=r.ok?t('bkDone'):('erro: '+(r.erro||''));
     if(r.ok){await carregarEstado();await carregarChats();}
   }catch(e){b.textContent='erro';}
-  setTimeout(()=>{b.disabled=false;b.textContent=t('bkImport');},1500);
+  setTimeout(()=>{b.disabled=false;AtlasIcons.label(b,'upload',t('bkImport'));},1500);
 }
 async function baixar(nome,btn,pr){
   const A=AjustesUI.t;btn.disabled=true;btn.textContent=A('dling');pr.style.display='block';const bar=pr.firstChild;bar.style.width='0';
@@ -1046,7 +1108,7 @@ function desenharLista(lista){
       if(g!==grupo){grupo=g;const gh=document.createElement('div');gh.className='grp';gh.textContent=t(g);L.appendChild(gh);}}
     const it=document.createElement('div');it.className='item'+(c.id===chatAtual?' sel':'');
     it.innerHTML=`<span class="tx"><span class="tit"></span></span><span class="acts">
-      <button class="ic ren" title="${t('ren')}" aria-label="${t('ren')}">✎</button><button class="ic del" title="${t('delBtn')}" aria-label="${t('delBtn')}">🗑</button></span>`;
+      <button class="ic ren" title="${t('ren')}" aria-label="${t('ren')}">${AtlasIcons.svg('pencil',15)}</button><button class="ic del" title="${t('delBtn')}" aria-label="${t('delBtn')}">${AtlasIcons.svg('trash',15)}</button></span>`;
     it.tabIndex=0;it.setAttribute('role','button');
     if(c.id===chatAtual)it.setAttribute('aria-current','true');
     it.onkeydown=e=>{if(e.target===it&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrirChat(c.id);}
@@ -1088,15 +1150,15 @@ function fecharSideMobile(){if(ehMobile()){$('#side').classList.add('hide');docu
 function vazio(){
   const ch=$('#chat');ch.innerHTML='';
   const box=document.createElement('div');box.className='empty';
-  box.innerHTML='<div class="big">◆</div><div style="font-weight:600;font-size:17px;color:var(--txt)"></div><div class="ed"></div>';
-  box.children[1].textContent=t('emptyT');box.querySelector('.ed').textContent=t('emptyD');
+  box.innerHTML='<div class="big mark">'+AtlasIcons.svg('spark',26)+'</div><div class="et"></div><div class="ed"></div>';
+  box.querySelector('.et').textContent=t('emptyT');box.querySelector('.ed').textContent=t('emptyD');
   const sug=t('sug');
   if(Array.isArray(sug)){
     const grid=document.createElement('div');grid.className='chips';grid.setAttribute('aria-label',t('emptyHint'));
-    for(const [em,tit,sub,prompt] of sug){
+    for(const [ico,tit,sub,prompt] of sug){
       const b=document.createElement('button');b.type='button';b.className='chip';
-      const e=document.createElement('span');e.className='ce';e.textContent=em;
-      const tx=document.createElement('span');tx.textContent=tit;const sm=document.createElement('small');sm.textContent=sub;tx.appendChild(sm);
+      const e=document.createElement('span');e.className='ce';e.innerHTML=AtlasIcons.svg(ico,18);
+      const tx=document.createElement('span');tx.className='ctx';tx.textContent=tit;const sm=document.createElement('small');sm.textContent=sub;tx.appendChild(sm);
       b.append(e,tx);
       b.onclick=()=>{const inp=$('#input');inp.value=prompt;inp.focus();
         const pos=prompt.indexOf('```\n\n```');const at=pos>=0?pos+4:prompt.length;inp.setSelectionRange(at,at);
@@ -1135,7 +1197,7 @@ $('#descer').onclick=()=>{chatEl.scrollTo({top:chatEl.scrollHeight,behavior:'smo
 function addMsg(role,texto,comMd,imgs){
   const e=$('#chat .empty');if(e)e.remove();
   const m=document.createElement('div');m.className='msg '+role;
-  m.innerHTML=`<div class="av ${role==='user'?'u':'a'}">${role==='user'?'eu':'◆'}</div><div class="mcol"><div class="bubble"></div></div>`;
+  m.innerHTML=`<div class="av ${role==='user'?'u':'a'}">${role==='user'?AtlasIcons.svg('user',15):AtlasIcons.svg('spark',14)}</div><div class="mcol"><div class="bubble"></div></div>`;
   const bub=m.querySelector('.bubble');
   if(imgs&&imgs.length){const box=document.createElement('div');box.className='imgs';
     for(const u of imgs){const im=document.createElement('img');im.src=u;im.alt='';box.appendChild(im);}bub.appendChild(box);}
@@ -1150,15 +1212,15 @@ function addMsg(role,texto,comMd,imgs){
 function acoesResposta(r,texto,parcial){
   const col=r.msg.querySelector('.mcol');let a=col.querySelector('.mact');if(a)a.remove();
   a=document.createElement('div');a.className='mact';
-  if(texto){const cp=document.createElement('button');cp.type='button';cp.textContent='⧉ '+t('copy');cp.title=t('copyMsg');cp.setAttribute('aria-label',t('copyMsg'));
-    cp.onclick=()=>AtlasMD.copiar(texto).then(()=>{cp.textContent='✓ '+t('copied');setTimeout(()=>cp.textContent='⧉ '+t('copy'),1400);});
+  if(texto){const cp=document.createElement('button');cp.type='button';AtlasIcons.label(cp,'copy',t('copy'),14);cp.title=t('copyMsg');cp.setAttribute('aria-label',t('copyMsg'));
+    cp.onclick=()=>AtlasMD.copiar(texto).then(()=>{AtlasIcons.label(cp,'check',t('copied'),14);setTimeout(()=>AtlasIcons.label(cp,'copy',t('copy'),14),1400);});
     a.appendChild(cp);}
-  if(parcial){const tg=document.createElement('span');tg.className='tag parcial';tg.textContent='⏹ '+t('partial');a.appendChild(tg);}
+  if(parcial){const tg=document.createElement('span');tg.className='tag parcial';AtlasIcons.label(tg,'stop',t('partial'),11);a.appendChild(tg);}
   if(a.children.length)col.appendChild(a);
 }
 function modoStop(on){const b=$('#send');b.disabled=false;
-  if(on){b.textContent='■';b.classList.add('stop');b.title=t('stop');b.setAttribute('aria-label',t('stop'));b.onclick=pararGeracao;}
-  else{b.textContent='➤';b.classList.remove('stop');b.title=t('enviar');b.setAttribute('aria-label',t('enviar'));b.onclick=enviar;}}
+  if(on){b.innerHTML=AtlasIcons.svg('stop',14);b.classList.add('stop');b.title=t('stop');b.setAttribute('aria-label',t('stop'));b.onclick=pararGeracao;}
+  else{b.innerHTML=AtlasIcons.svg('arrow-up',19);b.classList.remove('stop');b.title=t('enviar');b.setAttribute('aria-label',t('enviar'));b.onclick=enviar;}}
 function pararGeracao(){if(ctrl)ctrl.abort();}
 async function enviar(){
   const inp=$('#input'),texto=inp.value.trim();if((!texto&&!anexos.length)||ocupado)return;
@@ -1215,9 +1277,9 @@ function renderAnexos(){
   const bar=$('#anexosBar');bar.innerHTML='';bar.style.display=anexos.length?'flex':'none';
   anexos.forEach((a,i)=>{const c=document.createElement('div');c.className='anexo';
     if(a.tipo==='img'){const im=document.createElement('img');im.src=a.dataURL;c.appendChild(im);}
-    else{const e=document.createElement('span');e.textContent='📄';c.appendChild(e);}
+    else{const e=document.createElement('span');e.setAttribute('data-icon','file-text');e.innerHTML=AtlasIcons.svg('file-text',15);c.appendChild(e);}
     const nm=document.createElement('span');nm.className='nm';nm.textContent=a.nome;c.appendChild(nm);
-    const x=document.createElement('span');x.className='x';x.textContent='✕';x.onclick=()=>{anexos.splice(i,1);renderAnexos();};c.appendChild(x);
+    const x=document.createElement('span');x.className='x';x.innerHTML=AtlasIcons.svg('x',13);x.onclick=()=>{anexos.splice(i,1);renderAnexos();};c.appendChild(x);
     bar.appendChild(c);});
 }
 function addArquivo(file){
@@ -1275,10 +1337,11 @@ try{const es=new EventSource('/eventos');es.onmessage=ev=>{let m;try{m=JSON.pars
 
 async function atualizarSistema(){
   try{const s=await(await fetch('/api/sistema')).json();const p=[];
-    if(s.vram_total)p.push('🎮 '+(s.vram_usada/1024).toFixed(1)+'/'+(s.vram_total/1024).toFixed(1)+'GB');
-    if(s.cpu!=null)p.push('CPU '+s.cpu+'%');
-    if(s.ram_total){p.push('RAM '+s.ram_pct+'%');const gb=s.ram_total/1073741824;if(Math.abs((hostAj.ramTotalGB||0)-gb)>0.05){hostAj.ramTotalGB=gb;if(estado)AjustesUI.render();}}
-    $('#sysPill').textContent=p.join('  ');
+    if(s.vram_total)p.push(['GPU',(s.vram_usada/1024).toFixed(1)+'/'+(s.vram_total/1024).toFixed(1)+'GB']);
+    if(s.cpu!=null)p.push(['CPU',s.cpu+'%']);
+    if(s.ram_total){p.push(['RAM',s.ram_pct+'%']);const gb=s.ram_total/1073741824;if(Math.abs((hostAj.ramTotalGB||0)-gb)>0.05){hostAj.ramTotalGB=gb;if(estado)AjustesUI.render();}}
+    const sp=$('#sysPill');sp.textContent='';
+    for(const [k,v] of p){const s1=document.createElement('span'),b=document.createElement('b');b.textContent=k;s1.append(b,v);sp.appendChild(s1);}
   }catch(e){$('#sysPill').textContent='';}
 }
 const hostAj={estado:()=>estado,salvar:salvarConfig,conf:conf,baixar:baixar,excluir:excluirModelo,chat:()=>chatAtual,seg:seg,setEstado:aplicarEstado,ramTotalGB:0,
