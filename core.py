@@ -7,6 +7,7 @@ Responsabilidades:
 - falar com o Ollama (status, lista de modelos, baixar modelo, chat)
 """
 import os
+import re
 import time
 import json
 import shutil
@@ -83,6 +84,28 @@ def modelos_embed() -> list:
 
 def info_modelo(nome: str) -> dict:
     return next((m for m in CATALOGO_MODELOS if m["nome"] == nome), {})
+
+
+_MODELO_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.\-/]{0,79}(:[A-Za-z0-9_.\-]{1,40})?$")
+
+
+def nome_modelo_valido(nome) -> bool:
+    """Tag aceitável do Ollama (ex.: 'qwen3:8b', 'hf.co/user/repo:Q4_K_M')."""
+    return isinstance(nome, str) and bool(_MODELO_RE.match(nome)) and ".." not in nome
+
+
+def mesmo_modelo(a: str, b: str) -> bool:
+    """'llama3' e 'llama3:latest' são o mesmo modelo no Ollama."""
+    sem = lambda n: n[:-7] if isinstance(n, str) and n.endswith(":latest") else n
+    return bool(a) and sem(a) == sem(b)
+
+
+def eh_embed(nome: str) -> bool:
+    m = info_modelo(nome) or info_modelo(nome[:-7] if nome.endswith(":latest") else nome)
+    if m:
+        return m.get("tipo") == "embed"
+    n = nome.lower()
+    return "embed" in n or n.startswith(("bge-", "all-minilm", "snowflake-arctic-embed", "granite-embedding"))
 
 
 CONFIG_PADRAO = {
@@ -178,8 +201,11 @@ def carregar_config() -> dict:
             mesclado[k].update(cfg[k])
     for k in ("perfis_modelo", "instrucoes_projeto", "ctx_projeto"):
         mesclado[k] = cfg[k] if isinstance(cfg.get(k), dict) else {}
-    if mesclado.get("modelo") not in [m["nome"] for m in modelos_chat()]:
+    # aceita modelos fora do catálogo (instalados à mão no Ollama), mas nunca um de embeddings
+    if not nome_modelo_valido(mesclado.get("modelo")) or eh_embed(mesclado["modelo"]):
         mesclado["modelo"] = CONFIG_PADRAO["modelo"]
+    if not nome_modelo_valido(mesclado.get("embed")):
+        mesclado["embed"] = CONFIG_PADRAO["embed"]
     return mesclado
 
 
@@ -304,13 +330,14 @@ def descarregar_modelos():
             pass
 
 
-def iniciar_ollama() -> bool:
-    """Sobe o `ollama serve` se estiver instalado. Retorna True se ficou online."""
+def iniciar_ollama_detalhe(espera: float = 12.0) -> dict:
+    """Sobe o `ollama serve` se estiver instalado.
+    Devolve {"ok", "online", "erro"} com erro em nao_instalado | falhou | timeout (ou None)."""
     if ollama_online():
-        return True
+        return {"ok": True, "online": True, "erro": None}
     exe = achar_ollama()
     if not exe:
-        return False
+        return {"ok": False, "online": False, "erro": "nao_instalado"}
     env = dict(os.environ)
     env["OLLAMA_FLASH_ATTENTION"] = "1"
     env["OLLAMA_KV_CACHE_TYPE"] = "q8_0"
@@ -318,19 +345,43 @@ def iniciar_ollama() -> bool:
         subprocess.Popen([exe, "serve"], creationflags=_NO_WIN, env=env,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
-        return False
-    for _ in range(24):
+        return {"ok": False, "online": False, "erro": "falhou"}
+    fim = time.time() + espera
+    while time.time() < fim:
         if ollama_online():
-            return True
+            return {"ok": True, "online": True, "erro": None}
         time.sleep(0.5)
-    return ollama_online()
+    on = ollama_online()
+    return {"ok": on, "online": on, "erro": None if on else "timeout"}
+
+
+def iniciar_ollama() -> bool:
+    """Sobe o `ollama serve` se estiver instalado. Retorna True se ficou online."""
+    return iniciar_ollama_detalhe()["ok"]
+
+
+def listar_modelos_info() -> list:
+    """Modelos instalados com tamanho e detalhes do /api/tags ([] se o Ollama estiver parado)."""
+    try:
+        ms = requests.get(f"{OLLAMA}/api/tags", timeout=5).json().get("models", [])
+    except Exception:
+        return []
+    out = []
+    for m in ms if isinstance(ms, list) else []:
+        if not isinstance(m, dict) or not isinstance(m.get("name"), str):
+            continue
+        det = m.get("details") if isinstance(m.get("details"), dict) else {}
+        tam = m.get("size") if isinstance(m.get("size"), (int, float)) else 0
+        out.append({"nome": m["name"], "bytes": int(tam), "gb": round(tam / 1e9, 2),
+                    "familia": str(det.get("family") or "")[:40],
+                    "parametros": str(det.get("parameter_size") or "")[:20],
+                    "quant": str(det.get("quantization_level") or "")[:20],
+                    "modificado": str(m.get("modified_at") or "")[:40]})
+    return out
 
 
 def listar_modelos() -> list:
-    try:
-        return [m["name"] for m in requests.get(f"{OLLAMA}/api/tags", timeout=5).json().get("models", [])]
-    except Exception:
-        return []
+    return [m["nome"] for m in listar_modelos_info()]
 
 
 def modelo_instalado(nome: str) -> bool:
@@ -338,19 +389,99 @@ def modelo_instalado(nome: str) -> bool:
     return nome in instalados or (nome + ":latest") in instalados
 
 
+# ── HARDWARE (VRAM/RAM) para dizer se um modelo cabe ─────────────────────────
+_hw_cache = {"t": 0.0, "v": None}
+
+
+def _ram_total_gb() -> float:
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class _MS(ctypes.Structure):
+            _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+        m = _MS()
+        m.dwLength = ctypes.sizeof(m)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
+            return round(m.ullTotalPhys / 1024 ** 3, 1)
+    except Exception:
+        pass
+    try:
+        return round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1024 ** 3, 1)
+    except Exception:
+        return 0.0
+
+
+def _gpu_info() -> dict:
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=4,
+                             creationflags=_NO_WIN).stdout.strip().splitlines()[0]
+        nome, tot = [x.strip() for x in out.rsplit(",", 1)]
+        return {"gpu": nome[:60], "vram_gb": round(int(tot) / 1024, 1)}
+    except Exception:
+        return {"gpu": "", "vram_gb": 0.0}
+
+
+def hardware(ttl: float = 300.0) -> dict:
+    """{"gpu", "vram_gb", "ram_gb"} da máquina (cache de alguns minutos; 0 = não detectado)."""
+    agora = time.time()
+    if _hw_cache["v"] is None or agora - _hw_cache["t"] > ttl:
+        _hw_cache["v"] = {**_gpu_info(), "ram_gb": _ram_total_gb()}
+        _hw_cache["t"] = agora
+    return dict(_hw_cache["v"])
+
+
+def cabe(gb_modelo, hw: dict = None, num_ctx: int = 4096):
+    """Onde o modelo roda: "vram" (cabe na placa), "parcial" (divide com a RAM, mais lento),
+    "grande" (não cabe) ou None (tamanho/hardware desconhecido). Estimativa: arquivo + cache
+    de contexto (~0,5 GB a cada 4k tokens) + folga de 0,5 GB."""
+    hw = hw if hw is not None else hardware()
+    try:
+        gb = float(gb_modelo)
+    except (TypeError, ValueError):
+        return None
+    if gb <= 0:
+        return None
+    vram, ram = float(hw.get("vram_gb") or 0), float(hw.get("ram_gb") or 0)
+    if not vram and not ram:
+        return None
+    preciso = gb + 0.5 * max(1, (num_ctx or 4096) / 4096) + 0.5
+    if vram and preciso <= vram * 0.95:
+        return "vram"
+    if preciso <= vram + ram * 0.6:
+        return "parcial"
+    return "grande"
+
+
 def estado() -> dict:
     """Resumo pra interface saber o que está pronto."""
     import ajustes                        # import tardio (ajustes importa o core)
     cfg = carregar_config()
     online = ollama_online()
-    instalados = listar_modelos() if online else []
+    info = listar_modelos_info() if online else []
+    instalados = [m["nome"] for m in info]
+    hw = hardware()
+    ctx = cfg.get("num_ctx") or 4096
 
     def inst(n):
         return online and (n in instalados or (n + ":latest") in instalados)
 
-    catalogo = [{**m, "instalado": inst(m["nome"]),
+    catalogo = [{**m, "instalado": inst(m["nome"]), "cabe": cabe(m["gb"], hw, ctx),
                  "ativo": m["nome"] == (cfg.get("embed") if m.get("tipo") == "embed" else cfg.get("modelo"))}
                 for m in CATALOGO_MODELOS]
+    instalados_info = []
+    for m in info:
+        cat = info_modelo(m["nome"]) or info_modelo(m["nome"][:-7] if m["nome"].endswith(":latest") else "")
+        tipo = "embed" if eh_embed(m["nome"]) else "chat"
+        instalados_info.append({**m, "tipo": tipo, "catalogo": cat.get("nome", ""),
+                                "rotulo": cat.get("rotulo", m["nome"]),
+                                "cabe": cabe(m["gb"], hw, ctx) if tipo == "chat" else "vram",
+                                "ativo": mesmo_modelo(m["nome"], cfg.get("embed" if tipo == "embed" else "modelo"))})
     try:
         wiki_pronto = any(f.lower().endswith(".zim") for f in os.listdir(WIKI_DIR))
     except Exception:
@@ -364,6 +495,9 @@ def estado() -> dict:
         "catalogo": catalogo,
         "modelo_atual": modelo_atual(cfg),
         "instalados": instalados,
+        "instalados_info": instalados_info,
+        "hardware": hw,
+        "modelo_instalado": inst(modelo_atual(cfg)),
         "provedores": PROVEDORES,
         "ajustes": ajustes.meta(),
     }

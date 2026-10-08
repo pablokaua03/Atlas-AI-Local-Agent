@@ -135,23 +135,30 @@ def _presets(lista, avisos):
 
 
 # ── aplicar um patch vindo da interface ──────────────────────────────────────
-def aplicar(cfg: dict, d: dict):
+def _instalado_fora(nome, instalados, embed):
+    """Modelo fora do catálogo, mas instalado no Ollama e do tipo certo (chat x embeddings)."""
+    return (core.nome_modelo_valido(nome) and core.eh_embed(nome) == embed
+            and any(core.mesmo_modelo(nome, i) for i in (instalados or [])))
+
+
+def aplicar(cfg: dict, d: dict, instalados=None):
     """Aplica em cfg os campos NOVOS de um patch (os antigos seguem em server.api_config).
+    `instalados` (opcional) libera modelos instalados no Ollama que não estão no catálogo.
     Devolve (cfg, avisos)."""
     avisos = []
     if not isinstance(d, dict):
         return cfg, avisos
 
     if "modelo" in d:
-        if d["modelo"] in [m["nome"] for m in core.modelos_chat()]:
+        if d["modelo"] in [m["nome"] for m in core.modelos_chat()] or _instalado_fora(d["modelo"], instalados, False):
             cfg["modelo"] = d["modelo"]
         else:
-            avisos.append("modelo: não é um modelo de chat do catálogo")
+            avisos.append("modelo: não é um modelo de chat do catálogo nem instalado")
     if "embed" in d:
-        if d["embed"] in [m["nome"] for m in core.modelos_embed()]:
+        if d["embed"] in [m["nome"] for m in core.modelos_embed()] or _instalado_fora(d["embed"], instalados, True):
             cfg["embed"] = d["embed"]
         else:
-            avisos.append("embed: não é um modelo de embeddings do catálogo")
+            avisos.append("embed: não é um modelo de embeddings do catálogo nem instalado")
     if "num_ctx" in d:
         v = _num(d["num_ctx"], *LIM_NUM_CTX[:2], inteiro=True)
         if v is None:
@@ -162,7 +169,7 @@ def aplicar(cfg: dict, d: dict):
     if isinstance(d.get("perfis_modelo"), dict):
         perfis = dict(cfg.get("perfis_modelo") or {})
         for nome, val in d["perfis_modelo"].items():
-            if nome not in [m["nome"] for m in core.modelos_chat()]:
+            if nome not in [m["nome"] for m in core.modelos_chat()] and not _instalado_fora(nome, instalados, False):
                 avisos.append(f"perfis_modelo.{str(nome)[:40]}: modelo desconhecido")
                 continue
             if val is None or val == {}:

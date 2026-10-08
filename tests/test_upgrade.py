@@ -121,6 +121,138 @@ class TestRecall(tm.Base):
         self.assertIn("orquestrador", rec)
 
 
+INSTALADOS = [
+    {"nome": "qwen3:4b", "bytes": 2_500_000_000, "gb": 2.5, "familia": "qwen3", "parametros": "4.0B",
+     "quant": "Q4_K_M", "modificado": ""},
+    {"nome": "meu-modelo:7b", "bytes": 5_300_000_000, "gb": 5.3, "familia": "llama", "parametros": "7B",
+     "quant": "Q4_0", "modificado": ""},
+    {"nome": "gigante:70b", "bytes": 40_000_000_000, "gb": 40.0, "familia": "llama", "parametros": "70B",
+     "quant": "Q4_0", "modificado": ""},
+    {"nome": "snowflake-arctic-embed:latest", "bytes": 600_000_000, "gb": 0.6, "familia": "bert",
+     "parametros": "335M", "quant": "F16", "modificado": ""},
+]
+HW = {"gpu": "GPU de teste", "vram_gb": 6.0, "ram_gb": 16.0}
+
+
+class BaseModelos(BaseChat):
+    def setUp(self):
+        super().setUp()
+        self._mod = (core.listar_modelos_info, core.hardware)
+        core.ollama_online = lambda: True
+        core.listar_modelos_info = lambda: [dict(m) for m in INSTALADOS]
+        core.hardware = lambda ttl=300.0: dict(HW)
+
+    def tearDown(self):
+        core.listar_modelos_info, core.hardware = self._mod
+        super().tearDown()
+
+
+class TestCabe(unittest.TestCase):
+    def test_faixas(self):
+        self.assertEqual(core.cabe(2.5, HW), "vram")
+        self.assertEqual(core.cabe(5.2, HW), "parcial")          # 8B quantizado: divide com a RAM
+        self.assertEqual(core.cabe(40, HW), "grande")
+        self.assertEqual(core.cabe(2.5, HW, num_ctx=32768), "parcial")   # contexto grande pesa
+        self.assertIsNone(core.cabe(2.5, {"vram_gb": 0, "ram_gb": 0}))
+        self.assertIsNone(core.cabe(None, HW))
+        self.assertEqual(core.cabe(3.0, {"vram_gb": 0, "ram_gb": 16}), "parcial")   # sem GPU: só RAM
+
+    def test_nomes_e_tipos(self):
+        for ok in ("qwen3:8b", "phi4-mini", "hf.co/user/repo:Q4_K_M", "llama3"):
+            self.assertTrue(core.nome_modelo_valido(ok), ok)
+        for ruim in ("", None, "../x", "a b", ":8b", "x" * 200, "a;rm"):
+            self.assertFalse(core.nome_modelo_valido(ruim), ruim)
+        self.assertTrue(core.mesmo_modelo("llama3", "llama3:latest"))
+        self.assertFalse(core.mesmo_modelo("llama3", "llama3:8b"))
+        self.assertTrue(core.eh_embed("nomic-embed-text"))
+        self.assertTrue(core.eh_embed("snowflake-arctic-embed:latest"))
+        self.assertFalse(core.eh_embed("meu-modelo:7b"))
+
+
+class TestModelosInstalados(BaseModelos):
+    def test_estado_traz_instalados_com_tamanho_e_encaixe(self):
+        d = self.c.get("/api/estado").get_json()
+        self.assertEqual(d["hardware"], HW)
+        info = {m["nome"]: m for m in d["instalados_info"]}
+        self.assertEqual(info["qwen3:4b"]["cabe"], "vram")
+        self.assertEqual(info["qwen3:4b"]["catalogo"], "qwen3:4b")
+        self.assertEqual(info["meu-modelo:7b"]["cabe"], "parcial")
+        self.assertEqual(info["meu-modelo:7b"]["catalogo"], "")
+        self.assertEqual(info["gigante:70b"]["cabe"], "grande")
+        self.assertEqual(info["snowflake-arctic-embed:latest"]["tipo"], "embed")
+        cat = {m["nome"]: m for m in d["catalogo"]}
+        self.assertTrue(cat["qwen3:4b"]["instalado"])
+        self.assertIn(cat["qwen3:14b"]["cabe"], ("parcial", "grande"))
+        self.assertIn("qwen3:4b", d["instalados"])                     # campo antigo continua
+
+    def test_modelo_fora_do_catalogo_so_se_instalado(self):
+        d = self.c.post("/api/config", json={"modelo": "meu-modelo:7b"}).get_json()
+        self.assertEqual(d["config"]["modelo"], "meu-modelo:7b")
+        self.assertNotIn("avisos", d)
+        self.assertEqual(core.carregar_config()["modelo"], "meu-modelo:7b")      # persiste e recarrega
+        d = self.c.post("/api/config", json={"modelo": "nao-instalado:3b"}).get_json()
+        self.assertEqual(d["config"]["modelo"], "meu-modelo:7b")
+        self.assertTrue(d["avisos"])
+        d = self.c.post("/api/config", json={"modelo": "snowflake-arctic-embed"}).get_json()
+        self.assertEqual(d["config"]["modelo"], "meu-modelo:7b")            # embed não vira modelo de chat
+        d = self.c.post("/api/config", json={"embed": "snowflake-arctic-embed"}).get_json()
+        self.assertEqual(d["config"]["embed"], "snowflake-arctic-embed")
+        d = self.c.post("/api/config", json={"perfis_modelo": {"meu-modelo:7b": {"num_ctx": 8192}}}).get_json()
+        self.assertEqual(d["config"]["perfis_modelo"]["meu-modelo:7b"]["num_ctx"], 8192)
+
+    def test_config_antiga_com_lixo_volta_ao_padrao(self):
+        with open(core.CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump({"modelo": "../../etc", "embed": 5}, f)
+        cfg = core.carregar_config()
+        self.assertEqual(cfg["modelo"], core.CONFIG_PADRAO["modelo"])
+        self.assertEqual(cfg["embed"], core.CONFIG_PADRAO["embed"])
+
+    def test_modelo_por_conversa(self):
+        cid = chats.listar()["atual"]
+        r = self.c.post(f"/api/chats/{cid}/ctx", json={"modelo": "meu-modelo:7b"}).get_json()
+        self.assertEqual(r["modelo"], "meu-modelo:7b")
+        self.assertEqual(self.c.get("/api/chats").get_json()["chats"][0]["modelo"], "meu-modelo:7b")
+        r = self.c.post("/chat", json={"texto": "oi", "chat_id": cid})
+        r.get_data()
+        self.assertEqual(self.enviado[-1]["model"], "meu-modelo:7b")
+        info = json.loads(urllib.parse.unquote(r.headers["X-Atlas-Contexto"]))
+        self.assertEqual(info["modelo"], "meu-modelo:7b")
+        # desinstalado → volta ao modelo padrão sem quebrar
+        core.listar_modelos_info = lambda: [dict(INSTALADOS[0])]
+        self.c.post("/chat", json={"texto": "oi de novo", "chat_id": cid}).get_data()
+        self.assertEqual(self.enviado[-1]["model"], core.modelo_atual())
+        self.assertEqual(self.c.post(f"/api/chats/{cid}/ctx", json={"modelo": "a b"}).status_code, 400)
+        self.assertEqual(self.c.post(f"/api/chats/{cid}/ctx", json={"modelo": "nomic-embed-text"}).status_code, 400)
+        r = self.c.post(f"/api/chats/{cid}/ctx", json={"modelo": None}).get_json()
+        self.assertIsNone(r["modelo"])
+
+
+class TestOllamaStatus(BaseChat):
+    def test_status_e_start(self):
+        d = self.c.get("/api/ollama/status").get_json()
+        self.assertEqual(d, {"online": False, "instalado": False, "modelos": []})
+        d = self.c.post("/api/ollama/start").get_json()
+        self.assertEqual(d, {"ok": False, "online": False, "erro": "nao_instalado"})
+
+    def test_start_timeout(self):
+        antigo = (core.subprocess.Popen, core.time.sleep)
+        core.achar_ollama = lambda: "C:/fake/ollama.exe"
+        core.subprocess.Popen = lambda *a, **k: None
+        core.time.sleep = lambda s: None
+        try:
+            d = core.iniciar_ollama_detalhe(espera=0.01)
+        finally:
+            core.subprocess.Popen, core.time.sleep = antigo
+        self.assertEqual(d["erro"], "timeout")
+        self.assertFalse(d["ok"])
+
+    def test_pull_valida_nome_e_ollama_parado(self):
+        self.assertEqual(self.c.post("/api/pull", json={"modelo": "a b"}).status_code, 400)
+        linhas = self.c.post("/api/pull", json={"modelo": "qwen3:4b"}).get_data(as_text=True).strip()
+        self.assertEqual(json.loads(linhas)["error"], "ollama_offline")
+        self.assertEqual(self.c.post("/api/ollama/delete", json={"modelo": "../x"}).status_code, 400)
+
+
 class TestPorta(unittest.TestCase):
     def test_atlas_port(self):
         antigo = os.environ.get("ATLAS_PORT")

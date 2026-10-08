@@ -166,7 +166,11 @@ def api_estado():
 def api_config():
     d = _corpo_json()
     cfg = core.carregar_config()
-    cfg, avisos = ajustes.aplicar(cfg, d)      # modelo, embed, geração, contexto, instruções... (validado/limitado)
+    embed_antes = cfg.get("embed")
+    cat = {m["nome"] for m in core.CATALOGO_MODELOS}
+    fora = [d.get("modelo"), d.get("embed"), *((d.get("perfis_modelo") or {}) if isinstance(d.get("perfis_modelo"), dict) else {})]
+    instalados = core.listar_modelos() if any(isinstance(n, str) and n not in cat for n in fora if n) else None
+    cfg, avisos = ajustes.aplicar(cfg, d, instalados)   # modelo, embed, geração, contexto, instruções... (validado/limitado)
     if _inteiro(d.get("obs_intervalo"), 15, 900) is not None:
         cfg["obs_intervalo"] = _inteiro(d["obs_intervalo"], 15, 900)
     if d.get("iniciativa_modo") in ("dinamico", "intervalo"):
@@ -198,6 +202,8 @@ def api_config():
     core.salvar_config(cfg)
     if ligou_docs:                       # acabou de ligar os documentos → indexa a pasta
         docs.reindexar_async(forcar=False)
+    if cfg.get("embed") != embed_antes:  # vetores antigos não servem para o novo modelo de embeddings
+        memstore.indexar_async()
     if "nome" in d:                      # nome definido → atualiza grafo + memória
         skills.definir_nome(cfg["nome"])
     out = {**core.estado(), "cofre": cofre.estado()}
@@ -469,6 +475,12 @@ def api_chat_ctx(cid):
         if "projeto" in d:
             chats.definir_ctx(cid, projeto=d.get("projeto") or None)
             c = chats.get(cid)
+        if "modelo" in d:
+            m = d.get("modelo") or None
+            if m is not None and (not core.nome_modelo_valido(m) or core.eh_embed(m)):
+                return jsonify({"ok": False, "erro": "modelo inválido"}), 400
+            chats.definir_ctx(cid, modelo=m)
+            c = chats.get(cid)
         acao, mid = d.get("acao"), d.get("id")
         if acao in ("fixar", "excluir", "limpar") and isinstance(mid, str) and mid:
             if d.get("escopo") == "projeto":
@@ -496,7 +508,7 @@ def api_chat_ctx(cid):
     pid = c.get("projeto")
     proj = (cfg.get("ctx_projeto") or {}).get(pid or "", {}) or {}
     return jsonify({
-        "ok": True, "projeto": pid,
+        "ok": True, "projeto": pid, "modelo": c.get("modelo"),
         "conversa": {"fixas": _resolver_mems(c.get("ctx_fixas", [])), "excluidas": _resolver_mems(c.get("ctx_excluidas", []))},
         "projeto_regras": {"fixas": _resolver_mems(proj.get("fixas", [])), "excluidas": _resolver_mems(proj.get("excluidas", []))},
     })
@@ -578,35 +590,46 @@ def eventos():
 
 
 # ── OLLAMA: iniciar / instalar direto da interface ───────────────────────────
+@app.route("/api/ollama/status")
+def ollama_status():
+    """Verificação leve para a interface acompanhar o Ollama subindo."""
+    online = core.ollama_online()
+    return jsonify({"online": online, "instalado": online or bool(core.achar_ollama()),
+                    "modelos": core.listar_modelos() if online else []})
+
+
 @app.route("/api/ollama/start", methods=["POST"])
 def ollama_start():
-    ok = core.iniciar_ollama()
-    return jsonify({"ok": ok, "online": core.ollama_online()})
+    """{ok, online, erro}: erro em nao_instalado | falhou | timeout (null se subiu)."""
+    return jsonify(core.iniciar_ollama_detalhe())
 
 
 @app.route("/api/ollama/delete", methods=["POST"])
 def ollama_delete():
     d = _corpo_json()
-    nome = (d.get("modelo") or "").strip()
-    if not nome:
-        return jsonify({"ok": False}), 400
+    nome = (d.get("modelo") or "").strip() if isinstance(d.get("modelo"), str) else ""
+    if not core.nome_modelo_valido(nome):
+        return jsonify({"ok": False, "erro": "nome de modelo inválido"}), 400
     try:
         # descarrega da VRAM (se estiver) e remove de vez do disco
         try:
             requests.post(f"{core.OLLAMA}/api/generate", json={"model": nome, "keep_alive": 0}, timeout=10)
         except Exception:
             pass
-        requests.delete(f"{core.OLLAMA}/api/delete", json={"model": nome}, timeout=30)
+        r = requests.delete(f"{core.OLLAMA}/api/delete", json={"model": nome}, timeout=30)
+        if getattr(r, "status_code", 200) >= 400:
+            return jsonify({"ok": False, "erro": f"Ollama respondeu {r.status_code}"}), 502
     except Exception as e:
-        return jsonify({"ok": False, "erro": str(e)}), 500
+        return jsonify({"ok": False, "erro": str(e)}), 502
     # se era o modelo ativo, troca pro próximo instalado (ou volta pro padrão)
     cfg = core.carregar_config()
-    if cfg.get("modelo") == nome:
+    if core.mesmo_modelo(cfg.get("modelo"), nome):
         instalados = core.listar_modelos()
         prox = next((m["nome"] for m in core.modelos_chat() if m["nome"] in instalados), None)
+        prox = prox or next((i for i in instalados if not core.eh_embed(i)), None)
         cfg["modelo"] = prox or core.CONFIG_PADRAO["modelo"]
         core.salvar_config(cfg)
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "modelo": cfg.get("modelo")})
 
 
 @app.route("/api/ollama/install", methods=["POST"])
@@ -747,11 +770,14 @@ def api_wiki_baixar():
 @app.route("/api/pull", methods=["POST"])
 def api_pull():
     d = _corpo_json()
-    nome = (d.get("modelo") or "").strip()
-    if not nome:
-        return jsonify({"ok": False}), 400
+    nome = (d.get("modelo") or "").strip() if isinstance(d.get("modelo"), str) else ""
+    if not core.nome_modelo_valido(nome):
+        return jsonify({"ok": False, "erro": "nome de modelo inválido"}), 400
 
     def stream():
+        if not core.ollama_online():
+            yield (json.dumps({"error": "ollama_offline"}) + "\n").encode()
+            return
         try:
             r = requests.post(f"{core.OLLAMA}/api/pull", json={"model": nome, "stream": True},
                               stream=True, timeout=7200)
@@ -788,6 +814,11 @@ def chat():
     modelo = core.modelo_atual(cfg)
     nome = cfg.get("nome", "você")
     cid = d.get("chat_id") if isinstance(d.get("chat_id"), str) and d.get("chat_id") else chats.listar()["atual"]
+    m_chat = (chats.get(cid) or {}).get("modelo")
+    if m_chat and m_chat != modelo:              # modelo próprio desta conversa, se ainda estiver instalado
+        inst = next((i for i in core.listar_modelos() if core.mesmo_modelo(m_chat, i)), None)
+        if inst:
+            modelo = m_chat
 
     if texto and not imagens and not anexos:
         conf = lembretes.detectar(texto, idioma)      # "me lembra disso amanhã"
@@ -877,7 +908,7 @@ def chat():
     ctx_msg = [{"id": u["id"], "t": u["content"][:160], "p": u.get("project"), "f": bool(u.get("pinned"))}
                for u in usadas][:8]
     info_ctx = {"mems": ctx_msg, "projeto": projeto, "orcamento": orc, "usado": sum(uso.values()),
-                "ctx": perfil["num_ctx"]}
+                "ctx": perfil["num_ctx"], "modelo": modelo}
 
     msgs = [{"role": "system", "content": system}]
     hist_n = int(cc.get("hist_msgs", 6))
